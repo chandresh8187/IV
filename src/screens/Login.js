@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  StatusBar,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { TextInput } from 'react-native-paper';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,9 +21,7 @@ export default function LoginScreen() {
   const navigation = useNavigation();
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.container}>
-      <StatusBar backgroundColor="#F5F7FA" barStyle="dark-content" />
-
+    <KeyboardAvoidingView style={styles.container} behavior="padding">
       {/* Logo Section */}
       <View style={styles.logoContainer}>
         {/* Replace with your logo */}
@@ -116,10 +116,9 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-    justifyContent: 'center',
     paddingHorizontal: 22,
+    justifyContent: 'center',
+    flex: 1,
   },
 
   logoContainer: {

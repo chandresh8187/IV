@@ -30,10 +30,10 @@ jobs:
       - name: Give Permission
         run: chmod +x android/gradlew
 
-      # - name: Clean Build
-      #   run: |
-      #     cd android
-      #       ./gradlew clean
+      - name: Clean Build
+        run: |
+          cd android
+            ./gradlew clean
 
       - name: Build APK
         run: |
