@@ -1,17 +1,15 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { Card } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-
+import { Card } from 'react-native-paper';
 export default function HomeScreen() {
   const navigation = useNavigation(); // Fixed typo
 
@@ -22,11 +20,6 @@ export default function HomeScreen() {
       currency: 'INR',
       maximumFractionDigits: 0,
     }).format(value);
-  };
-
-  // Helper function to format numbers with commas
-  const formatNumber = value => {
-    return new Intl.NumberFormat('en-IN').format(value);
   };
 
   return (
@@ -86,13 +79,19 @@ export default function HomeScreen() {
             onPress={() => console.log('Reports pressed')}
           />
           <ActionButton
-            title="Materials"
-            onPress={() => console.log('Materials pressed')}
+            title="Current Shift"
+            onPress={() => navigation.navigate('CurrentShift')}
           />
         </View>
       </View>
     </ScrollView>
   );
+
+  // return (
+  //   <View style={styles.container}>
+  //     <ShiftCard />
+  //   </View>
+  // );
 }
 
 /* Dashboard Card Component */

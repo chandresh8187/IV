@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import {
-  Dimensions,
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,19 +10,104 @@ import {
 } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
 import { TextInput } from 'react-native-paper';
-export default function LoginScreen() {
+import { useDispatch } from 'react-redux';
+import { IVSnackbar } from '../components/IVSnackbar';
+import { loginSuccess } from '../redux/features/auth/authSlice';
+import { apiRequest } from '../redux/services/api';
+
+const COLORS = {
+  primary: '#232B5D',
+  accent: '#39A9E6',
+  border: '#B8C4D6',
+  text: '#1F2544',
+  gray: '#6B7280',
+  lightGray: '#9CA3AF',
+  white: '#FFFFFF',
+  background: '#F8FAFC',
+};
+
+function LoginScreen() {
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
+  const [Error, setError] = useState({});
 
-  const navigation = useNavigation();
+  const loginMutation = useMutation({
+    mutationFn: values =>
+      apiRequest({
+        endpoint: '/auth/login',
+        method: 'POST',
+        body: values,
+      }),
+
+    onSuccess: data => {
+      dispatch(
+        loginSuccess({
+          token: data.token,
+          user: data.user,
+        }),
+      );
+      IVSnackbar(data.message);
+      // navigation.reset({
+      //   index: 0,
+      //   routes: [{ name: 'Home' }],
+      // });
+    },
+
+    onError: error => {
+      IVSnackbar(error.message);
+    },
+  });
+
+  const validateForm = useCallback(() => {
+    let isValid = true;
+    let err = {};
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      err['email'] = 'Email address is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      err['email'] = 'Enter a valid email address';
+      isValid = false;
+    }
+
+    if (!password) {
+      err['password'] = 'Password is required';
+      isValid = false;
+    } else if (password.length < 6) {
+      err['password'] = 'Password must be at least 6 characters';
+      isValid = false;
+    }
+    setError(err);
+    return Object.keys(err).length === 0;
+  }, [email, password]);
+
+  const handleLogin = useCallback(() => {
+    if (!validateForm()) {
+      return;
+    }
+
+    loginMutation.mutate({
+      email,
+      password,
+    });
+  }, [email, password, loginMutation, validateForm]);
+
+  const toggleSecure = useCallback(() => {
+    setSecure(prev => !prev);
+  }, []);
+
+  const isLoading = loginMutation.isPending;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior="padding">
-      {/* Logo Section */}
+    <KeyboardAvoidingView style={styles.container} behavior={'padding'}>
       <View style={styles.logoContainer}>
-        {/* Replace with your logo */}
         <Image
           source={require('../assets/Image/IV_logo.png')}
           style={styles.logo}
@@ -32,13 +115,10 @@ export default function LoginScreen() {
         />
       </View>
 
-      {/* Form Card */}
       <View style={styles.card}>
         <Text style={styles.title}>Welcome Back</Text>
-
         <Text style={styles.description}>Login to continue</Text>
 
-        {/* Email Input */}
         <TextInput
           label="Email Address"
           value={email}
@@ -46,22 +126,17 @@ export default function LoginScreen() {
           mode="outlined"
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
           style={styles.input}
-          outlineColor="#B8C4D6"
-          activeOutlineColor="#39A9E6"
-          textColor="#1F2544"
-          theme={{
-            colors: {
-              primary: '#39A9E6',
-              onSurfaceVariant: '#232B5D',
-              background: '#FFFFFF',
-            },
-            roundness: 14,
-          }}
+          outlineColor={COLORS.border}
+          activeOutlineColor={COLORS.accent}
+          textColor={COLORS.text}
+          theme={inputTheme}
           left={<TextInput.Icon icon="email-outline" />}
+          disabled={isLoading}
+          error={Error.email}
         />
 
-        {/* Password Input */}
         <TextInput
           label="Password"
           value={password}
@@ -69,44 +144,39 @@ export default function LoginScreen() {
           secureTextEntry={secure}
           mode="outlined"
           style={styles.input}
-          outlineColor="#B8C4D6"
-          activeOutlineColor="#39A9E6"
-          textColor="#1F2544"
-          theme={{
-            colors: {
-              primary: '#39A9E6',
-              onSurfaceVariant: '#232B5D',
-              background: '#FFFFFF',
-            },
-            roundness: 14,
-          }}
+          outlineColor={COLORS.border}
+          activeOutlineColor={COLORS.accent}
+          textColor={COLORS.text}
+          theme={inputTheme}
           left={<TextInput.Icon icon="lock-outline" />}
           right={
             <TextInput.Icon
               icon={secure ? 'eye-off-outline' : 'eye-outline'}
-              onPress={() => setSecure(!secure)}
+              onPress={toggleSecure}
             />
           }
+          disabled={isLoading}
+          error={Error.password}
         />
 
-        {/* Login Button */}
         <TouchableOpacity
-          onPress={() => {
-            navigation.navigate('Home');
-          }}
-          activeOpacity={0.7}
-          style={styles.loginButton}
+          onPress={handleLogin}
+          activeOpacity={0.75}
+          style={[styles.loginButton, isLoading && styles.disabledButton]}
+          disabled={isLoading}
         >
-          <Text style={styles.loginText}>LOGIN</Text>
+          {isLoading ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Text style={styles.loginText}>LOGIN</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Forgot Password */}
-        <TouchableOpacity activeOpacity={0.7}>
+        <TouchableOpacity activeOpacity={0.7} disabled={isLoading}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Footer */}
       <Text style={styles.footer}>
         © 2026 IV Square Structure India Pvt Ltd
       </Text>
@@ -114,11 +184,21 @@ export default function LoginScreen() {
   );
 }
 
+const inputTheme = {
+  colors: {
+    primary: COLORS.accent,
+    onSurfaceVariant: COLORS.primary,
+    background: COLORS.white,
+  },
+  roundness: 14,
+};
+
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 22,
     justifyContent: 'center',
     flex: 1,
+    backgroundColor: COLORS.background,
   },
 
   logoContainer: {
@@ -130,21 +210,8 @@ const styles = StyleSheet.create({
     height: 200,
   },
 
-  companyName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#232B5D',
-    letterSpacing: 1,
-  },
-
-  subTitle: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -160,29 +227,29 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#232B5D',
+    color: COLORS.primary,
   },
 
   description: {
     fontSize: 15,
-    color: '#6B7280',
+    color: COLORS.gray,
     marginTop: 5,
     marginBottom: 24,
   },
 
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     marginBottom: 18,
   },
 
   loginButton: {
-    backgroundColor: '#232B5D',
+    backgroundColor: COLORS.primary,
     height: 56,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#39A9E6',
+    shadowColor: COLORS.accent,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -192,8 +259,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  disabledButton: {
+    opacity: 0.7,
+  },
+
   loginText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 1,
@@ -202,14 +273,16 @@ const styles = StyleSheet.create({
   forgotText: {
     textAlign: 'center',
     marginTop: 18,
-    color: '#39A9E6',
+    color: COLORS.accent,
     fontWeight: '600',
   },
 
   footer: {
     textAlign: 'center',
     marginTop: 28,
-    color: '#9CA3AF',
+    color: COLORS.lightGray,
     fontSize: 12,
   },
 });
+
+export default memo(LoginScreen);
