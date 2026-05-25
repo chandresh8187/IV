@@ -13,11 +13,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 export default function Main() {
   return (
     <PaperProvider>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <App />
-        </QueryClientProvider>
-      </Provider>
+      <App />
     </PaperProvider>
   );
 }

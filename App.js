@@ -1,22 +1,18 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import { StatusBar, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from './src/assets/Colors';
-import Routes from './src/stacks/Routes';
+import { Provider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const App = () => {
+import { store } from './src/redux/store';
+import RootNavigator from './src/navigation/RootNavigator';
+
+const queryClient = new QueryClient();
+
+export default function App() {
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: COLORS.primary,
-      }}
-    >
-      <StatusBar barStyle={'default'} />
-      <Routes />
-    </SafeAreaView>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <RootNavigator />
+      </QueryClientProvider>
+    </Provider>
   );
-};
-
-export default App;
+}
