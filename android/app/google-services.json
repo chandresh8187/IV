@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "168302605590",
+    "project_id": "iv-app-b1240",
+    "storage_bucket": "iv-app-b1240.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:168302605590:android:f292207e6194eaef958c37",
+        "android_client_info": {
+          "package_name": "com.ivsquare.production"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjP6Pibrs3gkZBNDPs12HfHL9g24FikZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

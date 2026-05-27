@@ -83,7 +83,7 @@ export default function SuperAdminTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Production" component={ProductionScreen} />
-      {/* <Tab.Screen name="History" component={HistoryScreen} /> */}
+      <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Users" component={UsersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
