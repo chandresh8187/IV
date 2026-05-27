@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,22 +10,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import moment from 'moment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList,
   Droplets,
   Factory,
   Plus,
+  RefreshCcwIcon,
   Scale,
   X,
 } from 'lucide-react-native';
-
+import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import { getProductionsApi, saveProductionApi } from '../../api/productionApi';
 import { socket } from '../../socket/socket';
 import { useSelector } from 'react-redux';
-
+import { getShiftStatusApi } from '../../api/shiftApi';
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -105,19 +108,47 @@ export default function ProductionScreen() {
   const [coatingForm, setCoatingForm] = useState(emptyCoating);
   const loggedUser = useSelector(state => state.auth.user);
 
-  const canManageProduction =
-    loggedUser?.role === 'superadmin' || loggedUser?.role === 'supervisor';
-
-  const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['productions'],
-    queryFn: () => getProductionsApi({ limit: 100 }),
+  const {
+    data: shiftStatusData,
+    isFetching: isShiftFetching,
+    refetch: refetchShiftStatus,
+  } = useQuery({
+    queryKey: ['shift-status'],
+    queryFn: getShiftStatusApi,
   });
+
+  const activeShift = shiftStatusData?.data?.active_shift || null;
+
+  const activeShiftId = activeShift?.id || null;
+
+  const isShiftActive = !!activeShiftId;
+
+  const canManageProduction =
+    (loggedUser?.role === 'superadmin' || loggedUser?.role === 'supervisor') &&
+    isShiftActive;
+
+  const { data, isLoading, isFetching, isRefetching, refetch } = useQuery({
+    queryKey: ['productions', activeShiftId],
+    queryFn: () =>
+      getProductionsApi({
+        limit: 100,
+        shift_id: activeShiftId,
+      }),
+    enabled: !!activeShiftId,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchShiftStatus();
+    }, [refetchShiftStatus]),
+  );
 
   const saveMutation = useMutation({
     mutationFn: saveProductionApi,
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'Saved successfully');
 
+      queryClient.invalidateQueries({ queryKey: ['shift-status'] });
       queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
@@ -136,19 +167,15 @@ export default function ProductionScreen() {
       socket.connect();
     }
 
-    const handleProductionUpdated = payload => {
-      console.log('production_updated:', payload);
-
+    const handleProductionUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     };
 
-    const handleShiftUpdated = payload => {
-      console.log('shift_updated:', payload);
-
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    const handleShiftUpdated = () => {
+      queryClient.removeQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     };
 
     socket.on('production_updated', handleProductionUpdated);
@@ -160,7 +187,26 @@ export default function ProductionScreen() {
     };
   }, [queryClient]);
 
-  const rows = data?.data?.table_data || data?.data || [];
+  const rows = activeShiftId ? data?.data?.table_data || data?.data || [] : [];
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
+
+    const latestShift = await queryClient.fetchQuery({
+      queryKey: ['shift-status'],
+      queryFn: getShiftStatusApi,
+    });
+
+    const latestShiftId = latestShift?.data?.active_shift?.id;
+
+    if (latestShiftId) {
+      await queryClient.invalidateQueries({
+        queryKey: ['productions', latestShiftId],
+      });
+    } else {
+      queryClient.removeQueries({ queryKey: ['productions'] });
+    }
+  };
 
   const openForm = type => {
     setOptionModal(false);
@@ -355,11 +401,26 @@ export default function ProductionScreen() {
           <Text style={styles.description}>Sr No wise production table</Text>
         </View>
 
-        <View style={styles.headerIcon}>
-          <Factory size={24} color={COLORS.primary} />
-        </View>
+        <AnimatedRefreshButton
+          refreshing={isFetching}
+          onPress={handleRefresh}
+        />
       </View>
+      <View style={styles.shiftInfoCard}>
+        <Text style={styles.shiftInfoTitle}>
+          {isShiftActive
+            ? `${activeShift.shift_name?.toUpperCase()} SHIFT ACTIVE`
+            : 'NO ACTIVE SHIFT'}
+        </Text>
 
+        <Text style={styles.shiftInfoText}>
+          {isShiftActive
+            ? `Shift Date: ${moment(activeShift.shift_date).format(
+                'DD/MM/YYYY',
+              )}`
+            : 'Start shift first to add production entries.'}
+        </Text>
+      </View>
       <View style={styles.tableCard}>
         {isLoading ? (
           <View style={styles.loaderBox}>
@@ -387,14 +448,7 @@ export default function ProductionScreen() {
                 <HeaderCell width={90}>Avg</HeaderCell>
               </View>
 
-              <ScrollView
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isRefetching}
-                    onRefresh={refetch}
-                  />
-                }
-              >
+              <ScrollView>
                 {rows.length === 0 ? (
                   <View style={styles.emptyBox}>
                     <Text style={styles.emptyText}>
@@ -852,7 +906,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
+  infoCard: {
+    backgroundColor: COLORS.lightBlue,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#D8ECFA',
+  },
 
+  infoText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -1151,6 +1218,27 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 22,
     fontWeight: '900',
+    marginTop: 4,
+  },
+  shiftInfoCard: {
+    backgroundColor: COLORS.lightBlue,
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#D8ECFA',
+  },
+
+  shiftInfoTitle: {
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+
+  shiftInfoText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '700',
     marginTop: 4,
   },
 });

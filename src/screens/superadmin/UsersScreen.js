@@ -168,6 +168,7 @@ export default function UsersScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16 }}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    padding: 16,
+    paddingTop: 16,
   },
 
   headerCard: {
@@ -455,6 +456,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginHorizontal: 16,
   },
 
   title: { color: COLORS.primary, fontSize: 27, fontWeight: '900' },

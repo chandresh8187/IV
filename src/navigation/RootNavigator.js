@@ -61,9 +61,21 @@ export default function RootNavigator() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: '#232B5D',
         }}
       >
-        <ActivityIndicator size="large" color="#232B5D" />
+        <View
+          style={{
+            backgroundColor: '#fff',
+            height: 80,
+            width: 80,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ActivityIndicator size="large" color="#232B5D" />
+        </View>
       </View>
     );
   }
@@ -82,12 +94,13 @@ export default function RootNavigator() {
             color: COLORS.white,
             fontWeight: '900',
           },
+          contentStyle: {
+            paddingBottom: 20,
+            backgroundColor: COLORS.primary,
+          },
         }}
       >
-        <Stack.Screen
-          name="IV Square Structure India PVT. LTD"
-          component={MainComponent}
-        />
+        <Stack.Screen name="IVS ~ UNIT-2" component={MainComponent} />
       </Stack.Navigator>
     </NavigationContainer>
   );

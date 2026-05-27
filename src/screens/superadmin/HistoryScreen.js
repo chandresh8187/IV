@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,7 +12,17 @@ import {
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Filter, Moon, Search, Sun } from 'lucide-react-native';
+import dayjs from 'dayjs';
+import DateTimePicker from 'react-native-ui-datepicker';
+import {
+  CalendarDays,
+  Filter,
+  Maximize2,
+  Moon,
+  Search,
+  Sun,
+  X,
+} from 'lucide-react-native';
 
 import { getProductionHistoryApi } from '../../api/historyApi';
 
@@ -36,8 +47,10 @@ const PAPER_THEME = {
   roundness: 14,
 };
 
+const formatDate = date => dayjs(date).format('YYYY-MM-DD');
+
 export default function HistoryScreen() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDate(new Date());
 
   const [filters, setFilters] = useState({
     from_date: today,
@@ -47,6 +60,14 @@ export default function HistoryScreen() {
   });
 
   const [appliedFilters, setAppliedFilters] = useState(filters);
+
+  const [datePicker, setDatePicker] = useState({
+    visible: false,
+    type: null,
+    value: dayjs(today),
+  });
+
+  const [fullTableVisible, setFullTableVisible] = useState(false);
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['production-history', appliedFilters],
@@ -60,6 +81,39 @@ export default function HistoryScreen() {
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const openDatePicker = type => {
+    setDatePicker({
+      visible: true,
+      type,
+      value: dayjs(filters[type]),
+    });
+  };
+
+  const closeDatePicker = () => {
+    setDatePicker({
+      visible: false,
+      type: null,
+      value: dayjs(),
+    });
+  };
+
+  const handleDateChange = params => {
+    const selectedDate = params?.date;
+
+    if (!selectedDate || !datePicker.type) {
+      return;
+    }
+
+    const finalDate = formatDate(selectedDate);
+
+    updateFilter(datePicker.type, finalDate);
+
+    setDatePicker(prev => ({
+      ...prev,
+      value: dayjs(selectedDate),
+    }));
   };
 
   const applyFilters = () => {
@@ -106,29 +160,37 @@ export default function HistoryScreen() {
             <Text style={styles.sectionTitle}>Filters</Text>
           </View>
 
-          <TextInput
-            label="From Date YYYY-MM-DD"
-            value={filters.from_date}
-            onChangeText={v => updateFilter('from_date', v)}
-            mode="outlined"
-            style={styles.input}
-            outlineColor={COLORS.inputBorder}
-            activeOutlineColor={COLORS.accent}
-            textColor={COLORS.text}
-            theme={PAPER_THEME}
-          />
+          <TouchableOpacity onPress={() => openDatePicker('from_date')}>
+            <TextInput
+              label="From Date"
+              value={filters.from_date}
+              mode="outlined"
+              editable={false}
+              pointerEvents="none"
+              style={styles.input}
+              outlineColor={COLORS.inputBorder}
+              activeOutlineColor={COLORS.accent}
+              textColor={COLORS.text}
+              theme={PAPER_THEME}
+              right={<TextInput.Icon icon="calendar" />}
+            />
+          </TouchableOpacity>
 
-          <TextInput
-            label="To Date YYYY-MM-DD"
-            value={filters.to_date}
-            onChangeText={v => updateFilter('to_date', v)}
-            mode="outlined"
-            style={styles.input}
-            outlineColor={COLORS.inputBorder}
-            activeOutlineColor={COLORS.accent}
-            textColor={COLORS.text}
-            theme={PAPER_THEME}
-          />
+          <TouchableOpacity onPress={() => openDatePicker('to_date')}>
+            <TextInput
+              label="To Date"
+              value={filters.to_date}
+              mode="outlined"
+              editable={false}
+              pointerEvents="none"
+              style={styles.input}
+              outlineColor={COLORS.inputBorder}
+              activeOutlineColor={COLORS.accent}
+              textColor={COLORS.text}
+              theme={PAPER_THEME}
+              right={<TextInput.Icon icon="calendar" />}
+            />
+          </TouchableOpacity>
 
           <View style={styles.shiftRow}>
             <ShiftButton
@@ -259,65 +321,159 @@ export default function HistoryScreen() {
               ))
             )}
 
-            <Text style={styles.blockTitle}>Production Entries</Text>
+            <View style={styles.blockHeader}>
+              <Text style={styles.blockTitleNoMargin}>Production Entries</Text>
 
-            <View style={styles.tableCard}>
-              <ScrollView horizontal showsHorizontalScrollIndicator>
-                <View>
-                  <View style={styles.tableHeader}>
-                    <HeaderCell width={90}>Date</HeaderCell>
-                    <HeaderCell width={70}>Shift</HeaderCell>
-                    <HeaderCell width={55}>Sr</HeaderCell>
-                    <HeaderCell width={90}>Challan</HeaderCell>
-                    <HeaderCell width={150}>Party</HeaderCell>
-                    <HeaderCell width={150}>Material</HeaderCell>
-                    <HeaderCell width={80}>Qty</HeaderCell>
-                    <HeaderCell width={90}>MS</HeaderCell>
-                    <HeaderCell width={90}>GI</HeaderCell>
-                    <HeaderCell width={90}>Zn %</HeaderCell>
-                    <HeaderCell width={90}>Avg</HeaderCell>
-                  </View>
-
-                  {tableData.length === 0 ? (
-                    <View style={styles.emptyTable}>
-                      <Text style={styles.emptyText}>No entries found</Text>
-                    </View>
-                  ) : (
-                    tableData.map((item, index) => (
-                      <View
-                        key={item.id}
-                        style={[
-                          styles.tableRow,
-                          index % 2 === 1 && styles.altRow,
-                        ]}
-                      >
-                        <Cell width={90}>{item.shift_date}</Cell>
-                        <Cell width={70}>{item.shift_name}</Cell>
-                        <Cell width={55} bold>
-                          {item.sr_no}
-                        </Cell>
-                        <Cell width={90}>{item.challan_no || '-'}</Cell>
-                        <Cell width={150}>{item.party_name || '-'}</Cell>
-                        <Cell width={150}>{item.material || '-'}</Cell>
-                        <Cell width={80}>{item.dipping_qty || '-'}</Cell>
-                        <Cell width={90}>{item.ms_weight || '-'}</Cell>
-                        <Cell width={90}>{item.gi_weight || '-'}</Cell>
-                        <Cell width={90}>{item.zinc_percentage || '-'}</Cell>
-                        <Cell width={90}>
-                          {item.avg_coating
-                            ? Math.round(Number(item.avg_coating))
-                            : '-'}
-                        </Cell>
-                      </View>
-                    ))
-                  )}
-                </View>
-              </ScrollView>
+              <TouchableOpacity
+                style={styles.fullBtn}
+                onPress={() => setFullTableVisible(true)}
+              >
+                <Maximize2 size={18} color={COLORS.primary} />
+                <Text style={styles.fullBtnText}>Full Screen</Text>
+              </TouchableOpacity>
             </View>
+
+            <HistoryTable tableData={tableData} />
           </>
         )}
       </ScrollView>
+
+      <DatePickerModal
+        visible={datePicker.visible}
+        value={datePicker.value}
+        onChange={handleDateChange}
+        onClose={closeDatePicker}
+      />
+
+      <Modal visible={fullTableVisible} animationType="slide">
+        <SafeAreaView style={styles.fullSafe}>
+          <View style={styles.fullHeader}>
+            <Text style={styles.fullTitle}>Production Entries</Text>
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setFullTableVisible(false)}
+            >
+              <X size={22} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.fullBody}>
+            <HistoryTable tableData={tableData} fullScreen />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
+  );
+}
+
+function DatePickerModal({ visible, value, onChange, onClose }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.dateOverlay}>
+        <View style={styles.dateCard}>
+          <View style={styles.dateHeader}>
+            <Text style={styles.dateTitle}>Select Date</Text>
+
+            <TouchableOpacity style={styles.dateCloseBtn} onPress={onClose}>
+              <X size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <DateTimePicker
+            mode="single"
+            date={value}
+            onChange={onChange}
+            styles={{
+              selected: {
+                backgroundColor: COLORS.primary,
+                borderRadius: 99,
+              },
+              day_label: { color: COLORS.primary, fontWeight: 'bold' },
+              selected_label: { color: COLORS.white },
+              today_label: {
+                color: COLORS.accent,
+                fontWeight: 'bold',
+              },
+              weekday_label: {
+                color: COLORS.primary,
+                fontWeight: 'bold',
+              },
+
+              month_selector_label: {
+                color: COLORS.primary,
+                fontWeight: 'bold',
+              },
+              year_selector_label: {
+                color: COLORS.primary,
+                fontWeight: 'bold',
+              },
+            }}
+          />
+
+          <TouchableOpacity style={styles.doneBtn} onPress={onClose}>
+            <Text style={styles.doneText}>DONE</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function HistoryTable({ tableData, fullScreen = false }) {
+  return (
+    <View style={[styles.tableCard, fullScreen && styles.fullTableCard]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <ScrollView style={fullScreen && styles.fullVerticalScroll}>
+          <View>
+            <View style={styles.tableHeader}>
+              <HeaderCell width={90}>Date</HeaderCell>
+              <HeaderCell width={70}>Shift</HeaderCell>
+              <HeaderCell width={55}>Sr</HeaderCell>
+              <HeaderCell width={90}>Challan</HeaderCell>
+              <HeaderCell width={150}>Party</HeaderCell>
+              <HeaderCell width={150}>Material</HeaderCell>
+              <HeaderCell width={80}>Qty</HeaderCell>
+              <HeaderCell width={90}>MS</HeaderCell>
+              <HeaderCell width={90}>GI</HeaderCell>
+              <HeaderCell width={90}>Zn %</HeaderCell>
+              <HeaderCell width={90}>Avg</HeaderCell>
+            </View>
+
+            {tableData.length === 0 ? (
+              <View style={styles.emptyTable}>
+                <Text style={styles.emptyText}>No entries found</Text>
+              </View>
+            ) : (
+              tableData.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={[styles.tableRow, index % 2 === 1 && styles.altRow]}
+                >
+                  <Cell width={90}>{item.shift_date}</Cell>
+                  <Cell width={70}>{item.shift_name}</Cell>
+                  <Cell width={55} bold>
+                    {item.sr_no}
+                  </Cell>
+                  <Cell width={90}>{item.challan_no || '-'}</Cell>
+                  <Cell width={150}>{item.party_name || '-'}</Cell>
+                  <Cell width={150}>{item.material || '-'}</Cell>
+                  <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+                  <Cell width={90}>{item.ms_weight || '-'}</Cell>
+                  <Cell width={90}>{item.gi_weight || '-'}</Cell>
+                  <Cell width={90}>{item.zinc_percentage || '-'}</Cell>
+                  <Cell width={90}>
+                    {item.avg_coating
+                      ? Math.round(Number(item.avg_coating))
+                      : '-'}
+                  </Cell>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -383,20 +539,9 @@ function Cell({ children, width, bold }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: COLORS.bg },
+  content: { padding: 16, paddingBottom: 32 },
 
   headerCard: {
     backgroundColor: COLORS.white,
@@ -417,17 +562,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  title: {
-    color: COLORS.primary,
-    fontSize: 26,
-    fontWeight: '900',
-  },
-
-  description: {
-    color: COLORS.gray,
-    fontSize: 13,
-    marginTop: 4,
-  },
+  title: { color: COLORS.primary, fontSize: 26, fontWeight: '900' },
+  description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
 
   filterCard: {
     backgroundColor: COLORS.white,
@@ -444,22 +580,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  sectionTitle: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '900',
-  },
+  sectionTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '900' },
+  input: { backgroundColor: COLORS.white, marginBottom: 12 },
 
-  input: {
-    backgroundColor: COLORS.white,
-    marginBottom: 12,
-  },
-
-  shiftRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
+  shiftRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
 
   shiftBtn: {
     flex: 1,
@@ -479,20 +603,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
 
-  shiftBtnText: {
-    color: COLORS.primary,
-    fontWeight: '900',
-    fontSize: 13,
-  },
+  shiftBtnText: { color: COLORS.primary, fontWeight: '900', fontSize: 13 },
+  shiftBtnTextActive: { color: COLORS.white },
 
-  shiftBtnTextActive: {
-    color: COLORS.white,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  actionRow: { flexDirection: 'row', gap: 10 },
 
   searchBtn: {
     flex: 1,
@@ -505,10 +619,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  searchText: {
-    color: COLORS.white,
-    fontWeight: '900',
-  },
+  searchText: { color: COLORS.white, fontWeight: '900' },
 
   clearBtn: {
     width: 110,
@@ -519,14 +630,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  clearText: {
-    color: COLORS.gray,
-    fontWeight: '900',
-  },
+  clearText: { color: COLORS.gray, fontWeight: '900' },
 
-  loaderBox: {
-    padding: 40,
-  },
+  loaderBox: { padding: 40 },
 
   summaryGrid: {
     flexDirection: 'row',
@@ -543,12 +649,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  summaryTitle: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
+  summaryTitle: { color: COLORS.gray, fontSize: 12, fontWeight: '700' },
   summaryValue: {
     color: COLORS.primary,
     fontSize: 18,
@@ -562,6 +663,36 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 22,
     marginBottom: 12,
+  },
+
+  blockHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 22,
+    marginBottom: 12,
+  },
+
+  blockTitleNoMargin: {
+    color: COLORS.primary,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+
+  fullBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.lightBlue,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
+  fullBtnText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '900',
   },
 
   materialCard: {
@@ -587,17 +718,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
 
-  infoLabel: {
-    color: COLORS.gray,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-
-  infoValue: {
-    color: COLORS.text,
-    fontWeight: '900',
-    fontSize: 13,
-  },
+  infoLabel: { color: COLORS.gray, fontWeight: '700', fontSize: 13 },
+  infoValue: { color: COLORS.text, fontWeight: '900', fontSize: 13 },
 
   emptyCard: {
     backgroundColor: COLORS.white,
@@ -611,6 +733,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 4,
+  },
+
+  fullTableCard: {
+    flex: 1,
+    height: '100%',
+  },
+
+  fullVerticalScroll: {
+    flex: 1,
   },
 
   tableHeader: {
@@ -641,9 +772,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
 
-  altRow: {
-    backgroundColor: '#FAFBFD',
-  },
+  altRow: { backgroundColor: '#FAFBFD' },
 
   cell: {
     minHeight: 54,
@@ -654,16 +783,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
 
-  cellText: {
-    color: COLORS.text,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  boldCell: {
-    fontWeight: '900',
-    color: COLORS.primary,
-  },
+  cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
+  boldCell: { fontWeight: '900', color: COLORS.primary },
 
   emptyTable: {
     height: 150,
@@ -671,8 +792,128 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  emptyText: {
-    color: COLORS.gray,
+  emptyText: { color: COLORS.gray, fontWeight: '700' },
+
+  fullSafe: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+
+  fullHeader: {
+    backgroundColor: COLORS.white,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  fullTitle: {
+    color: COLORS.primary,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+
+  fullBody: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: COLORS.bg,
+  },
+
+  closeBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dateOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+
+  dateCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 28,
+    padding: 18,
+    elevation: 12,
+  },
+
+  dateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  dateTitle: {
+    color: COLORS.primary,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+
+  dateCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  calendarText: {
+    color: COLORS.text,
     fontWeight: '700',
+  },
+
+  calendarHeaderText: {
+    color: COLORS.primary,
+    fontWeight: '900',
+    fontSize: 17,
+  },
+
+  calendarWeekText: {
+    color: COLORS.gray,
+    fontWeight: '900',
+  },
+
+  calendarSelectedText: {
+    color: COLORS.white,
+    fontWeight: '900',
+  },
+
+  todayContainer: {
+    borderColor: COLORS.accent,
+    borderWidth: 1,
+  },
+
+  todayText: {
+    color: COLORS.accent,
+    fontWeight: '900',
+  },
+
+  monthYearContainer: {
+    borderRadius: 14,
+    backgroundColor: COLORS.lightBlue,
+  },
+
+  doneBtn: {
+    height: 52,
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+
+  doneText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
 });

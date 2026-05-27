@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,11 +11,11 @@ import {
   View,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 
 import { loginApi } from '../../api/authApi';
 import { setAuth } from '../../redux/slices/authSlice';
+import { IVSnackbar } from './../../components/IVSnackbar';
 
 const COLORS = {
   primary: '#232B5D',
@@ -49,19 +47,27 @@ export default function LoginScreen() {
 
   const [secureText, setSecureText] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [Error, setError] = useState({});
 
   const validate = () => {
+    let err = {};
+    let valid = true;
     if (!email.trim()) {
-      Alert.alert('Required', 'Please enter email address.');
-      return false;
+      err['email'] = 'Please enter email address.';
+      valid = false;
     }
 
     if (!password.trim()) {
-      Alert.alert('Required', 'Please enter password.');
-      return false;
+      err['password'] = 'Please enter password.';
+      valid = false;
     }
 
-    return true;
+    if (!valid) {
+      IVSnackbar('Please enter login details properly');
+    }
+    setError(err);
+    console.log('erorrs', err);
+    return valid;
   };
 
   const handleLogin = async () => {
@@ -105,93 +111,70 @@ export default function LoginScreen() {
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="always"
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => Keyboard.dismiss()}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.logoBox}>
-            <View style={styles.logoCircle}>
-              <Image
-                source={require('../../assets/Image/IV_Logo_1.png')}
-                style={{
-                  width: 82,
-                  height: 82,
-                  transform: [{ translateY: 7 }],
-                }}
+        <View style={styles.card}>
+          <Text style={styles.title}>Login</Text>
+
+          <Text style={styles.description}>
+            Login with your registered email and password
+          </Text>
+
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            mode="outlined"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+            outlineColor={COLORS.inputBorder}
+            activeOutlineColor={COLORS.accent}
+            textColor={COLORS.text}
+            theme={PAPER_THEME}
+            error={Error.email}
+            left={<TextInput.Icon icon="email-outline" />}
+          />
+
+          <TextInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            mode="outlined"
+            secureTextEntry={secureText}
+            style={styles.input}
+            outlineColor={COLORS.inputBorder}
+            activeOutlineColor={COLORS.accent}
+            textColor={COLORS.text}
+            theme={PAPER_THEME}
+            left={<TextInput.Icon icon="lock-outline" />}
+            error={Error.password}
+            right={
+              <TextInput.Icon
+                icon={secureText ? 'eye-outline' : 'eye-off-outline'}
+                onPress={() => setSecureText(prev => !prev)}
               />
-            </View>
+            }
+          />
 
-            <Text style={styles.appTitle}>IV Production App</Text>
+          <TouchableOpacity
+            style={[styles.loginBtn, loading && styles.disabledBtn]}
+            disabled={loading}
+            onPress={handleLogin}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.loginText}>LOGIN</Text>
+            )}
+          </TouchableOpacity>
 
-            <Text style={styles.appSubtitle}>
-              Hot Dip Galvanizing Production System
-            </Text>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.title}>Login</Text>
-
-            <Text style={styles.description}>
-              Login with your registered email and password
-            </Text>
-
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-              left={<TextInput.Icon icon="email-outline" />}
-            />
-
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              mode="outlined"
-              secureTextEntry={secureText}
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-              left={<TextInput.Icon icon="lock-outline" />}
-              right={
-                <TextInput.Icon
-                  icon={secureText ? 'eye-outline' : 'eye-off-outline'}
-                  onPress={() => setSecureText(prev => !prev)}
-                />
-              }
-            />
-
-            <TouchableOpacity
-              style={[styles.loginBtn, loading && styles.disabledBtn]}
-              disabled={loading}
-              onPress={handleLogin}
-            >
-              {loading ? (
-                <ActivityIndicator color={COLORS.white} />
-              ) : (
-                <Text style={styles.loginText}>LOGIN</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={{ height: 20 }} />
-          </View>
-        </TouchableOpacity>
+          <View style={{ height: 20 }} />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -209,7 +192,6 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },

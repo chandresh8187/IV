@@ -20,6 +20,7 @@ import {
 import { getDashboardApi } from '../../api/dashboardApi';
 import { socket } from '../../socket/socket';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import moment from 'moment';
 
 const COLORS = {
   primary: '#232B5D',
@@ -146,7 +147,9 @@ export default function DashboardScreen() {
             />
             <InfoLine
               label="Shift Date"
-              value={shiftStatus.active_shift.shift_date}
+              value={moment(shiftStatus.active_shift.shift_date).format(
+                'DD/MM/YYYY',
+              )}
             />
             <InfoLine
               label="Supervisor"
@@ -328,8 +331,7 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    padding: 20,
   },
 
   center: {

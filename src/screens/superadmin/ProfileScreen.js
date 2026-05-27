@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
 
   logoutBtn: {
     marginTop: 'auto',
-    height: 56,
     borderRadius: 18,
     backgroundColor: COLORS.red,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 10,
+    paddingVertical: 15,
   },
 
   logoutText: {
