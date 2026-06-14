@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
+import Config from 'react-native-config';
 
-export const socket = io('https://app.ivsquarestructure.com', {
+export const socket = io(Config.SOCKET_URL, {
   transports: ['polling', 'websocket'],
   autoConnect: false,
   reconnection: true,

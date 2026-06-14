@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 
 import { getProductionHistoryApi } from '../../api/historyApi';
-
+import { useNavigation } from '@react-navigation/native';
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -50,16 +50,15 @@ const PAPER_THEME = {
 const formatDate = date => dayjs(date).format('YYYY-MM-DD');
 
 export default function HistoryScreen() {
+  const navigation = useNavigation();
   const today = formatDate(new Date());
 
   const [filters, setFilters] = useState({
     from_date: today,
     to_date: today,
-    shift_name: '',
+    shift_name: 'day',
     material: '',
   });
-
-  const [appliedFilters, setAppliedFilters] = useState(filters);
 
   const [datePicker, setDatePicker] = useState({
     visible: false,
@@ -67,27 +66,16 @@ export default function HistoryScreen() {
     value: dayjs(today),
   });
 
-  const [fullTableVisible, setFullTableVisible] = useState(false);
-
-  const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['production-history', appliedFilters],
-    queryFn: () => getProductionHistoryApi(appliedFilters),
-  });
-
-  const history = data?.data;
-  const summary = history?.summary || {};
-  const materialSummary = history?.material_summary || [];
-  const tableData = history?.table_data || [];
+  // const tableData = history?.table_data || [];
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const openDatePicker = type => {
+  const openDatePicker = () => {
     setDatePicker({
       visible: true,
-      type,
-      value: dayjs(filters[type]),
+      value: dayjs(filters.date),
     });
   };
 
@@ -102,13 +90,9 @@ export default function HistoryScreen() {
   const handleDateChange = params => {
     const selectedDate = params?.date;
 
-    if (!selectedDate || !datePicker.type) {
-      return;
-    }
+    if (!selectedDate) return;
 
-    const finalDate = formatDate(selectedDate);
-
-    updateFilter(datePicker.type, finalDate);
+    updateFilter('date', formatDate(selectedDate));
 
     setDatePicker(prev => ({
       ...prev,
@@ -117,144 +101,107 @@ export default function HistoryScreen() {
   };
 
   const applyFilters = () => {
-    setAppliedFilters(filters);
+    const finalFilters = {
+      date: filters.date,
+      shift_name: filters.shift_name,
+      material: filters.material,
+    };
+
+    navigation.navigate('ViewHistory', {
+      appliedFilters: finalFilters,
+    });
   };
 
   const clearFilters = () => {
     const fresh = {
-      from_date: today,
-      to_date: today,
-      shift_name: '',
+      date: today,
+      shift_name: 'day',
       material: '',
     };
 
     setFilters(fresh);
-    setAppliedFilters(fresh);
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-        }
-      >
-        <View style={styles.headerCard}>
-          <View>
-            <Text style={styles.title}>Production History</Text>
-            <Text style={styles.description}>
-              Date, shift and material wise report
-            </Text>
-          </View>
-
-          <View style={styles.headerIcon}>
-            <CalendarDays size={24} color={COLORS.primary} />
-          </View>
+    <>
+      <View style={styles.headerCard}>
+        <View>
+          <Text style={styles.title}>Production History</Text>
+          <Text style={styles.description}>
+            Date, shift and material wise report
+          </Text>
         </View>
 
-        <View style={styles.filterCard}>
-          <View style={styles.sectionHeader}>
-            <Filter size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Filters</Text>
-          </View>
+        <View style={styles.headerIcon}>
+          <CalendarDays size={24} color={COLORS.primary} />
+        </View>
+      </View>
 
-          <TouchableOpacity onPress={() => openDatePicker('from_date')}>
-            <TextInput
-              label="From Date"
-              value={filters.from_date}
-              mode="outlined"
-              editable={false}
-              pointerEvents="none"
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-              right={<TextInput.Icon icon="calendar" />}
-            />
-          </TouchableOpacity>
+      <View style={styles.filterCard}>
+        <View style={styles.sectionHeader}>
+          <Filter size={20} color={COLORS.primary} />
+          <Text style={styles.sectionTitle}>Filters</Text>
+        </View>
 
-          <TouchableOpacity onPress={() => openDatePicker('to_date')}>
-            <TextInput
-              label="To Date"
-              value={filters.to_date}
-              mode="outlined"
-              editable={false}
-              pointerEvents="none"
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-              right={<TextInput.Icon icon="calendar" />}
-            />
-          </TouchableOpacity>
-
-          <View style={styles.shiftRow}>
-            <ShiftButton
-              title="All"
-              active={filters.shift_name === ''}
-              onPress={() => updateFilter('shift_name', '')}
-            />
-
-            <ShiftButton
-              title="Day"
-              active={filters.shift_name === 'day'}
-              icon={
-                <Sun
-                  size={16}
-                  color={
-                    filters.shift_name === 'day' ? COLORS.white : COLORS.primary
-                  }
-                />
-              }
-              onPress={() => updateFilter('shift_name', 'day')}
-            />
-
-            <ShiftButton
-              title="Night"
-              active={filters.shift_name === 'night'}
-              icon={
-                <Moon
-                  size={16}
-                  color={
-                    filters.shift_name === 'night'
-                      ? COLORS.white
-                      : COLORS.primary
-                  }
-                />
-              }
-              onPress={() => updateFilter('shift_name', 'night')}
-            />
-          </View>
-
+        <TouchableOpacity onPress={openDatePicker}>
           <TextInput
-            label="Material Search"
-            value={filters.material}
-            onChangeText={v => updateFilter('material', v)}
+            label="Select Date"
+            value={filters.date}
             mode="outlined"
+            editable={false}
+            pointerEvents="none"
             style={styles.input}
             outlineColor={COLORS.inputBorder}
             activeOutlineColor={COLORS.accent}
             textColor={COLORS.text}
             theme={PAPER_THEME}
+            right={<TextInput.Icon icon="calendar" />}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.shiftRow}>
+          <ShiftButton
+            title="Day"
+            active={filters.shift_name === 'day'}
+            icon={
+              <Sun
+                size={16}
+                color={
+                  filters.shift_name === 'day' ? COLORS.white : COLORS.primary
+                }
+              />
+            }
+            onPress={() => updateFilter('shift_name', 'day')}
           />
 
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.searchBtn} onPress={applyFilters}>
-              <Search size={18} color={COLORS.white} />
-              <Text style={styles.searchText}>SEARCH</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
-              <Text style={styles.clearText}>CLEAR</Text>
-            </TouchableOpacity>
-          </View>
+          <ShiftButton
+            title="Night"
+            active={filters.shift_name === 'night'}
+            icon={
+              <Moon
+                size={16}
+                color={
+                  filters.shift_name === 'night' ? COLORS.white : COLORS.primary
+                }
+              />
+            }
+            onPress={() => updateFilter('shift_name', 'night')}
+          />
         </View>
 
-        {isLoading ? (
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.searchBtn} onPress={applyFilters}>
+            <Search size={18} color={COLORS.white} />
+            <Text style={styles.searchText}>SEARCH</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
+            <Text style={styles.clearText}>CLEAR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* {isLoading ? (
           <View style={styles.loaderBox}>
             <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
@@ -320,23 +267,8 @@ export default function HistoryScreen() {
                 </View>
               ))
             )}
-
-            <View style={styles.blockHeader}>
-              <Text style={styles.blockTitleNoMargin}>Production Entries</Text>
-
-              <TouchableOpacity
-                style={styles.fullBtn}
-                onPress={() => setFullTableVisible(true)}
-              >
-                <Maximize2 size={18} color={COLORS.primary} />
-                <Text style={styles.fullBtnText}>Full Screen</Text>
-              </TouchableOpacity>
-            </View>
-
-            <HistoryTable tableData={tableData} />
           </>
-        )}
-      </ScrollView>
+        )} */}
 
       <DatePickerModal
         visible={datePicker.visible}
@@ -344,26 +276,7 @@ export default function HistoryScreen() {
         onChange={handleDateChange}
         onClose={closeDatePicker}
       />
-
-      <Modal visible={fullTableVisible} animationType="slide">
-        <SafeAreaView style={styles.fullSafe}>
-          <View style={styles.fullHeader}>
-            <Text style={styles.fullTitle}>Production Entries</Text>
-
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={() => setFullTableVisible(false)}
-            >
-              <X size={22} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.fullBody}>
-            <HistoryTable tableData={tableData} fullScreen />
-          </View>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+    </>
   );
 }
 
@@ -420,63 +333,6 @@ function DatePickerModal({ visible, value, onChange, onClose }) {
   );
 }
 
-function HistoryTable({ tableData, fullScreen = false }) {
-  return (
-    <View style={[styles.tableCard, fullScreen && styles.fullTableCard]}>
-      <ScrollView horizontal showsHorizontalScrollIndicator>
-        <ScrollView style={fullScreen && styles.fullVerticalScroll}>
-          <View>
-            <View style={styles.tableHeader}>
-              <HeaderCell width={90}>Date</HeaderCell>
-              <HeaderCell width={70}>Shift</HeaderCell>
-              <HeaderCell width={55}>Sr</HeaderCell>
-              <HeaderCell width={90}>Challan</HeaderCell>
-              <HeaderCell width={150}>Party</HeaderCell>
-              <HeaderCell width={150}>Material</HeaderCell>
-              <HeaderCell width={80}>Qty</HeaderCell>
-              <HeaderCell width={90}>MS</HeaderCell>
-              <HeaderCell width={90}>GI</HeaderCell>
-              <HeaderCell width={90}>Zn %</HeaderCell>
-              <HeaderCell width={90}>Avg</HeaderCell>
-            </View>
-
-            {tableData.length === 0 ? (
-              <View style={styles.emptyTable}>
-                <Text style={styles.emptyText}>No entries found</Text>
-              </View>
-            ) : (
-              tableData.map((item, index) => (
-                <View
-                  key={item.id}
-                  style={[styles.tableRow, index % 2 === 1 && styles.altRow]}
-                >
-                  <Cell width={90}>{item.shift_date}</Cell>
-                  <Cell width={70}>{item.shift_name}</Cell>
-                  <Cell width={55} bold>
-                    {item.sr_no}
-                  </Cell>
-                  <Cell width={90}>{item.challan_no || '-'}</Cell>
-                  <Cell width={150}>{item.party_name || '-'}</Cell>
-                  <Cell width={150}>{item.material || '-'}</Cell>
-                  <Cell width={80}>{item.dipping_qty || '-'}</Cell>
-                  <Cell width={90}>{item.ms_weight || '-'}</Cell>
-                  <Cell width={90}>{item.gi_weight || '-'}</Cell>
-                  <Cell width={90}>{item.zinc_percentage || '-'}</Cell>
-                  <Cell width={90}>
-                    {item.avg_coating
-                      ? Math.round(Number(item.avg_coating))
-                      : '-'}
-                  </Cell>
-                </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
-      </ScrollView>
-    </View>
-  );
-}
-
 function ShiftButton({ title, active, onPress, icon }) {
   return (
     <TouchableOpacity
@@ -488,53 +344,6 @@ function ShiftButton({ title, active, onPress, icon }) {
         {title}
       </Text>
     </TouchableOpacity>
-  );
-}
-
-function SummaryCard({ title, value }) {
-  return (
-    <View style={styles.summaryCard}>
-      <Text style={styles.summaryTitle}>{title}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
-    </View>
-  );
-}
-
-function InfoLine({ label, value }) {
-  return (
-    <View style={styles.infoLine}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-function Empty({ text }) {
-  return (
-    <View style={styles.emptyCard}>
-      <Text style={styles.emptyText}>{text}</Text>
-    </View>
-  );
-}
-
-function HeaderCell({ children, width }) {
-  return (
-    <View style={[styles.headerCell, { width }]}>
-      <Text style={styles.headerCellText}>{children}</Text>
-    </View>
-  );
-}
-
-function Cell({ children, width, bold }) {
-  return (
-    <View style={[styles.cell, { width }]}>
-      <Text
-        style={[styles.cellText, bold && styles.boldCell]}
-        numberOfLines={2}
-      >
-        {children}
-      </Text>
-    </View>
   );
 }
 
@@ -631,204 +440,6 @@ const styles = StyleSheet.create({
   },
 
   clearText: { color: COLORS.gray, fontWeight: '900' },
-
-  loaderBox: { padding: 40 },
-
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 16,
-  },
-
-  summaryCard: {
-    width: '48%',
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 15,
-    elevation: 3,
-  },
-
-  summaryTitle: { color: COLORS.gray, fontSize: 12, fontWeight: '700' },
-  summaryValue: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 6,
-  },
-
-  blockTitle: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 22,
-    marginBottom: 12,
-  },
-
-  blockHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 22,
-    marginBottom: 12,
-  },
-
-  blockTitleNoMargin: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-
-  fullBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.lightBlue,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-
-  fullBtnText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-
-  materialCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    elevation: 3,
-    marginBottom: 12,
-  },
-
-  materialTitle: {
-    color: COLORS.primary,
-    fontSize: 17,
-    fontWeight: '900',
-    marginBottom: 10,
-  },
-
-  infoLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-
-  infoLabel: { color: COLORS.gray, fontWeight: '700', fontSize: 13 },
-  infoValue: { color: COLORS.text, fontWeight: '900', fontSize: 13 },
-
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 18,
-    elevation: 2,
-  },
-
-  tableCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 4,
-  },
-
-  fullTableCard: {
-    flex: 1,
-    height: '100%',
-  },
-
-  fullVerticalScroll: {
-    flex: 1,
-  },
-
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.primary,
-  },
-
-  headerCell: {
-    height: 50,
-    borderRightWidth: 1,
-    borderRightColor: '#3A4375',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-
-  headerCellText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
-  },
-
-  altRow: { backgroundColor: '#FAFBFD' },
-
-  cell: {
-    minHeight: 54,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-
-  cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
-  boldCell: { fontWeight: '900', color: COLORS.primary },
-
-  emptyTable: {
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  emptyText: { color: COLORS.gray, fontWeight: '700' },
-
-  fullSafe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
-  fullHeader: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  fullTitle: {
-    color: COLORS.primary,
-    fontSize: 22,
-    fontWeight: '900',
-  },
-
-  fullBody: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: COLORS.bg,
-  },
-
-  closeBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   dateOverlay: {
     flex: 1,

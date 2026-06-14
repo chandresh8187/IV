@@ -18,8 +18,6 @@ export function useDashboard() {
         token,
       });
 
-      console.log('response', response);
-
       if (response?.data) {
         dispatch(setDashboardData(response.data));
       }

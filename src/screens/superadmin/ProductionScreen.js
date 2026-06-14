@@ -50,35 +50,6 @@ const PAPER_THEME = {
   roundness: 14,
 };
 
-const emptyBasic = {
-  sr_no: '',
-  challan_no: '',
-  party_name: '',
-  material: '',
-};
-
-const emptyDip = {
-  sr_no: '',
-  production_time: '',
-  dipping_qty: '',
-  kettle_temperature: '',
-};
-
-const emptyWeight = {
-  sr_no: '',
-  ms_weight: '',
-  gi_weight: '',
-};
-
-const emptyCoating = {
-  sr_no: '',
-  c1: '',
-  c2: '',
-  c3: '',
-  c4: '',
-  c5: '',
-};
-
 function FormInput({ label, value, onChangeText, keyboardType = 'default' }) {
   return (
     <TextInput
@@ -98,14 +69,25 @@ function FormInput({ label, value, onChangeText, keyboardType = 'default' }) {
 
 export default function ProductionScreen() {
   const queryClient = useQueryClient();
+  const emptyFullForm = {
+    sr_no: '',
+    challan_no: '',
+    party_name: '',
+    material: '',
+    production_time: '',
+    dipping_qty: '',
+    kettle_temperature: '',
+    ms_weight: '',
+    gi_weight: '',
+    c1: '',
+    c2: '',
+    c3: '',
+    c4: '',
+    c5: '',
+  };
 
-  const [optionModal, setOptionModal] = useState(false);
+  const [fullForm, setFullForm] = useState(emptyFullForm);
   const [modalType, setModalType] = useState(null);
-
-  const [basicForm, setBasicForm] = useState(emptyBasic);
-  const [dipForm, setDipForm] = useState(emptyDip);
-  const [weightForm, setWeightForm] = useState(emptyWeight);
-  const [coatingForm, setCoatingForm] = useState(emptyCoating);
   const loggedUser = useSelector(state => state.auth.user);
 
   const {
@@ -152,7 +134,7 @@ export default function ProductionScreen() {
       queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
-      closeFormModal();
+      closeModal();
     },
     onError: error => {
       Alert.alert(
@@ -208,190 +190,93 @@ export default function ProductionScreen() {
     }
   };
 
-  const openForm = type => {
-    setOptionModal(false);
-    setModalType(type);
-  };
-
-  const closeFormModal = () => {
+  const closeModal = () => {
     setModalType(null);
-    setBasicForm(emptyBasic);
-    setDipForm(emptyDip);
-    setWeightForm(emptyWeight);
-    setCoatingForm(emptyCoating);
-  };
-
-  const findRowBySrNo = srNo => {
-    return rows.find(item => String(item.sr_no) === String(srNo));
+    setFullForm(emptyFullForm);
   };
 
   const fillFromSrNo = (srNo, type) => {
-    const row = findRowBySrNo(srNo);
+    const found = rows.find(
+      item =>
+        String(item.sr_no) === String(srNo) && item.row_type !== 'summary',
+    );
 
-    if (type === 'BASIC') {
-      if (!row) {
-        setBasicForm({
-          ...emptyBasic,
+    if (type === 'FULL') {
+      if (found) {
+        setFullForm({
+          sr_no: String(found.sr_no || ''),
+          challan_no: found.challan_no || '',
+          party_name: found.party_name || '',
+          material: found.material || '',
+          production_time: found.production_time || '',
+          dipping_qty: String(found.dipping_qty || ''),
+          kettle_temperature: String(found.kettle_temperature || ''),
+          ms_weight: String(found.ms_weight || ''),
+          gi_weight: String(found.gi_weight || ''),
+          c1: String(Math.round(found.c1) || ''),
+          c2: String(Math.round(found.c2) || ''),
+          c3: String(Math.round(found.c3) || ''),
+          c4: String(Math.round(found.c4) || ''),
+          c5: String(Math.round(found.c5) || ''),
+        });
+      } else {
+        setFullForm({
+          ...emptyFullForm,
           sr_no: srNo,
         });
-        return;
       }
-
-      setBasicForm({
-        sr_no: String(row.sr_no || ''),
-        challan_no: row.challan_no || '',
-        party_name: row.party_name || '',
-        material: row.material || '',
-      });
-    }
-
-    if (type === 'DIP') {
-      if (!row) {
-        setDipForm({
-          ...emptyDip,
-          sr_no: srNo,
-        });
-        return;
-      }
-
-      setDipForm({
-        sr_no: String(row.sr_no || ''),
-        production_time: row.production_time || '',
-        dipping_qty: String(row.dipping_qty || ''),
-        kettle_temperature: String(row.kettle_temperature || ''),
-      });
-    }
-
-    if (type === 'WEIGHT') {
-      if (!row) {
-        setWeightForm({
-          ...emptyWeight,
-          sr_no: srNo,
-        });
-        return;
-      }
-
-      setWeightForm({
-        sr_no: String(row.sr_no || ''),
-        ms_weight: String(row.ms_weight || ''),
-        gi_weight: String(row.gi_weight || ''),
-      });
-    }
-
-    if (type === 'COATING') {
-      if (!row) {
-        setCoatingForm({
-          ...emptyCoating,
-          sr_no: srNo,
-        });
-        return;
-      }
-
-      setCoatingForm({
-        sr_no: String(row.sr_no || ''),
-        c1: String(row.c1 || ''),
-        c2: String(row.c2 || ''),
-        c3: String(row.c3 || ''),
-        c4: String(row.c4 || ''),
-        c5: String(row.c5 || ''),
-      });
     }
   };
 
-  const saveBasic = () => {
-    if (
-      !basicForm.sr_no ||
-      !basicForm.challan_no ||
-      !basicForm.party_name ||
-      !basicForm.material
-    ) {
-      Alert.alert(
-        'Required',
-        'Please enter Sr No, Challan, Party and Material',
-      );
-      return;
-    }
-
+  const saveFullEntry = async () => {
     saveMutation.mutate({
-      entry_type: 'basic',
-      sr_no: Number(basicForm.sr_no),
-      challan_no: basicForm.challan_no,
-      party_name: basicForm.party_name,
-      material: basicForm.material,
+      entry_type: 'full',
+      sr_no: fullForm.sr_no,
+      challan_no: fullForm.challan_no,
+      party_name: fullForm.party_name,
+      material: fullForm.material,
+      production_time: fullForm.production_time,
+      dipping_qty: fullForm.dipping_qty,
+      kettle_temperature: fullForm.kettle_temperature,
+      ms_weight: fullForm.ms_weight,
+      gi_weight: fullForm.gi_weight,
+      c1: fullForm.c1,
+      c2: fullForm.c2,
+      c3: fullForm.c3,
+      c4: fullForm.c4,
+      c5: fullForm.c5,
     });
+
+    queryClient.invalidateQueries({ queryKey: ['productions'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
+    closeModal();
   };
 
-  const saveDip = () => {
-    if (!dipForm.sr_no) {
-      Alert.alert('Required', 'Please enter Sr No');
-      return;
-    }
+  const previewZinc = (() => {
+    const ms = Number(fullForm.ms_weight);
+    const gi = Number(fullForm.gi_weight);
 
-    saveMutation.mutate({
-      entry_type: 'dip',
-      sr_no: Number(dipForm.sr_no),
-      production_time: dipForm.production_time,
-      dipping_qty: Number(dipForm.dipping_qty || 0),
-      kettle_temperature: Number(dipForm.kettle_temperature || 0),
-    });
-  };
+    if (!ms || !gi) return '';
 
-  const saveWeight = () => {
-    if (!weightForm.sr_no) {
-      Alert.alert('Required', 'Please enter Sr No');
-      return;
-    }
+    return (((gi - ms) / ms) * 100).toFixed(2);
+  })();
 
-    saveMutation.mutate({
-      entry_type: 'weight',
-      sr_no: Number(weightForm.sr_no),
-      ms_weight: Number(weightForm.ms_weight || 0),
-      gi_weight: Number(weightForm.gi_weight || 0),
-    });
-  };
+  const previewAvgCoating = (() => {
+    const values = [
+      fullForm.c1,
+      fullForm.c2,
+      fullForm.c3,
+      fullForm.c4,
+      fullForm.c5,
+    ]
+      .map(Number)
+      .filter(v => !isNaN(v) && v > 0);
 
-  const saveCoating = () => {
-    if (!coatingForm.sr_no) {
-      Alert.alert('Required', 'Please enter Sr No');
-      return;
-    }
+    if (values.length === 0) return '';
 
-    saveMutation.mutate({
-      entry_type: 'coating',
-      sr_no: Number(coatingForm.sr_no),
-      c1: Number(coatingForm.c1 || 0),
-      c2: Number(coatingForm.c2 || 0),
-      c3: Number(coatingForm.c3 || 0),
-      c4: Number(coatingForm.c4 || 0),
-      c5: Number(coatingForm.c5 || 0),
-    });
-  };
-
-  const previewZinc =
-    Number(weightForm.ms_weight) > 0 && Number(weightForm.gi_weight) > 0
-      ? (
-          ((Number(weightForm.gi_weight) - Number(weightForm.ms_weight)) /
-            Number(weightForm.ms_weight)) *
-          100
-        ).toFixed(2)
-      : '';
-
-  const coatingValues = [
-    coatingForm.c1,
-    coatingForm.c2,
-    coatingForm.c3,
-    coatingForm.c4,
-    coatingForm.c5,
-  ]
-    .map(Number)
-    .filter(v => v > 0);
-
-  const previewAvgCoating =
-    coatingValues.length > 0
-      ? Math.round(
-          coatingValues.reduce((a, b) => a + b, 0) / coatingValues.length,
-        ).toString()
-      : '';
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  })();
 
   return (
     <View style={styles.container}>
@@ -477,9 +362,11 @@ export default function ProductionScreen() {
                           ? `${item.kettle_temperature}°`
                           : '-'}
                       </Cell>
-                      <Cell width={90}>{item.ms_weight || '-'}</Cell>
-                      <Cell width={90}>{item.gi_weight || '-'}</Cell>
-                      <Cell width={90}>{item.zinc_percentage || '-'}</Cell>
+                      <Cell width={90}>{`${item.ms_weight} KG` || '-'}</Cell>
+                      <Cell width={90}>{`${item.gi_weight} KG` || '-'}</Cell>
+                      <Cell width={90}>
+                        {`${item.zinc_percentage} %` || '-'}
+                      </Cell>
                       <Cell width={80}>
                         {Math.round(Number(item.c1)) || '-'}
                       </Cell>
@@ -513,108 +400,161 @@ export default function ProductionScreen() {
         <TouchableOpacity
           style={styles.fab}
           activeOpacity={0.85}
-          onPress={() => setOptionModal(true)}
+          onPress={() => setModalType('Full')}
         >
           <Plus size={28} color={COLORS.white} />
         </TouchableOpacity>
       )}
 
-      <EntryTypeModal
-        visible={optionModal}
-        onClose={() => setOptionModal(false)}
-        onSelect={openForm}
-      />
+      <Modal visible={!!modalType} animationType="slide">
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>Production Entry</Text>
+              <Text style={styles.modalDesc}>
+                Add / update all data by Sr No
+              </Text>
+            </View>
 
-      <ProductionFormModal
-        modalType={modalType}
-        previewZinc={previewZinc}
-        previewAvgCoating={previewAvgCoating}
-        closeModal={closeFormModal}
-        loading={saveMutation.isPending}
-        basicForm={basicForm}
-        setBasicForm={setBasicForm}
-        saveBasic={saveBasic}
-        dipForm={dipForm}
-        setDipForm={setDipForm}
-        saveDip={saveDip}
-        weightForm={weightForm}
-        setWeightForm={setWeightForm}
-        saveWeight={saveWeight}
-        coatingForm={coatingForm}
-        setCoatingForm={setCoatingForm}
-        saveCoating={saveCoating}
-        fillFromSrNo={fillFromSrNo}
-      />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={closeModal}
+              style={styles.closeBtn}
+            >
+              <X size={22} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalBody}>
+            <FormCard title="Production Details">
+              <FormInput
+                label="Sr No"
+                value={fullForm.sr_no}
+                keyboardType="numeric"
+                onChangeText={v => {
+                  setFullForm(prev => ({ ...prev, sr_no: v }));
+                  fillFromSrNo(v, 'FULL');
+                }}
+              />
+
+              <FormInput
+                label="Challan No"
+                value={fullForm.challan_no}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, challan_no: v }))
+                }
+              />
+
+              <FormInput
+                label="Party Name"
+                value={fullForm.party_name}
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, party_name: v }))
+                }
+              />
+
+              <FormInput
+                label="Material"
+                value={fullForm.material}
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, material: v }))
+                }
+              />
+
+              <FormInput
+                label="Production Time"
+                value={fullForm.production_time}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, production_time: v }))
+                }
+              />
+
+              <FormInput
+                label="Dipping Qty"
+                value={fullForm.dipping_qty}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, dipping_qty: v }))
+                }
+              />
+
+              <FormInput
+                label="Kettle Temperature °C"
+                value={fullForm.kettle_temperature}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, kettle_temperature: v }))
+                }
+              />
+            </FormCard>
+
+            <FormCard title="Weight Details">
+              <FormInput
+                label="MS Weight 1 Nos"
+                value={fullForm.ms_weight}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, ms_weight: v }))
+                }
+              />
+
+              <FormInput
+                label="GI Weight 1 Nos"
+                value={fullForm.gi_weight}
+                keyboardType="numeric"
+                onChangeText={v =>
+                  setFullForm(prev => ({ ...prev, gi_weight: v }))
+                }
+              />
+
+              {previewZinc !== '' && (
+                <View style={styles.previewBox}>
+                  <Text style={styles.previewLabel}>Zinc Consumption</Text>
+                  <Text style={styles.previewValue}>{previewZinc}%</Text>
+                </View>
+              )}
+            </FormCard>
+
+            <FormCard title="Coating Details">
+              <View style={styles.coatingRow}>
+                {['c1', 'c2', 'c3', 'c4', 'c5'].map((key, index) => (
+                  <TextInput
+                    key={key}
+                    label={`C${index + 1}`}
+                    value={fullForm[key]}
+                    onChangeText={v =>
+                      setFullForm(prev => ({ ...prev, [key]: v }))
+                    }
+                    mode="outlined"
+                    keyboardType="numeric"
+                    style={styles.coatingInput}
+                    outlineColor={COLORS.inputBorder}
+                    activeOutlineColor={COLORS.accent}
+                    textColor={COLORS.text}
+                    theme={PAPER_THEME}
+                  />
+                ))}
+              </View>
+
+              {previewAvgCoating !== '' && (
+                <View style={styles.previewBox}>
+                  <Text style={styles.previewLabel}>Average Coating</Text>
+                  <Text style={styles.previewValue}>{previewAvgCoating}</Text>
+                </View>
+              )}
+            </FormCard>
+
+            <SaveButton
+              loading={saveMutation.isPending}
+              title="SAVE PRODUCTION ENTRY"
+              onPress={saveFullEntry}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
-  );
-}
-
-function EntryTypeModal({ visible, onClose, onSelect }) {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.optionCard}>
-          <Text style={styles.optionTitle}>Select Entry Type</Text>
-
-          <EntryOption
-            icon={<ClipboardList size={22} color={COLORS.primary} />}
-            title="Basic Entry"
-            desc="Sr No, challan, party, material"
-            onPress={() => onSelect('BASIC')}
-          />
-
-          <EntryOption
-            icon={<Factory size={22} color={COLORS.primary} />}
-            title="Dip Details"
-            desc="Time, dipping qty, kettle temp"
-            onPress={() => onSelect('DIP')}
-          />
-
-          <EntryOption
-            icon={<Scale size={22} color={COLORS.primary} />}
-            title="Weight Details"
-            desc="MS weight, GI weight, zinc %"
-            onPress={() => onSelect('WEIGHT')}
-          />
-
-          <EntryOption
-            icon={<Droplets size={22} color={COLORS.primary} />}
-            title="Coating Details"
-            desc="C1 to C5 readings"
-            onPress={() => onSelect('COATING')}
-          />
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.cancelBtn}
-            onPress={onClose}
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
-}
-
-function EntryOption({ icon, title, desc, onPress }) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.optionRow}
-      onPress={onPress}
-    >
-      <View style={styles.optionIcon}>{icon}</View>
-
-      <View style={{ flex: 1 }}>
-        <Text style={styles.optionRowTitle}>{title}</Text>
-        <Text style={styles.optionRowDesc}>{desc}</Text>
-      </View>
-    </TouchableOpacity>
   );
 }
 
@@ -636,242 +576,6 @@ function Cell({ children, width, bold }) {
         {children}
       </Text>
     </View>
-  );
-}
-
-function ProductionFormModal(props) {
-  const {
-    modalType,
-    closeModal,
-    loading,
-    basicForm,
-    setBasicForm,
-    saveBasic,
-    dipForm,
-    setDipForm,
-    saveDip,
-    weightForm,
-    setWeightForm,
-    saveWeight,
-    coatingForm,
-    setCoatingForm,
-    saveCoating,
-    fillFromSrNo,
-    previewZinc,
-    previewAvgCoating,
-  } = props;
-
-  const title =
-    modalType === 'BASIC'
-      ? 'Basic Entry'
-      : modalType === 'DIP'
-      ? 'Dip Details'
-      : modalType === 'WEIGHT'
-      ? 'Weight Details'
-      : 'Coating Details';
-
-  return (
-    <Modal visible={!!modalType} animationType="slide">
-      <SafeAreaView style={styles.modalSafe}>
-        <View style={styles.modalHeader}>
-          <View>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <Text style={styles.modalDesc}>Update data by Sr No</Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={closeModal}
-            style={styles.closeBtn}
-          >
-            <X size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.modalBody}>
-          {modalType === 'BASIC' && (
-            <FormCard title="Sr No + Basic Details">
-              <FormInput
-                label="Sr No"
-                value={basicForm.sr_no}
-                keyboardType="numeric"
-                onChangeText={v => {
-                  setBasicForm(prev => ({ ...prev, sr_no: v }));
-                  fillFromSrNo(v, 'BASIC');
-                }}
-              />
-
-              <FormInput
-                label="Challan No"
-                value={basicForm.challan_no}
-                onChangeText={v => {
-                  setBasicForm(prev => ({ ...prev, challan_no: v }));
-                }}
-              />
-
-              <FormInput
-                label="Party Name"
-                value={basicForm.party_name}
-                onChangeText={v =>
-                  setBasicForm(prev => ({ ...prev, party_name: v }))
-                }
-              />
-
-              <FormInput
-                label="Material"
-                value={basicForm.material}
-                onChangeText={v =>
-                  setBasicForm(prev => ({ ...prev, material: v }))
-                }
-              />
-
-              <SaveButton
-                loading={loading}
-                title="SAVE BASIC DETAILS"
-                onPress={saveBasic}
-              />
-            </FormCard>
-          )}
-
-          {modalType === 'DIP' && (
-            <FormCard title="Select Sr No + Dip Details">
-              <FormInput
-                label="Sr No"
-                value={dipForm.sr_no}
-                keyboardType="numeric"
-                onChangeText={v => {
-                  setDipForm(prev => ({ ...prev, sr_no: v }));
-                  fillFromSrNo(v, 'DIP');
-                }}
-              />
-
-              <FormInput
-                label="Production Time"
-                value={dipForm.production_time}
-                onChangeText={v =>
-                  setDipForm(prev => ({ ...prev, production_time: v }))
-                }
-              />
-
-              <FormInput
-                label="Dipping Qty"
-                value={dipForm.dipping_qty}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setDipForm(prev => ({ ...prev, dipping_qty: v }))
-                }
-              />
-              <FormInput
-                label="Kettle Temperature °C"
-                value={dipForm.kettle_temperature}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setDipForm(prev => ({ ...prev, kettle_temperature: v }))
-                }
-              />
-
-              <SaveButton
-                loading={loading}
-                title="SAVE DIP DETAILS"
-                onPress={saveDip}
-              />
-            </FormCard>
-          )}
-
-          {modalType === 'WEIGHT' && (
-            <FormCard title="Select Sr No + Weight Details">
-              <FormInput
-                label="Sr No"
-                value={weightForm.sr_no}
-                keyboardType="numeric"
-                onChangeText={v => {
-                  setWeightForm(prev => ({ ...prev, sr_no: v }));
-                  fillFromSrNo(v, 'WEIGHT');
-                }}
-              />
-
-              <FormInput
-                label="MS Weight 1 Nos"
-                value={weightForm.ms_weight}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setWeightForm(prev => ({ ...prev, ms_weight: v }))
-                }
-              />
-
-              <FormInput
-                label="GI Weight 1 Nos"
-                value={weightForm.gi_weight}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setWeightForm(prev => ({ ...prev, gi_weight: v }))
-                }
-              />
-
-              {previewZinc !== '' && (
-                <View style={styles.previewBox}>
-                  <Text style={styles.previewLabel}>Zinc Consumption</Text>
-                  <Text style={styles.previewValue}>{previewZinc}%</Text>
-                </View>
-              )}
-
-              <SaveButton
-                loading={loading}
-                title="SAVE WEIGHT DETAILS"
-                onPress={saveWeight}
-              />
-            </FormCard>
-          )}
-
-          {modalType === 'COATING' && (
-            <FormCard title="Select Sr No + Coating Details">
-              <FormInput
-                label="Sr No"
-                value={coatingForm.sr_no}
-                keyboardType="numeric"
-                onChangeText={v => {
-                  setCoatingForm(prev => ({ ...prev, sr_no: v }));
-                  fillFromSrNo(v, 'COATING');
-                }}
-              />
-
-              <View style={styles.coatingRow}>
-                {['c1', 'c2', 'c3', 'c4', 'c5'].map((key, index) => (
-                  <TextInput
-                    key={key}
-                    label={`C${index + 1}`}
-                    value={coatingForm[key]}
-                    onChangeText={v =>
-                      setCoatingForm(prev => ({ ...prev, [key]: v }))
-                    }
-                    mode="outlined"
-                    keyboardType="numeric"
-                    style={styles.coatingInput}
-                    outlineColor={COLORS.inputBorder}
-                    activeOutlineColor={COLORS.accent}
-                    textColor={COLORS.text}
-                    theme={PAPER_THEME}
-                  />
-                ))}
-              </View>
-
-              {previewAvgCoating !== '' && (
-                <View style={styles.previewBox}>
-                  <Text style={styles.previewLabel}>Average Coating</Text>
-                  <Text style={styles.previewValue}>{previewAvgCoating}</Text>
-                </View>
-              )}
-
-              <SaveButton
-                loading={loading}
-                title="SAVE COATING DETAILS"
-                onPress={saveCoating}
-              />
-            </FormCard>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
   );
 }
 
@@ -1159,6 +863,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     elevation: 3,
+    marginVertical: 10,
   },
 
   formTitle: {

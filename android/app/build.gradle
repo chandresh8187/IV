@@ -116,7 +116,6 @@ android {
     }
 }
 
-apply plugin: "com.google.gms.google-services"
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
@@ -129,4 +128,9 @@ dependencies {
     }
 }
 
-apply plugin: "com.google.gms.google-services"
+project.ext.envConfigFiles = [
+    debug: ".env.development",
+    release: ".env.production"
+]
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"

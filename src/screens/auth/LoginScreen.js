@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  PermissionsAndroid,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,7 +17,8 @@ import { useDispatch } from 'react-redux';
 import { loginApi } from '../../api/authApi';
 import { setAuth } from '../../redux/slices/authSlice';
 import { IVSnackbar } from './../../components/IVSnackbar';
-
+import { getFCMToken } from '../../services/firebaseService';
+import { saveFcmTokenApi } from '../../api/notificationApi';
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -66,7 +68,6 @@ export default function LoginScreen() {
       IVSnackbar('Please enter login details properly');
     }
     setError(err);
-    console.log('erorrs', err);
     return valid;
   };
 
@@ -88,6 +89,22 @@ export default function LoginScreen() {
             user: res.user,
           }),
         );
+        try {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          ).then(async () => {
+            const fcmToken = await getFCMToken();
+
+            if (fcmToken) {
+              await saveFcmTokenApi({
+                fcm_token: fcmToken,
+                device_type: 'android',
+              });
+            }
+          });
+        } catch (error) {
+          console.log('SAVE FCM ERROR', error);
+        }
       } else {
         Alert.alert('Login Failed', res?.message || 'Invalid login details.');
       }

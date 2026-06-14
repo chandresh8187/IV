@@ -1,12 +1,14 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   LayoutDashboard,
   Factory,
   History,
   Users,
   UserCircle2,
+  CalendarClock,
 } from 'lucide-react-native';
 
 import DashboardScreen from '../screens/superadmin/DashboardScreen';
@@ -14,9 +16,12 @@ import ProductionScreen from '../screens/superadmin/ProductionScreen';
 import UsersScreen from './../screens/superadmin/UsersScreen';
 import HistoryScreen from './../screens/superadmin/HistoryScreen';
 import ProfileScreen from './../screens/superadmin/ProfileScreen';
+import ShiftScreen from '../screens/supervisor/ShiftScreen';
+import ViewReport from './../screens/common/ViewReport';
+import ViewHistory from './../screens/common/ViewHistory';
 
 const Tab = createBottomTabNavigator();
-
+const Stack = createNativeStackNavigator();
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -26,8 +31,51 @@ const COLORS = {
   border: '#E5E7EB',
 };
 
+function HistoryStack() {
+  return (
+    <Stack.Navigator initialRouteName="History">
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+        name="History"
+        component={HistoryScreen}
+      />
+      <Stack.Screen
+        options={{
+          title: 'Production',
+          headerTitleAlign: 'center',
+          headerTitleStyle: {
+            fontSize: 18,
+            color: COLORS.primary,
+            fontWeight: 'bold',
+          },
+          headerTintColor: COLORS.primary,
+        }}
+        name="ViewHistory"
+        component={ViewHistory}
+      />
+      <Stack.Screen
+        options={{
+          title: 'Production Report',
+          headerTitleAlign: 'center',
+          headerTitleStyle: {
+            fontSize: 18,
+            color: COLORS.primary,
+            fontWeight: 'bold',
+          },
+          headerTintColor: COLORS.primary,
+        }}
+        name="ViewReport"
+        component={ViewReport}
+      />
+    </Stack.Navigator>
+  );
+}
+
 const IconByRoute = {
   Dashboard: LayoutDashboard,
+  Shift: CalendarClock,
   Production: Factory,
   History: History,
   Users: Users,
@@ -82,8 +130,15 @@ export default function SuperAdminTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Shift" component={ShiftScreen} />
       <Tab.Screen name="Production" component={ProductionScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen
+        options={{
+          tabBarLabel: 'History',
+        }}
+        name="HistoryTab"
+        component={HistoryStack}
+      />
       <Tab.Screen name="Users" component={UsersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

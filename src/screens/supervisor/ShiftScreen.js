@@ -87,12 +87,7 @@ export default function ShiftScreen() {
   const isActive = shift?.is_shift_active;
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-      }
-    >
+    <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerCard}>
         <View>
           <Text style={styles.title}>Shift Control</Text>

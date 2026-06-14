@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  PermissionsAndroid,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -21,7 +22,6 @@ import { getDashboardApi } from '../../api/dashboardApi';
 import { socket } from '../../socket/socket';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import moment from 'moment';
-
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -46,6 +46,9 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
+    PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+    );
     socket.connect();
 
     socket.on('production_updated', () => {
@@ -98,10 +101,12 @@ export default function DashboardScreen() {
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
       }
     >
-      <View style={styles.headerCard}>
+      {/* <View style={styles.headerCard}>
         <View>
           <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subTitle}>Today: {dashboard?.today_date}</Text>
+          <Text style={styles.subTitle}>
+            Today: {moment(dashboard?.today_date).format('LL')}
+          </Text>
         </View>
 
         <View
@@ -123,7 +128,7 @@ export default function DashboardScreen() {
             {shiftStatus?.is_shift_active ? 'ACTIVE' : 'NO SHIFT'}
           </Text>
         </View>
-      </View>
+      </View> */}
 
       <View style={styles.activeShiftCard}>
         <View style={styles.cardHeaderRow}>
@@ -133,8 +138,26 @@ export default function DashboardScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>Current Shift</Text>
-            <Text style={styles.cardDesc}>
-              {shiftStatus?.button_text || '-'}
+          </View>
+          <View
+            style={[
+              styles.shiftBadge,
+              shiftStatus?.is_shift_active
+                ? styles.activeBadge
+                : styles.idleBadge,
+            ]}
+          >
+            <Text
+              style={[
+                styles.shiftBadgeText,
+                shiftStatus?.is_shift_active
+                  ? styles.activeText
+                  : styles.idleText,
+              ]}
+            >
+              {shiftStatus?.is_shift_active
+                ? shiftStatus.active_shift.shift_name?.toUpperCase()
+                : 'NO SHIFT'}
             </Text>
           </View>
         </View>
@@ -142,18 +165,10 @@ export default function DashboardScreen() {
         {shiftStatus?.active_shift ? (
           <View style={styles.shiftInfoBox}>
             <InfoLine
-              label="Running Shift"
-              value={shiftStatus.active_shift.shift_name?.toUpperCase()}
-            />
-            <InfoLine
               label="Shift Date"
               value={moment(shiftStatus.active_shift.shift_date).format(
                 'DD/MM/YYYY',
               )}
-            />
-            <InfoLine
-              label="Supervisor"
-              value={shiftStatus.active_shift.supervisor_name || '-'}
             />
           </View>
         ) : (
@@ -166,12 +181,7 @@ export default function DashboardScreen() {
           title="Active MS Production"
           value={`${activeShift.total_ms_production_kg || 0} kg`}
           icon={<TrendingUp size={22} color={COLORS.primary} />}
-        />
-
-        <SummaryCard
-          title="Active GI Production"
-          value={`${activeShift.total_gi_production_kg || 0} kg`}
-          icon={<Factory size={22} color={COLORS.primary} />}
+          isfull={true}
         />
 
         <SummaryCard
@@ -208,59 +218,31 @@ export default function DashboardScreen() {
           data={nightShift}
         />
       </View>
-
-      <SectionTitle title="Current Month" />
-
-      <View style={styles.monthCard}>
-        <View style={styles.cardHeaderRow}>
-          <View style={styles.iconBox}>
-            <TrendingUp size={22} color={COLORS.primary} />
-          </View>
-
-          <View>
-            <Text style={styles.cardTitle}>Monthly Production</Text>
-            <Text style={styles.cardDesc}>All shifts combined</Text>
-          </View>
-        </View>
-
-        <View style={styles.monthValues}>
-          <InfoLine
-            label="MS Production"
-            value={`${month.total_ms_production_kg || 0} kg`}
-          />
-          <InfoLine
-            label="GI Production"
-            value={`${month.total_gi_production_kg || 0} kg`}
-          />
-          <InfoLine label="Zinc Used" value={`${month.zink_used || 0} kg`} />
-          <InfoLine
-            label="Zinc Consumption"
-            value={`${month.zinc_consumption || 0}%`}
-          />
-        </View>
-      </View>
-
-      <SectionTitle title="Active Shift Material Summary" />
-
-      {activeShift?.material_summary?.length > 0 ? (
-        activeShift.material_summary.map((item, index) => (
-          <MaterialCard key={`${item.material}-${index}`} item={item} />
-        ))
-      ) : (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No material production yet.</Text>
-        </View>
-      )}
     </ScrollView>
   );
 }
 
-function SummaryCard({ title, value, icon }) {
+function SummaryCard({ title, value, icon, isfull }) {
   return (
-    <View style={styles.summaryCard}>
-      <View style={styles.summaryIcon}>{icon}</View>
-      <Text style={styles.summaryTitle}>{title}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
+    <View style={[styles.summaryCard, { width: isfull ? '100%' : '48%' }]}>
+      <View
+        style={[
+          isfull
+            ? {
+                flexDirection: 'row',
+                alignItems: 'center',
+              }
+            : {},
+        ]}
+      >
+        <View style={[styles.summaryIcon, isfull && { marginRight: 10 }]}>
+          {icon}
+        </View>
+        <Text style={styles.summaryTitle}>{title}</Text>
+      </View>
+      <Text style={[styles.summaryValue, isfull && { fontSize: 25 }]}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -274,7 +256,6 @@ function ShiftSummaryCard({ title, icon, data }) {
       </View>
 
       <InfoLine label="MS" value={`${data?.total_ms_production_kg || 0} kg`} />
-      <InfoLine label="GI" value={`${data?.total_gi_production_kg || 0} kg`} />
       <InfoLine label="Zinc Used" value={`${data?.zink_used || 0} kg`} />
       <InfoLine
         label="Zinc Consumption"
@@ -297,10 +278,7 @@ function MaterialCard({ item }) {
           label="MS Total"
           value={`${item.total_ms_production_kg || 0} kg`}
         />
-        <InfoLine
-          label="GI Total"
-          value={`${item.total_gi_production_kg || 0} kg`}
-        />
+
         <InfoLine label="Zinc Used" value={`${item.zink_used || 0}kg`} />
         <InfoLine
           label="Zinc Consumption"
@@ -372,6 +350,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontSize: 13,
     marginTop: 4,
+    fontWeight: 'bold',
   },
 
   shiftBadge: {
@@ -448,7 +427,7 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
-    width: '48%',
+    // width: '48%',
     backgroundColor: COLORS.white,
     borderRadius: 22,
     padding: 15,

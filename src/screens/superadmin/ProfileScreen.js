@@ -3,7 +3,9 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { LogOut, Mail, ShieldCheck, UserCircle2 } from 'lucide-react-native';
+import messaging from '@react-native-firebase/messaging';
 
+import { removeFcmTokenApi } from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
 import { clearAuth } from '../../redux/slices/authSlice';
 
@@ -33,6 +35,10 @@ export default function ProfileScreen() {
         text: 'Logout',
         style: 'destructive',
         onPress: async () => {
+          const token = await messaging().getToken();
+          await removeFcmTokenApi({
+            fcm_token: token,
+          });
           await logoutApi();
           dispatch(clearAuth());
         },
