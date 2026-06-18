@@ -19,6 +19,7 @@ import ProfileScreen from './../screens/superadmin/ProfileScreen';
 import ShiftScreen from '../screens/supervisor/ShiftScreen';
 import ViewReport from './../screens/common/ViewReport';
 import ViewHistory from './../screens/common/ViewHistory';
+import ProductionPlanningScreen from './../screens/common/ProductionPlanningScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -130,7 +131,7 @@ export default function SuperAdminTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Shift" component={ShiftScreen} />
+      <Tab.Screen name="Shift" component={ProductionPlanningScreen} />
       <Tab.Screen name="Production" component={ProductionScreen} />
       <Tab.Screen
         options={{

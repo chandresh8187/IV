@@ -30,6 +30,7 @@
     "react-native": "0.85.3",
     "react-native-bootsplash": "^7.3.1",
     "react-native-config": "^1.6.1",
+    "react-native-dropdown-picker": "^5.4.6",
     "react-native-pager-view": "^8.0.1",
     "react-native-paper": "^5.15.2",
     "react-native-reanimated": "^4.4.1",

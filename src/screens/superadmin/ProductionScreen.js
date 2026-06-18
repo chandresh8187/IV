@@ -1,34 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, X } from 'lucide-react-native';
+import moment from 'moment';
+import React, { useCallback, useEffect, useState } from 'react';
+import DropDownPicker from 'react-native-dropdown-picker';
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import moment from 'moment';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ClipboardList,
-  Droplets,
-  Factory,
-  Plus,
-  RefreshCcwIcon,
-  Scale,
-  X,
-} from 'lucide-react-native';
-import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
-import { getProductionsApi, saveProductionApi } from '../../api/productionApi';
-import { socket } from '../../socket/socket';
 import { useSelector } from 'react-redux';
+import { getProductionsApi, saveProductionApi } from '../../api/productionApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
+import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
+import { socket } from '../../socket/socket';
+import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
+
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -89,6 +83,10 @@ export default function ProductionScreen() {
   const [fullForm, setFullForm] = useState(emptyFullForm);
   const [modalType, setModalType] = useState(null);
   const loggedUser = useSelector(state => state.auth.user);
+  const [materialOpen, setMaterialOpen] = useState(false);
+  const [challanOpen, setChallanOpen] = useState(false);
+  const [partyOpen, setPartyOpen] = useState(false);
+  const [planningOpen, setPlanningOpen] = useState(false);
 
   const {
     data: shiftStatusData,
@@ -155,17 +153,25 @@ export default function ProductionScreen() {
     };
 
     const handleShiftUpdated = () => {
-      queryClient.removeQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
+      queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    };
+
+    const handlePlanningUpdated = () => {
+      queryClient.invalidateQueries({
+        queryKey: ['available-production-planning'],
+      });
     };
 
     socket.on('production_updated', handleProductionUpdated);
     socket.on('shift_updated', handleShiftUpdated);
+    socket.on('production_planning_updated', handlePlanningUpdated);
 
     return () => {
       socket.off('production_updated', handleProductionUpdated);
       socket.off('shift_updated', handleShiftUpdated);
+      socket.off('production_planning_updated', handlePlanningUpdated);
     };
   }, [queryClient]);
 
@@ -195,37 +201,65 @@ export default function ProductionScreen() {
     setFullForm(emptyFullForm);
   };
 
-  const fillFromSrNo = (srNo, type) => {
-    const found = rows.find(
-      item =>
-        String(item.sr_no) === String(srNo) && item.row_type !== 'summary',
+  const fillFromSrNo = srNo => {
+    const found = rows.find(item => String(item.sr_no) === String(srNo));
+
+    if (found) {
+      setFullForm({
+        sr_no: String(found.sr_no || ''),
+        challan_no: found.challan_no || '',
+        party_name: found.party_name || '',
+        material: found.material || '',
+        production_time: found.production_time || '',
+        dipping_qty: String(found.dipping_qty || ''),
+        kettle_temperature: String(found.kettle_temperature || ''),
+        ms_weight: String(found.ms_weight || ''),
+        gi_weight: String(found.gi_weight || ''),
+        c1: String(Math.round(found.c1) || ''),
+        c2: String(Math.round(found.c2) || ''),
+        c3: String(Math.round(found.c3) || ''),
+        c4: String(Math.round(found.c4) || ''),
+        c5: String(Math.round(found.c5) || ''),
+      });
+    } else {
+      setFullForm({
+        ...emptyFullForm,
+        sr_no: srNo,
+      });
+    }
+  };
+
+  const { data: availablePlanningData } = useQuery({
+    queryKey: ['available-production-planning'],
+    queryFn: getAvailablePlanningApi,
+  });
+
+  const availablePlanning = availablePlanningData?.data || [];
+
+  const challanItems = availablePlanning.map(item => ({
+    label: `${item.challan_no} | ${item.party_name} | Balance ${item.remaining_qty}`,
+    value: String(item.id),
+  }));
+
+  const handlePlanningSelect = planningId => {
+    const found = availablePlanning.find(
+      item => String(item.id) === String(planningId),
     );
 
-    if (type === 'FULL') {
-      if (found) {
-        setFullForm({
-          sr_no: String(found.sr_no || ''),
-          challan_no: found.challan_no || '',
-          party_name: found.party_name || '',
-          material: found.material || '',
-          production_time: found.production_time || '',
-          dipping_qty: String(found.dipping_qty || ''),
-          kettle_temperature: String(found.kettle_temperature || ''),
-          ms_weight: String(found.ms_weight || ''),
-          gi_weight: String(found.gi_weight || ''),
-          c1: String(Math.round(found.c1) || ''),
-          c2: String(Math.round(found.c2) || ''),
-          c3: String(Math.round(found.c3) || ''),
-          c4: String(Math.round(found.c4) || ''),
-          c5: String(Math.round(found.c5) || ''),
-        });
-      } else {
-        setFullForm({
-          ...emptyFullForm,
-          sr_no: srNo,
-        });
-      }
-    }
+    if (!found) return;
+
+    const partyWithThirdParty = found.third_party_name
+      ? `${found.party_name} (${found.third_party_name})`
+      : found.party_name;
+
+    setFullForm(prev => ({
+      ...prev,
+      planning_id: String(found.id),
+      challan_no: found.challan_no || '',
+      party_name: partyWithThirdParty || '',
+      material: found.material_description || '',
+      material_description: found.material_description || '',
+    }));
   };
 
   const saveFullEntry = async () => {
@@ -362,10 +396,17 @@ export default function ProductionScreen() {
                           ? `${item.kettle_temperature}°`
                           : '-'}
                       </Cell>
-                      <Cell width={90}>{`${item.ms_weight} KG` || '-'}</Cell>
-                      <Cell width={90}>{`${item.gi_weight} KG` || '-'}</Cell>
                       <Cell width={90}>
-                        {`${item.zinc_percentage} %` || '-'}
+                        {item?.ms_weight != null ? `${item.ms_weight} KG` : '-'}
+                      </Cell>
+
+                      <Cell width={90}>
+                        {item?.gi_weight != null ? `${item.gi_weight} KG` : '-'}
+                      </Cell>
+                      <Cell width={90}>
+                        {item?.zinc_percentage != null
+                          ? `${item.zinc_percentage} %`
+                          : '-'}
                       </Cell>
                       <Cell width={80}>
                         {Math.round(Number(item.c1)) || '-'}
@@ -433,33 +474,31 @@ export default function ProductionScreen() {
                 keyboardType="numeric"
                 onChangeText={v => {
                   setFullForm(prev => ({ ...prev, sr_no: v }));
-                  fillFromSrNo(v, 'FULL');
+                  fillFromSrNo(v);
                 }}
               />
 
-              <FormInput
-                label="Challan No"
-                value={fullForm.challan_no}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, challan_no: v }))
-                }
+              <FormDropdown
+                label="Select Challan No"
+                open={planningOpen}
+                value={fullForm.planning_id}
+                items={challanItems}
+                setOpen={setPlanningOpen}
+                onChangeValue={handlePlanningSelect}
+                placeholder="Select Challan"
+                zIndex={3000}
               />
-
               <FormInput
                 label="Party Name"
                 value={fullForm.party_name}
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, party_name: v }))
-                }
+                editable={false}
               />
 
               <FormInput
-                label="Material"
-                value={fullForm.material}
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, material: v }))
-                }
+                label="Material Description"
+                value={fullForm.material_description}
+                editable={false}
+                multiline
               />
 
               <FormInput
@@ -584,6 +623,47 @@ function FormCard({ title, children }) {
     <View style={styles.formCard}>
       <Text style={styles.formTitle}>{title}</Text>
       {children}
+    </View>
+  );
+}
+
+function FormDropdown({
+  label,
+  open,
+  value,
+  items,
+  setOpen,
+  onChangeValue,
+  placeholder,
+  zIndex,
+  disabled = false,
+}) {
+  return (
+    <View style={[styles.dropdownWrap, { zIndex }]}>
+      <Text style={styles.dropdownLabel}>{label}</Text>
+
+      <DropDownPicker
+        open={open}
+        value={value}
+        items={items}
+        setOpen={setOpen}
+        setValue={callback => {
+          const selectedValue = callback(value);
+          onChangeValue(selectedValue);
+        }}
+        placeholder={placeholder || label}
+        disabled={disabled}
+        listMode="SCROLLVIEW"
+        searchable
+        searchPlaceholder={`Search ${label}`}
+        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        dropDownContainerStyle={styles.dropdownContainer}
+        textStyle={styles.dropdownText}
+        placeholderStyle={styles.dropdownPlaceholder}
+        searchTextInputStyle={styles.dropdownSearch}
+        arrowIconStyle={styles.dropdownIcon}
+        tickIconStyle={styles.dropdownIcon}
+      />
     </View>
   );
 }
@@ -945,5 +1025,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
+  },
+  dropdownWrap: {
+    marginVertical: 8,
+  },
+
+  dropdownLabel: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+
+  dropdown: {
+    minHeight: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.inputBorder,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
+  },
+
+  dropdownDisabled: {
+    backgroundColor: COLORS.bg,
+    opacity: 0.7,
+  },
+
+  dropdownContainer: {
+    borderColor: COLORS.inputBorder,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
+    elevation: 8,
+  },
+
+  dropdownText: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  dropdownPlaceholder: {
+    color: COLORS.gray,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  dropdownSearch: {
+    borderColor: COLORS.inputBorder,
+    borderRadius: 12,
+    color: COLORS.text,
+  },
+
+  dropdownIcon: {
+    tintColor: COLORS.primary,
   },
 });
