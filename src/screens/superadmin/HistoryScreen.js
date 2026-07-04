@@ -1,31 +1,18 @@
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import DateTimePicker from 'react-native-ui-datepicker';
 import {
   CalendarDays,
   Filter,
-  Maximize2,
-  Moon,
   Search,
   Sun,
+  Moon,
   X,
 } from 'lucide-react-native';
-
-import { getProductionHistoryApi } from '../../api/historyApi';
 import { useNavigation } from '@react-navigation/native';
+
 const COLORS = {
   primary: '#232B5D',
   accent: '#39A9E6',
@@ -54,19 +41,15 @@ export default function HistoryScreen() {
   const today = formatDate(new Date());
 
   const [filters, setFilters] = useState({
-    from_date: today,
-    to_date: today,
+    date: today,
     shift_name: 'day',
     material: '',
   });
 
   const [datePicker, setDatePicker] = useState({
     visible: false,
-    type: null,
     value: dayjs(today),
   });
-
-  // const tableData = history?.table_data || [];
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -80,11 +63,10 @@ export default function HistoryScreen() {
   };
 
   const closeDatePicker = () => {
-    setDatePicker({
+    setDatePicker(prev => ({
+      ...prev,
       visible: false,
-      type: null,
-      value: dayjs(),
-    });
+    }));
   };
 
   const handleDateChange = params => {
@@ -101,25 +83,21 @@ export default function HistoryScreen() {
   };
 
   const applyFilters = () => {
-    const finalFilters = {
-      date: filters.date,
-      shift_name: filters.shift_name,
-      material: filters.material,
-    };
-
     navigation.navigate('ViewHistory', {
-      appliedFilters: finalFilters,
+      appliedFilters: {
+        date: filters.date,
+        shift_name: filters.shift_name,
+        material: filters.material,
+      },
     });
   };
 
   const clearFilters = () => {
-    const fresh = {
+    setFilters({
       date: today,
       shift_name: 'day',
       material: '',
-    };
-
-    setFilters(fresh);
+    });
   };
 
   return (
@@ -201,75 +179,6 @@ export default function HistoryScreen() {
         </View>
       </View>
 
-      {/* {isLoading ? (
-          <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        ) : (
-          <>
-            <View style={styles.summaryGrid}>
-              <SummaryCard
-                title="MS Production"
-                value={`${summary.total_ms_production_kg || 0} kg`}
-              />
-
-              <SummaryCard
-                title="GI Production"
-                value={`${summary.total_gi_production_kg || 0} kg`}
-              />
-
-              <SummaryCard
-                title="Zinc Kg"
-                value={`${summary.zinc_consumption_kg || 0} kg`}
-              />
-
-              <SummaryCard
-                title="Zinc %"
-                value={`${summary.zinc_consumption_percentage || 0}%`}
-              />
-            </View>
-
-            <Text style={styles.blockTitle}>Material Summary</Text>
-
-            {materialSummary.length === 0 ? (
-              <Empty text="No material summary found" />
-            ) : (
-              materialSummary.map((item, index) => (
-                <View
-                  key={`${item.material}-${index}`}
-                  style={styles.materialCard}
-                >
-                  <Text style={styles.materialTitle}>{item.material}</Text>
-
-                  <InfoLine label="Date" value={item.shift_date} />
-                  <InfoLine label="Shift" value={item.shift_name} />
-                  <InfoLine
-                    label="Avg MS"
-                    value={`${item.avg_ms_weight || 0} kg`}
-                  />
-                  <InfoLine
-                    label="Avg GI"
-                    value={`${item.avg_gi_weight || 0} kg`}
-                  />
-                  <InfoLine label="Qty" value={item.total_dip_qty || 0} />
-                  <InfoLine
-                    label="MS Total"
-                    value={`${item.total_ms_production_kg || 0} kg`}
-                  />
-                  <InfoLine
-                    label="GI Total"
-                    value={`${item.total_gi_production_kg || 0} kg`}
-                  />
-                  <InfoLine
-                    label="Zinc %"
-                    value={`${item.zinc_consumption_percentage || 0}%`}
-                  />
-                </View>
-              ))
-            )}
-          </>
-        )} */}
-
       <DatePickerModal
         visible={datePicker.visible}
         value={datePicker.value}
@@ -312,7 +221,6 @@ function DatePickerModal({ visible, value, onChange, onClose }) {
                 color: COLORS.primary,
                 fontWeight: 'bold',
               },
-
               month_selector_label: {
                 color: COLORS.primary,
                 fontWeight: 'bold',
@@ -348,10 +256,6 @@ function ShiftButton({ title, active, onPress, icon }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 16, paddingBottom: 32 },
-
   headerCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -461,11 +365,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  dateTitle: {
-    color: COLORS.primary,
-    fontSize: 22,
-    fontWeight: '900',
-  },
+  dateTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
 
   dateCloseBtn: {
     width: 40,
@@ -474,42 +374,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  calendarText: {
-    color: COLORS.text,
-    fontWeight: '700',
-  },
-
-  calendarHeaderText: {
-    color: COLORS.primary,
-    fontWeight: '900',
-    fontSize: 17,
-  },
-
-  calendarWeekText: {
-    color: COLORS.gray,
-    fontWeight: '900',
-  },
-
-  calendarSelectedText: {
-    color: COLORS.white,
-    fontWeight: '900',
-  },
-
-  todayContainer: {
-    borderColor: COLORS.accent,
-    borderWidth: 1,
-  },
-
-  todayText: {
-    color: COLORS.accent,
-    fontWeight: '900',
-  },
-
-  monthYearContainer: {
-    borderRadius: 14,
-    backgroundColor: COLORS.lightBlue,
   },
 
   doneBtn: {

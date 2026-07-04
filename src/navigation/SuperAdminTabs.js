@@ -1,78 +1,24 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  LayoutDashboard,
+  CalendarClock,
   Factory,
   History,
-  Users,
+  LayoutDashboard,
   UserCircle2,
-  CalendarClock,
+  Users,
 } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
+import { COLORS } from '../assets/Colors';
 import DashboardScreen from '../screens/superadmin/DashboardScreen';
-import ProductionScreen from '../screens/superadmin/ProductionScreen';
-import UsersScreen from './../screens/superadmin/UsersScreen';
-import HistoryScreen from './../screens/superadmin/HistoryScreen';
-import ProfileScreen from './../screens/superadmin/ProfileScreen';
 import ShiftScreen from '../screens/supervisor/ShiftScreen';
-import ViewReport from './../screens/common/ViewReport';
-import ViewHistory from './../screens/common/ViewHistory';
-import ProductionPlanningScreen from './../screens/common/ProductionPlanningScreen';
+import ProfileScreen from './../screens/superadmin/ProfileScreen';
+import UsersScreen from './../screens/superadmin/UsersScreen';
+import HistoryStack from './comman/HistoryStack';
+import ProductionStack from './comman/ProductionStock';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  white: '#FFFFFF',
-  gray: '#9CA3AF',
-  lightBlue: '#EEF7FD',
-  border: '#E5E7EB',
-};
-
-function HistoryStack() {
-  return (
-    <Stack.Navigator initialRouteName="History">
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-        name="History"
-        component={HistoryScreen}
-      />
-      <Stack.Screen
-        options={{
-          title: 'Production',
-          headerTitleAlign: 'center',
-          headerTitleStyle: {
-            fontSize: 18,
-            color: COLORS.primary,
-            fontWeight: 'bold',
-          },
-          headerTintColor: COLORS.primary,
-        }}
-        name="ViewHistory"
-        component={ViewHistory}
-      />
-      <Stack.Screen
-        options={{
-          title: 'Production Report',
-          headerTitleAlign: 'center',
-          headerTitleStyle: {
-            fontSize: 18,
-            color: COLORS.primary,
-            fontWeight: 'bold',
-          },
-          headerTintColor: COLORS.primary,
-        }}
-        name="ViewReport"
-        component={ViewReport}
-      />
-    </Stack.Navigator>
-  );
-}
 
 const IconByRoute = {
   Dashboard: LayoutDashboard,
@@ -131,15 +77,7 @@ export default function SuperAdminTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Shift" component={ProductionPlanningScreen} />
-      <Tab.Screen name="Production" component={ProductionScreen} />
-      <Tab.Screen
-        options={{
-          tabBarLabel: 'History',
-        }}
-        name="HistoryTab"
-        component={HistoryStack}
-      />
+      <Tab.Screen name="Production" component={ProductionStack} />
       <Tab.Screen name="Users" component={UsersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

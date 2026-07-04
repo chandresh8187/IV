@@ -1,8 +1,15 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, X } from 'lucide-react-native';
+import {
+  ChevronDown,
+  ChevronUp,
+  Check,
+  ClipboardList,
+  Plus,
+  X,
+} from 'lucide-react-native';
 import moment from 'moment';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
 import {
   ActivityIndicator,
@@ -22,6 +29,7 @@ import { getShiftStatusApi } from '../../api/shiftApi';
 import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import { socket } from '../../socket/socket';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
+import { formatNumber } from '../../utils/format';
 
 const COLORS = {
   primary: '#232B5D',
@@ -44,7 +52,15 @@ const PAPER_THEME = {
   roundness: 14,
 };
 
-function FormInput({ label, value, onChangeText, keyboardType = 'default' }) {
+function FormInput({
+  label,
+  value,
+  onChangeText,
+  keyboardType = 'default',
+  editable = true,
+  multiline = false,
+  numberOfLines = 1,
+}) {
   return (
     <TextInput
       label={label}
@@ -52,7 +68,10 @@ function FormInput({ label, value, onChangeText, keyboardType = 'default' }) {
       onChangeText={onChangeText}
       mode="outlined"
       keyboardType={keyboardType}
-      style={styles.input}
+      editable={editable}
+      multiline={multiline}
+      numberOfLines={numberOfLines}
+      style={[styles.input, !editable && styles.inputDisabled]}
       outlineColor={COLORS.inputBorder}
       activeOutlineColor={COLORS.accent}
       textColor={COLORS.text}
@@ -65,9 +84,11 @@ export default function ProductionScreen() {
   const queryClient = useQueryClient();
   const emptyFullForm = {
     sr_no: '',
+    planning_id: '',
     challan_no: '',
     party_name: '',
     material: '',
+    material_description: '',
     production_time: '',
     dipping_qty: '',
     kettle_temperature: '',
@@ -98,9 +119,7 @@ export default function ProductionScreen() {
   });
 
   const activeShift = shiftStatusData?.data?.active_shift || null;
-
   const activeShiftId = activeShift?.id || null;
-
   const isShiftActive = !!activeShiftId;
 
   const canManageProduction =
@@ -201,25 +220,32 @@ export default function ProductionScreen() {
     setFullForm(emptyFullForm);
   };
 
+  // Fills the whole form from an existing row when the user types a Sr No
+  // that already has data for this shift. Keeps challan_no/party/material
+  // in sync so the challan dropdown can display the right selection even
+  // if that challan is no longer "available" (e.g. already completed).
   const fillFromSrNo = srNo => {
     const found = rows.find(item => String(item.sr_no) === String(srNo));
 
     if (found) {
       setFullForm({
         sr_no: String(found.sr_no || ''),
+        planning_id: found.planning_id ? String(found.planning_id) : '',
         challan_no: found.challan_no || '',
         party_name: found.party_name || '',
         material: found.material || '',
+        material_description:
+          found.material || found.material_description || '',
         production_time: found.production_time || '',
         dipping_qty: String(found.dipping_qty || ''),
         kettle_temperature: String(found.kettle_temperature || ''),
         ms_weight: String(found.ms_weight || ''),
         gi_weight: String(found.gi_weight || ''),
-        c1: String(Math.round(found.c1) || ''),
-        c2: String(Math.round(found.c2) || ''),
-        c3: String(Math.round(found.c3) || ''),
-        c4: String(Math.round(found.c4) || ''),
-        c5: String(Math.round(found.c5) || ''),
+        c1: found.c1 != null ? formatNumber(found.c1, '') : '',
+        c2: found.c2 != null ? formatNumber(found.c2, '') : '',
+        c3: found.c3 != null ? formatNumber(found.c3, '') : '',
+        c4: found.c4 != null ? formatNumber(found.c4, '') : '',
+        c5: found.c5 != null ? formatNumber(found.c5, '') : '',
       });
     } else {
       setFullForm({
@@ -236,17 +262,37 @@ export default function ProductionScreen() {
 
   const availablePlanning = availablePlanningData?.data || [];
 
-  const challanItems = availablePlanning.map(item => ({
-    label: `${item.challan_no} | ${item.party_name} | Balance ${item.remaining_qty}`,
-    value: String(item.id),
-  }));
+  // Dropdown is keyed by challan_no (stable across both "available planning"
+  // and "already-used historical" records) rather than planning_id, so a
+  // Sr No fill can always resolve to a visible selection.
+  const challanItems = useMemo(() => {
+    const items = availablePlanning.map(item => ({
+      label: `${item.challan_no} | ${item.party_name} | Balance ${item.remaining_qty}`,
+      value: item.challan_no,
+    }));
 
-  const handlePlanningSelect = planningId => {
-    const found = availablePlanning.find(
-      item => String(item.id) === String(planningId),
-    );
+    const currentChallan = fullForm.challan_no;
+    const alreadyListed = items.some(item => item.value === currentChallan);
 
-    if (!found) return;
+    if (currentChallan && !alreadyListed) {
+      items.unshift({
+        label: `${currentChallan} | ${fullForm.party_name || 'Already used'}`,
+        value: currentChallan,
+      });
+    }
+
+    return items;
+  }, [availablePlanning, fullForm.challan_no, fullForm.party_name]);
+
+  const handlePlanningSelect = challanNo => {
+    const found = availablePlanning.find(item => item.challan_no === challanNo);
+
+    if (!found) {
+      // Selecting a historical/already-used challan (came from a Sr No fill) -
+      // its party/material are already correct in state, just confirm the value.
+      setFullForm(prev => ({ ...prev, challan_no: challanNo }));
+      return;
+    }
 
     const partyWithThirdParty = found.third_party_name
       ? `${found.party_name} (${found.third_party_name})`
@@ -266,6 +312,7 @@ export default function ProductionScreen() {
     saveMutation.mutate({
       entry_type: 'full',
       sr_no: fullForm.sr_no,
+      planning_id: fullForm.planning_id || undefined,
       challan_no: fullForm.challan_no,
       party_name: fullForm.party_name,
       material: fullForm.material,
@@ -304,12 +351,13 @@ export default function ProductionScreen() {
       fullForm.c4,
       fullForm.c5,
     ]
+      .filter(v => v !== '' && v !== null && v !== undefined)
       .map(Number)
-      .filter(v => !isNaN(v) && v > 0);
+      .filter(v => Number.isFinite(v) && v >= 0);
 
     if (values.length === 0) return '';
 
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    return formatNumber(values.reduce((a, b) => a + b, 0) / values.length, '');
   })();
 
   return (
@@ -399,7 +447,6 @@ export default function ProductionScreen() {
                       <Cell width={90}>
                         {item?.ms_weight != null ? `${item.ms_weight} KG` : '-'}
                       </Cell>
-
                       <Cell width={90}>
                         {item?.gi_weight != null ? `${item.gi_weight} KG` : '-'}
                       </Cell>
@@ -408,24 +455,14 @@ export default function ProductionScreen() {
                           ? `${item.zinc_percentage} %`
                           : '-'}
                       </Cell>
-                      <Cell width={80}>
-                        {Math.round(Number(item.c1)) || '-'}
-                      </Cell>
-                      <Cell width={80}>
-                        {Math.round(Number(item.c2)) || '-'}
-                      </Cell>
-                      <Cell width={80}>
-                        {Math.round(Number(item.c3)) || '-'}
-                      </Cell>
-                      <Cell width={80}>
-                        {Math.round(Number(item.c4)) || '-'}
-                      </Cell>
-                      <Cell width={80}>
-                        {Math.round(Number(item.c5)) || '-'}
-                      </Cell>
+                      <Cell width={80}>{formatNumber(item.c1)}</Cell>
+                      <Cell width={80}>{formatNumber(item.c2)}</Cell>
+                      <Cell width={80}>{formatNumber(item.c3)}</Cell>
+                      <Cell width={80}>{formatNumber(item.c4)}</Cell>
+                      <Cell width={80}>{formatNumber(item.c5)}</Cell>
                       <Cell width={90} bold>
-                        {item.avg_coating
-                          ? Math.round(Number(item.avg_coating))
+                        {item.avg_coating != null
+                          ? formatNumber(item.avg_coating)
                           : '-'}
                       </Cell>
                     </View>
@@ -481,13 +518,15 @@ export default function ProductionScreen() {
               <FormDropdown
                 label="Select Challan No"
                 open={planningOpen}
-                value={fullForm.planning_id}
+                value={fullForm.challan_no}
                 items={challanItems}
                 setOpen={setPlanningOpen}
                 onChangeValue={handlePlanningSelect}
                 placeholder="Select Challan"
                 zIndex={3000}
+                icon={<ClipboardList size={16} color={COLORS.primary} />}
               />
+
               <FormInput
                 label="Party Name"
                 value={fullForm.party_name}
@@ -499,6 +538,7 @@ export default function ProductionScreen() {
                 value={fullForm.material_description}
                 editable={false}
                 multiline
+                numberOfLines={2}
               />
 
               <FormInput
@@ -637,10 +677,14 @@ function FormDropdown({
   placeholder,
   zIndex,
   disabled = false,
+  icon,
 }) {
   return (
     <View style={[styles.dropdownWrap, { zIndex }]}>
-      <Text style={styles.dropdownLabel}>{label}</Text>
+      <View style={styles.dropdownLabelRow}>
+        {icon}
+        <Text style={styles.dropdownLabel}>{label}</Text>
+      </View>
 
       <DropDownPicker
         open={open}
@@ -661,8 +705,19 @@ function FormDropdown({
         textStyle={styles.dropdownText}
         placeholderStyle={styles.dropdownPlaceholder}
         searchTextInputStyle={styles.dropdownSearch}
-        arrowIconStyle={styles.dropdownIcon}
-        tickIconStyle={styles.dropdownIcon}
+        searchContainerStyle={styles.dropdownSearchContainer}
+        listItemContainerStyle={styles.dropdownListItem}
+        listItemLabelStyle={styles.dropdownListItemLabel}
+        selectedItemContainerStyle={styles.dropdownSelectedItem}
+        selectedItemLabelStyle={styles.dropdownSelectedItemLabel}
+        showTickIcon
+        ArrowDownIconComponent={() => (
+          <ChevronDown size={20} color={COLORS.primary} />
+        )}
+        ArrowUpIconComponent={() => (
+          <ChevronUp size={20} color={COLORS.primary} />
+        )}
+        TickIconComponent={() => <Check size={18} color={COLORS.accent} />}
       />
     </View>
   );
@@ -686,24 +741,7 @@ function SaveButton({ title, loading, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  infoCard: {
-    backgroundColor: COLORS.lightBlue,
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#D8ECFA',
-  },
-
-  infoText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  safe: { flex: 1, backgroundColor: COLORS.bg },
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -720,26 +758,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  headerIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  title: {
-    fontSize: 25,
-    fontWeight: '900',
-    color: COLORS.primary,
-  },
-
-  description: {
-    fontSize: 13,
-    color: COLORS.gray,
-    marginTop: 4,
-  },
+  title: { fontSize: 25, fontWeight: '900', color: COLORS.primary },
+  description: { fontSize: 13, color: COLORS.gray, marginTop: 4 },
 
   tableCard: {
     flex: 1,
@@ -750,16 +770,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  loaderBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  loaderBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.primary,
-  },
+  tableHeader: { flexDirection: 'row', backgroundColor: COLORS.primary },
 
   headerCell: {
     height: 50,
@@ -784,9 +797,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
 
-  altRow: {
-    backgroundColor: '#FAFBFD',
-  },
+  altRow: { backgroundColor: '#FAFBFD' },
 
   cell: {
     minHeight: 54,
@@ -797,27 +808,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
 
-  cellText: {
-    color: COLORS.text,
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
+  boldCell: { fontWeight: '900', color: COLORS.primary },
 
-  boldCell: {
-    fontWeight: '900',
-    color: COLORS.primary,
-  },
-
-  emptyBox: {
-    height: 180,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  emptyText: {
-    color: COLORS.gray,
-    fontWeight: '700',
-  },
+  emptyBox: { height: 180, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { color: COLORS.gray, fontWeight: '700' },
 
   fab: {
     position: 'absolute',
@@ -832,76 +827,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
 
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.35)',
-    justifyContent: 'flex-end',
-  },
-
-  optionCard: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 18,
-    paddingBottom: 28,
-  },
-
-  optionTitle: {
-    color: COLORS.primary,
-    fontSize: 21,
-    fontWeight: '900',
-    marginBottom: 16,
-  },
-
-  optionRow: {
-    backgroundColor: COLORS.bg,
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-
-  optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 15,
-    backgroundColor: COLORS.lightBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-
-  optionRowTitle: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-
-  optionRowDesc: {
-    color: COLORS.gray,
-    fontSize: 12,
-    marginTop: 3,
-  },
-
-  cancelBtn: {
-    height: 50,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-
-  cancelText: {
-    color: COLORS.gray,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-
-  modalSafe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
+  modalSafe: { flex: 1, backgroundColor: COLORS.bg },
 
   modalHeader: {
     backgroundColor: COLORS.white,
@@ -913,17 +839,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  modalTitle: {
-    color: COLORS.primary,
-    fontSize: 24,
-    fontWeight: '900',
-  },
-
-  modalDesc: {
-    color: COLORS.gray,
-    fontSize: 14,
-    marginTop: 3,
-  },
+  modalTitle: { color: COLORS.primary, fontSize: 24, fontWeight: '900' },
+  modalDesc: { color: COLORS.gray, fontSize: 14, marginTop: 3 },
 
   closeBtn: {
     width: 42,
@@ -934,9 +851,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  modalBody: {
-    padding: 16,
-  },
+  modalBody: { padding: 16 },
 
   formCard: {
     backgroundColor: COLORS.white,
@@ -953,15 +868,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  input: {
-    backgroundColor: COLORS.white,
-    marginBottom: 14,
-  },
+  input: { backgroundColor: COLORS.white, marginBottom: 14 },
+  inputDisabled: { backgroundColor: COLORS.bg },
 
-  coatingRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  coatingRow: { flexDirection: 'row', gap: 8 },
 
   coatingInput: {
     flex: 1,
@@ -984,6 +894,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.8,
   },
+
   previewBox: {
     backgroundColor: COLORS.lightBlue,
     borderRadius: 16,
@@ -993,18 +904,14 @@ const styles = StyleSheet.create({
     borderColor: '#D8ECFA',
   },
 
-  previewLabel: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
+  previewLabel: { color: COLORS.gray, fontSize: 13, fontWeight: '800' },
   previewValue: {
     color: COLORS.primary,
     fontSize: 22,
     fontWeight: '900',
     marginTop: 4,
   },
+
   shiftInfoCard: {
     backgroundColor: COLORS.lightBlue,
     borderRadius: 16,
@@ -1014,28 +921,25 @@ const styles = StyleSheet.create({
     borderColor: '#D8ECFA',
   },
 
-  shiftInfoTitle: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-
+  shiftInfoTitle: { color: COLORS.primary, fontSize: 14, fontWeight: '900' },
   shiftInfoText: {
     color: COLORS.gray,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
   },
-  dropdownWrap: {
-    marginVertical: 8,
+
+  // ---- Dropdown (matches app's card/input styling) ----
+  dropdownWrap: { marginVertical: 8 },
+
+  dropdownLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
   },
 
-  dropdownLabel: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
+  dropdownLabel: { color: COLORS.primary, fontSize: 13, fontWeight: '800' },
 
   dropdown: {
     minHeight: 56,
@@ -1046,37 +950,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
 
-  dropdownDisabled: {
-    backgroundColor: COLORS.bg,
-    opacity: 0.7,
-  },
+  dropdownDisabled: { backgroundColor: COLORS.bg, opacity: 0.7 },
 
   dropdownContainer: {
     borderColor: COLORS.inputBorder,
     borderRadius: 14,
     backgroundColor: COLORS.white,
     elevation: 8,
+    marginTop: 4,
   },
 
-  dropdownText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  dropdownText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
 
-  dropdownPlaceholder: {
-    color: COLORS.gray,
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  dropdownPlaceholder: { color: COLORS.gray, fontSize: 15, fontWeight: '600' },
 
   dropdownSearch: {
     borderColor: COLORS.inputBorder,
     borderRadius: 12,
     color: COLORS.text,
+    backgroundColor: COLORS.bg,
   },
 
-  dropdownIcon: {
-    tintColor: COLORS.primary,
+  dropdownSearchContainer: {
+    borderBottomColor: COLORS.border,
+    padding: 10,
+  },
+
+  dropdownListItem: { height: 50 },
+
+  dropdownListItemLabel: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  dropdownSelectedItem: { backgroundColor: COLORS.lightBlue },
+
+  dropdownSelectedItemLabel: {
+    fontWeight: '900',
+    color: COLORS.primary,
   },
 });

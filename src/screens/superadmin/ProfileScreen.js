@@ -8,18 +8,7 @@ import messaging from '@react-native-firebase/messaging';
 import { removeFcmTokenApi } from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
 import { clearAuth } from '../../redux/slices/authSlice';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  lightBlue: '#EEF7FD',
-  red: '#DC2626',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function ProfileScreen() {
   const dispatch = useDispatch();

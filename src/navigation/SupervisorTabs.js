@@ -3,19 +3,11 @@ import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Clock, Factory, UserCircle2 } from 'lucide-react-native';
 import ShiftScreen from '../screens/supervisor/ShiftScreen';
-import ProductionScreen from '../screens/superadmin/ProductionScreen';
 import ProfileScreen from '../screens/superadmin/ProfileScreen';
+import ProductionStack from './comman/ProductionStock';
+import { COLORS } from '../assets/Colors';
 
 const Tab = createBottomTabNavigator();
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  white: '#FFFFFF',
-  gray: '#9CA3AF',
-  lightBlue: '#EEF7FD',
-  border: '#E5E7EB',
-};
 
 const IconByRoute = {
   Shift: Clock,
@@ -73,7 +65,7 @@ export default function SupervisorTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Production" component={ProductionScreen} />
+      <Tab.Screen name="Production" component={ProductionStack} />
       <Tab.Screen name="Shift" component={ShiftScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

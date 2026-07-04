@@ -22,19 +22,7 @@ import { getDashboardApi } from '../../api/dashboardApi';
 import { socket } from '../../socket/socket';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import moment from 'moment';
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  lightBlue: '#EEF7FD',
-  green: '#16A34A',
-  orange: '#F97316',
-  red: '#DC2626',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function DashboardScreen() {
   const queryClient = useQueryClient();
@@ -91,7 +79,7 @@ export default function DashboardScreen() {
   const dayShift = todaySummary?.day_shift || {};
   const nightShift = todaySummary?.night_shift || {};
   const activeShift = dashboard?.active_shift_summary || {};
-  const month = dashboard?.current_month || {};
+  const monthlySummary = dashboard?.current_month || {};
 
   return (
     <ScrollView
@@ -101,35 +89,6 @@ export default function DashboardScreen() {
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
       }
     >
-      {/* <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subTitle}>
-            Today: {moment(dashboard?.today_date).format('LL')}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.shiftBadge,
-            shiftStatus?.is_shift_active
-              ? styles.activeBadge
-              : styles.idleBadge,
-          ]}
-        >
-          <Text
-            style={[
-              styles.shiftBadgeText,
-              shiftStatus?.is_shift_active
-                ? styles.activeText
-                : styles.idleText,
-            ]}
-          >
-            {shiftStatus?.is_shift_active ? 'ACTIVE' : 'NO SHIFT'}
-          </Text>
-        </View>
-      </View> */}
-
       <View style={styles.activeShiftCard}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.iconBox}>
@@ -174,6 +133,35 @@ export default function DashboardScreen() {
         ) : (
           <Text style={styles.emptyText}>No active shift right now.</Text>
         )}
+      </View>
+
+      <View style={styles.monthCard}>
+        <View style={styles.monthHeader}>
+          <Text style={styles.monthTitle}>Current Month Summary</Text>
+          <Text style={styles.monthSubTitle}>Production overview</Text>
+        </View>
+
+        <View style={styles.monthGrid}>
+          <SummaryBox
+            label="MS Production"
+            value={`${monthlySummary.total_ms_production_kg || 0} KG`}
+          />
+
+          <SummaryBox
+            label="GI Production"
+            value={`${monthlySummary.total_gi_production_kg || 0} KG`}
+          />
+
+          <SummaryBox
+            label="Zinc Used"
+            value={`${monthlySummary.zink_used || 0} KG`}
+          />
+
+          <SummaryBox
+            label="Zinc Consumption"
+            value={`${monthlySummary.zinc_consumption || 0}%`}
+          />
+        </View>
       </View>
 
       <View style={styles.grid}>
@@ -265,26 +253,11 @@ function ShiftSummaryCard({ title, icon, data }) {
   );
 }
 
-function MaterialCard({ item }) {
+function SummaryBox({ label, value }) {
   return (
-    <View style={styles.materialCard}>
-      <Text style={styles.materialTitle}>{item.material}</Text>
-
-      <View style={styles.materialGrid}>
-        <InfoLine label="Avg MS" value={`${item.avg_ms_weight || 0} kg`} />
-        <InfoLine label="Avg GI" value={`${item.avg_gi_weight || 0} kg`} />
-        <InfoLine label="Qty" value={item.total_dip_qty || 0} />
-        <InfoLine
-          label="MS Total"
-          value={`${item.total_ms_production_kg || 0} kg`}
-        />
-
-        <InfoLine label="Zinc Used" value={`${item.zink_used || 0}kg`} />
-        <InfoLine
-          label="Zinc Consumption"
-          value={`${item.zinc_consumption || 0}%`}
-        />
-      </View>
+    <View style={styles.summaryBox}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
     </View>
   );
 }
@@ -309,7 +282,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    paddingTop: 10,
   },
 
   center: {
@@ -480,7 +455,53 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 22,
     padding: 16,
+    marginTop: 14,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  monthHeader: {
+    marginBottom: 14,
+  },
+
+  monthTitle: {
+    color: COLORS.primary,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+
+  monthSubTitle: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+
+  summaryBox: {
+    width: '48%',
+    backgroundColor: COLORS.bg,
+    borderRadius: 14,
+    padding: 12,
+  },
+
+  summaryLabel: {
+    color: COLORS.gray,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  summaryValue: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: '900',
+    marginTop: 5,
   },
 
   monthValues: {

@@ -19,27 +19,7 @@ import { setAuth } from '../../redux/slices/authSlice';
 import { IVSnackbar } from './../../components/IVSnackbar';
 import { getFCMToken } from '../../services/firebaseService';
 import { saveFcmTokenApi } from '../../api/notificationApi';
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-  danger: '#DC2626',
-};
-
-const PAPER_THEME = {
-  colors: {
-    primary: COLORS.accent,
-    onSurfaceVariant: COLORS.primary,
-    background: COLORS.white,
-  },
-  roundness: 14,
-};
+import { COLORS, PAPER_THEME } from '../../assets/Colors';
 
 export default function LoginScreen() {
   const dispatch = useDispatch();

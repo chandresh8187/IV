@@ -7,6 +7,8 @@ import { store } from './src/redux/store';
 import { registerFcmRefreshListener } from './src/services/fcmListener';
 const queryClient = new QueryClient();
 import BootSplash from 'react-native-bootsplash';
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
 export default function App() {
   useEffect(() => {
     const init = async () => {

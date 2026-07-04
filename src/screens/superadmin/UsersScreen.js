@@ -22,28 +22,7 @@ import {
   registerUserApi,
 } from '../../api/userApi';
 import { socket } from '../../socket/socket';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-  green: '#16A34A',
-};
-
-const PAPER_THEME = {
-  colors: {
-    primary: COLORS.accent,
-    onSurfaceVariant: COLORS.primary,
-    background: COLORS.white,
-  },
-  roundness: 14,
-};
+import { COLORS, PAPER_THEME } from '../../assets/Colors';
 
 const emptyForm = {
   name: '',

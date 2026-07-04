@@ -13,8 +13,7 @@ import {
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Edit3, Plus, Trash2, X } from 'lucide-react-native';
-
+import { ClipboardList, Edit3, FileCheck2, Plus, Trash2, X } from 'lucide-react-native';
 import {
   createProductionPlanningApi,
   deleteProductionPlanningApi,
@@ -23,31 +22,10 @@ import {
 } from '../../api/productionPlanningApi';
 
 import { socket } from '../../socket/socket';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-  success: '#16A34A',
-  danger: '#DC2626',
-  warning: '#F59E0B',
-};
-
-const PAPER_THEME = {
-  colors: {
-    primary: COLORS.accent,
-    onSurfaceVariant: COLORS.primary,
-    background: COLORS.white,
-  },
-  roundness: 14,
-};
-
+import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { pick } from '@react-native-documents/picker';
+import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
+import { useNavigation, useRoute } from '@react-navigation/native';
 const emptyForm = {
   challan_no: '',
   party_name: '',
@@ -70,6 +48,29 @@ export default function ProductionPlanningScreen() {
   });
 
   const planningList = data?.data || [];
+
+  const route = useRoute();
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const extracted = route.params?.extractedPdfData;
+
+    if (extracted) {
+      setEditingId(null);
+
+      setForm(prev => ({
+        ...prev,
+        challan_no: extracted.challan_no || '',
+        party_name: extracted.party_name || '',
+        material_description: extracted.material_description || '',
+        planned_qty: extracted.planned_qty || '',
+        third_party_name: extracted.third_party_name || '',
+        status: 'pending',
+      }));
+
+      setModalVisible(true);
+    }
+  }, [route.params?.extractedPdfData]);
 
   useEffect(() => {
     if (!socket.connected) {
@@ -117,6 +118,35 @@ export default function ProductionPlanningScreen() {
       );
     },
   });
+
+  const pickAndExtractPdf = async () => {
+    try {
+      const [file] = await pick({
+        type: ['application/pdf'],
+      });
+
+      const res = await extractPlanningPdfApi(file);
+
+      const extracted = res?.data || {};
+
+      setForm(prev => ({
+        ...prev,
+        challan_no: extracted.challan_no || prev.challan_no,
+        party_name: extracted.party_name || prev.party_name,
+        planned_qty: extracted.planned_qty || prev.planned_qty,
+        third_party_name: extracted.third_party_name || prev.third_party_name,
+        material_description:
+          extracted.material_description || prev.material_description,
+      }));
+
+      Alert.alert('Success', 'PDF data extracted successfully');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'PDF extract failed',
+      );
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteProductionPlanningApi,
@@ -207,7 +237,7 @@ export default function ProductionPlanningScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <>
       <View style={styles.container}>
         <View style={styles.headerCard}>
           <View style={{ flex: 1 }}>
@@ -250,6 +280,11 @@ export default function ProductionPlanningScreen() {
                   item={item}
                   onEdit={() => openEditModal(item)}
                   onDelete={() => handleDelete(item)}
+                  onGenerateCertificate={() =>
+                    navigation.navigate('GenerateCertificate', {
+                      planning: item,
+                    })
+                  }
                 />
               ))
             )}
@@ -265,15 +300,18 @@ export default function ProductionPlanningScreen() {
         onChange={updateForm}
         onClose={closeModal}
         onSave={handleSave}
+        pickAndExtractPdf={pickAndExtractPdf}
       />
-    </SafeAreaView>
+    </>
   );
 }
 
-function PlanningCard({ item, onEdit, onDelete }) {
+function PlanningCard({ item, onEdit, onDelete, onGenerateCertificate }) {
   const partyText = item.third_party_name
     ? `${item.party_name} (${item.third_party_name})`
     : item.party_name;
+
+  const isCompleted = item.status === 'completed';
 
   return (
     <View style={styles.planCard}>
@@ -293,6 +331,17 @@ function PlanningCard({ item, onEdit, onDelete }) {
         <InfoBox label="Completed" value={`${item.completed_qty || 0} NOS`} />
         <InfoBox label="Remaining" value={`${item.remaining_qty || 0} NOS`} />
       </View>
+
+      {isCompleted && (
+        <TouchableOpacity
+          style={styles.certificateBtn}
+          activeOpacity={0.85}
+          onPress={onGenerateCertificate}
+        >
+          <FileCheck2 size={16} color={COLORS.white} />
+          <Text style={styles.certificateText}>GENERATE CERTIFICATE</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.actionRow}>
         <TouchableOpacity
@@ -350,6 +399,7 @@ function PlanningModal({
   onChange,
   onClose,
   onSave,
+  pickAndExtractPdf,
 }) {
   return (
     <Modal visible={visible} animationType="slide">
@@ -369,6 +419,27 @@ function PlanningModal({
           </TouchableOpacity>
         </View>
 
+        <View
+          style={{
+            padding: 15,
+          }}
+        >
+          <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
+            <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
+          </TouchableOpacity>
+        </View>
+        <Text
+          style={{
+            fontSize: 16,
+            color: COLORS.textPrimary,
+            fontWeight: '700',
+            textAlign: 'center',
+            width: '100%',
+            paddingBottom: 15,
+          }}
+        >
+          -- OR --
+        </Text>
         <ScrollView contentContainerStyle={styles.modalBody}>
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Planning Details</Text>
@@ -476,7 +547,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    padding: 16,
+    paddingTop: 15,
   },
 
   headerCard: {
@@ -487,6 +558,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 15,
+    marginHorizontal: 15,
   },
 
   title: {
@@ -513,14 +586,14 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    paddingTop: 14,
-    paddingBottom: 30,
+    padding: 15,
   },
 
   loaderBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.bg,
   },
 
   emptyCard: {
@@ -629,6 +702,24 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 
+  certificateBtn: {
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+
+  certificateText: {
+    color: COLORS.white,
+    fontSize: 12.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
   editBtn: {
     flex: 1,
     height: 44,
@@ -701,8 +792,8 @@ const styles = StyleSheet.create({
   },
 
   modalBody: {
-    padding: 16,
     paddingBottom: 40,
+    paddingHorizontal: 16,
   },
 
   formCard: {
@@ -774,5 +865,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+
+  pdfBtn: {
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: COLORS.lightBlue,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+
+  pdfBtnText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '900',
   },
 });

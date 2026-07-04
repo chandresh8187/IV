@@ -2,12 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { RefreshCw } from 'lucide-react-native';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  white: '#FFFFFF',
-};
+import { COLORS } from '../assets/Colors';
 
 export default function AnimatedRefreshButton({
   refreshing,

@@ -15,20 +15,7 @@ import { Clock, Moon, PlayCircle, Square, Sun } from 'lucide-react-native';
 
 import { getShiftStatusApi, toggleShiftApi } from '../../api/shiftApi';
 import { socket } from '../../socket/socket';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  lightBlue: '#EEF7FD',
-  green: '#16A34A',
-  red: '#DC2626',
-  orange: '#F97316',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function ShiftScreen() {
   const queryClient = useQueryClient();
@@ -344,7 +331,7 @@ const styles = StyleSheet.create({
   },
 
   actionBtn: {
-    width: '100%',
+    width: '60%',
     height: 58,
     borderRadius: 18,
     marginTop: 22,

@@ -4,32 +4,21 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   LayoutDashboard,
   Factory,
-  History,
   Users,
   UserCircle2,
 } from 'lucide-react-native';
 
 import DashboardScreen from '../screens/superadmin/DashboardScreen';
-import ProductionScreen from '../screens/superadmin/ProductionScreen';
-import HistoryScreen from '../screens/superadmin/HistoryScreen';
 import UsersScreen from '../screens/superadmin/UsersScreen';
 import ProfileScreen from '../screens/superadmin/ProfileScreen';
+import ProductionStack from './comman/ProductionStock';
+import { COLORS } from '../assets/Colors';
 
 const Tab = createBottomTabNavigator();
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  white: '#FFFFFF',
-  gray: '#9CA3AF',
-  lightBlue: '#EEF7FD',
-  border: '#E5E7EB',
-};
 
 const IconByRoute = {
   Dashboard: LayoutDashboard,
   Production: Factory,
-  History: History,
   Users: Users,
   Profile: UserCircle2,
 };
@@ -85,8 +74,7 @@ export default function AdminTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Production" component={ProductionScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen name="Production" component={ProductionStack} />
       <Tab.Screen name="Users" component={UsersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { COLORS } from '../../assets/Colors';
 import { ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AppHeader from './../../components/AppHeader';
 
 const ViewHistory = ({ route }) => {
   const { appliedFilters } = route?.params;
@@ -25,35 +26,36 @@ const ViewHistory = ({ route }) => {
   const tableData = history?.table_data || [];
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-      }}
-    >
-      <View style={styles.summaryGrid}>
-        <SummaryCard
-          title="MS Production"
-          value={`${summary.total_ms_production_kg || 0} kg`}
-        />
+    <>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 15,
+          paddingVertical: 10,
+        }}
+      >
+        <View style={styles.summaryGrid}>
+          <SummaryCard
+            title="MS Production"
+            value={`${Math.round(summary.total_ms_production_kg) || 0} kg`}
+          />
 
-        <SummaryCard
-          title="GI Production"
-          value={`${summary.total_gi_production_kg || 0} kg`}
-        />
+          <SummaryCard
+            title="GI Production"
+            value={`${Math.round(summary.total_gi_production_kg) || 0} kg`}
+          />
 
-        <SummaryCard
-          title="Zinc Kg"
-          value={`${summary.zinc_consumption_kg || 0} kg`}
-        />
+          <SummaryCard
+            title="Zinc Kg"
+            value={`${Math.round(summary.zinc_consumption_kg) || 0} kg`}
+          />
 
-        <SummaryCard
-          title="Zinc %"
-          value={`${summary.zinc_consumption_percentage || 0}%`}
-        />
-      </View>
+          <SummaryCard
+            title="Zinc %"
+            value={`${summary.zinc_consumption_percentage || 0}%`}
+          />
+        </View>
 
-      {/* <Text style={styles.blockTitle}>Material Summary</Text>
+        {/* <Text style={styles.blockTitle}>Material Summary</Text>
 
       {materialSummary.length === 0 ? (
         <Empty text="No material summary found" />
@@ -82,21 +84,22 @@ const ViewHistory = ({ route }) => {
           </View>
         ))
       )} */}
-      <View
-        style={{
-          paddingTop: 20,
-        }}
-      >
-        <ButtonCard
-          title={'View Production Report'}
-          onPress={() => {
-            navigation.navigate('ViewReport', {
-              tableData: tableData,
-            });
+        <View
+          style={{
+            paddingTop: 20,
           }}
-        />
-      </View>
-    </ScrollView>
+        >
+          <ButtonCard
+            title={'View Production Report'}
+            onPress={() => {
+              navigation.navigate('ViewReport', {
+                tableData: tableData,
+              });
+            }}
+          />
+        </View>
+      </ScrollView>
+    </>
   );
 };
 
