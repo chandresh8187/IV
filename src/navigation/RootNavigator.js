@@ -81,11 +81,19 @@ export default function RootNavigator() {
 
   useEffect(() => {
     const loadAuth = async () => {
-      const storedAuth = await getStoredAuth();
+      try {
+        const storedAuth = await getStoredAuth();
 
-      if (storedAuth.token && storedAuth.user) {
-        dispatch(setAuth(storedAuth));
-      } else {
+        if (storedAuth.token && storedAuth.user) {
+          dispatch(setAuth(storedAuth));
+        } else {
+          dispatch(stopLoading());
+        }
+      } catch (error) {
+        // Corrupted AsyncStorage data (e.g. malformed JSON in "user")
+        // would otherwise throw here and leave isLoading stuck at true,
+        // permanently freezing the app on the splash screen.
+        console.log('Failed to load stored auth:', error);
         dispatch(stopLoading());
       }
     };

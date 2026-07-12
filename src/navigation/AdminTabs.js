@@ -83,7 +83,6 @@ export default function AdminTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 76,
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: COLORS.white,

@@ -1,4 +1,5 @@
 import RNFS from 'react-native-fs';
+import { Platform } from 'react-native';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Buffer } from 'buffer';
 
@@ -11,44 +12,71 @@ const PAGE = {
 };
 
 const A4_PORTRAIT = [PAGE.width, PAGE.height];
+const CONTENT_WIDTH = PAGE.width - PAGE.margin * 2;
 
-// Zinc density (ISO 1461): a 1 micron layer over 1 m² weighs ~7.14 g.
+// Avg. Coating in gm/mtr² = avg micron x 7.14 (company calculation rule).
 const ZINC_DENSITY_G_PER_M2_PER_MICRON = 7.14;
 
 const COLORS = {
   navy: rgb(0.086, 0.114, 0.235),
+  steel: rgb(0.204, 0.396, 0.612),
   amber: rgb(0.788, 0.6, 0.098),
   white: rgb(1, 1, 1),
-  bgPanel: rgb(0.964, 0.968, 0.976),
-  rowAlt: rgb(0.953, 0.958, 0.968),
-  border: rgb(0.78, 0.8, 0.85),
-  borderStrong: rgb(0.55, 0.58, 0.65),
-  text: rgb(0.12, 0.13, 0.18),
+  bgPanel: rgb(0.945, 0.95, 0.958),
+  border: rgb(0.25, 0.27, 0.32),
+  borderLight: rgb(0.65, 0.68, 0.73),
+  text: rgb(0.1, 0.11, 0.15),
   textMuted: rgb(0.4, 0.43, 0.49),
-  headerText: rgb(0.93, 0.94, 0.97),
-  success: rgb(0.11, 0.45, 0.28),
 };
 
 /* -------------------------------------------------------------------------- */
-/* TEXT HELPERS (same conventions as productionPdfGenerator.js)              */
+/* TEXT HELPERS                                                              */
 /* -------------------------------------------------------------------------- */
 const cleanPdfText = value => {
   if (value === null || value === undefined || value === '') return '-';
-  return String(value)
-    .replace(/\u202f/g, ' ')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[^\x20-\x7E]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    String(value)
+      .replace(/\u202f/g, ' ')
+      .replace(/\u00a0/g, ' ')
+      // Keep superscript-two (²): Helvetica's WinAnsi encoding renders it
+      // fine, and stripping it turned "gm/mtr²" into "gm/mtr ".
+      .replace(/[^\x20-\x7E\u00B2]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 };
 
 const safeValue = value =>
   value !== null && value !== undefined && value !== '' ? value : '-';
 
+const roundedOrDash = value => {
+  const n = toNumber(value);
+  return n !== null ? String(Math.round(n)) : '-';
+};
+
 const toNumber = value => {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+};
+
+const wrapTextToWidth = (font, text, size, maxWidth, maxLines = 4) => {
+  const words = cleanPdfText(text).split(' ');
+  const lines = [];
+  let line = '';
+
+  words.forEach(word => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  });
+  if (line) lines.push(line);
+
+  return lines.slice(0, maxLines);
 };
 
 const drawText = (page, text, x, y, options = {}) => {
@@ -77,37 +105,6 @@ const drawCenteredText = (page, text, x, y, width, height, options = {}) => {
   });
 };
 
-const drawWrappedText = (page, text, x, y, options = {}) => {
-  const maxCharsPerLine = options.maxCharsPerLine || 22;
-  const maxLines = options.maxLines || 3;
-  const words = cleanPdfText(text).split(' ');
-  const lines = [];
-  let line = '';
-
-  words.forEach(word => {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > maxCharsPerLine) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
-  });
-  if (line) lines.push(line);
-
-  lines.slice(0, maxLines).forEach((textLine, index) => {
-    page.drawText(textLine, {
-      x,
-      y: y - index * (options.lineHeight || 8),
-      size: options.size || 6,
-      font: options.font,
-      color: options.color || COLORS.text,
-    });
-  });
-
-  return Math.min(lines.length, maxLines);
-};
-
 const drawRect = (page, x, y, width, height, options = {}) => {
   page.drawRectangle({
     x,
@@ -116,107 +113,214 @@ const drawRect = (page, x, y, width, height, options = {}) => {
     height,
     color: options.bg || COLORS.white,
     borderColor: options.borderColor || COLORS.border,
-    borderWidth: options.borderWidth ?? 0.6,
+    borderWidth: options.borderWidth ?? 0.7,
   });
 };
 
 /* -------------------------------------------------------------------------- */
-/* HEADER                                                                    */
+/* COMPANY LOGO                                                              */
+/*                                                                            */
+/* Tries to load a bundled "logo.png":                                        */
+/*   Android -> put the file at android/app/src/main/assets/logo.png          */
+/*   iOS     -> add logo.png to the Xcode project bundle resources            */
+/* If the file is missing, the PDF falls back to a styled "IV" monogram, so   */
+/* certificate generation never fails because of a missing logo.              */
 /* -------------------------------------------------------------------------- */
-const drawHeader = (page, fonts) => {
-  page.drawRectangle({
-    x: 0,
-    y: PAGE.height - 70,
-    width: PAGE.width,
-    height: 70,
+
+const loadStampImage = async pdfDoc => {
+  try {
+    let base64 = null;
+
+    if (Platform.OS === 'android') {
+      base64 = await RNFS.readFileAssets('stamp.png', 'base64');
+    } else {
+      base64 = await RNFS.readFile(
+        `${RNFS.MainBundlePath}/stamp.png`,
+        'base64',
+      );
+    }
+
+    if (!base64) return null;
+    return await pdfDoc.embedPng(Buffer.from(base64, 'base64'));
+  } catch (error) {
+    // Missing stamp is not a reason to fail certificate generation.
+    return null;
+  }
+};
+
+const loadLogoImage = async pdfDoc => {
+  try {
+    let base64 = null;
+
+    if (Platform.OS === 'android') {
+      base64 = await RNFS.readFileAssets('IV_logo.png', 'base64');
+    } else {
+      base64 = await RNFS.readFile(
+        `${RNFS.MainBundlePath}/IV_logo.png`,
+        'base64',
+      );
+    }
+
+    if (!base64) return null;
+    return await pdfDoc.embedPng(Buffer.from(base64, 'base64'));
+  } catch (error) {
+    // Missing / unreadable logo is not a reason to fail the certificate.
+    return null;
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/* HEADER - white letterhead like the Excel sample: company block on the     */
+/* left, logo on the right, centered certificate title below                 */
+/* -------------------------------------------------------------------------- */
+const COMPANY_ADDRESS_LINES = [
+  'PLANT-4, PLOT NO. 2526, NEAR MASCUT POLYMER, NEAR RADHE FORGE,',
+  'VERAVAL-SHAPAR RAJKOT - 360024 (Guj) INDIA.',
+];
+
+const drawHeader = (page, fonts, logoImage) => {
+  const topY = PAGE.height - PAGE.margin;
+
+  // Left: company name + address
+  drawText(page, 'IV SQUARE STRUCTURE INDIA PVT LTD', PAGE.margin, topY - 30, {
+    size: 15,
+    font: fonts.bold,
     color: COLORS.navy,
   });
 
-  page.drawRectangle({
-    x: 0,
-    y: PAGE.height - 73,
-    width: PAGE.width,
-    height: 3,
-    color: COLORS.amber,
+  COMPANY_ADDRESS_LINES.forEach((line, index) => {
+    drawText(page, line, PAGE.margin, topY - 42 - index * 9, {
+      size: 7,
+      font: fonts.regular,
+      color: COLORS.textMuted,
+    });
   });
 
-  drawRect(page, PAGE.margin, PAGE.height - 58, 36, 36, {
-    bg: rgb(0.204, 0.396, 0.612),
-    borderColor: COLORS.amber,
-    borderWidth: 1,
-  });
-  drawCenteredText(page, 'IV', PAGE.margin, PAGE.height - 58, 36, 36, {
-    font: fonts.bold,
-    size: 15,
-    color: COLORS.white,
-  });
+  // Right: logo image, or "IV" monogram fallback
+  const logoBoxW = 140;
+  const logoBoxH = 60;
+  const logoX = PAGE.width - PAGE.margin - logoBoxW;
+  const logoY = topY - logoBoxH - 2;
 
-  drawText(
-    page,
-    'IV SQUARE STRUCTURE INDIA PVT LTD',
-    PAGE.margin + 46,
-    PAGE.height - 28,
-    { size: 13, font: fonts.bold, color: COLORS.white },
-  );
+  if (logoImage) {
+    // Scale to fit the logo box while keeping the image's aspect ratio.
+    const scale = Math.min(
+      logoBoxW / logoImage.width,
+      logoBoxH / logoImage.height,
+    );
+    const w = logoImage.width * scale;
+    const h = logoImage.height * scale;
+    page.drawImage(logoImage, {
+      x: logoX + (logoBoxW - w) / 2,
+      y: logoY + (logoBoxH - h) / 2,
+      width: w,
+      height: h,
+    });
+  } else {
+    drawRect(page, logoX + logoBoxW - 48, logoY + 12, 44, 44, {
+      bg: COLORS.steel,
+      borderColor: COLORS.amber,
+      borderWidth: 1.2,
+    });
+    drawCenteredText(page, 'IV', logoX + logoBoxW - 48, logoY + 12, 44, 44, {
+      font: fonts.bold,
+      size: 20,
+      color: COLORS.white,
+    });
+  }
 
-  drawText(
-    page,
-    'Survey No. 171, Plot No 9, Veraval Rajkot, Rajkot, Gujarat, 360024',
-    PAGE.margin + 46,
-    PAGE.height - 41,
-    { size: 7, font: fonts.regular, color: COLORS.headerText },
-  );
-
-  drawText(
+  // Centered certificate title
+  const titleY = topY - 86;
+  drawCenteredText(
     page,
     'GALVANIZING COATING TEST CERTIFICATE',
-    PAGE.margin + 46,
-    PAGE.height - 55,
-    { size: 8, font: fonts.bold, color: COLORS.amber },
+    PAGE.margin,
+    titleY,
+    CONTENT_WIDTH,
+    14,
+    { font: fonts.bold, size: 11, color: COLORS.text },
   );
+
+  // y where body content starts
+  return titleY - 8;
 };
 
 /* -------------------------------------------------------------------------- */
-/* CERTIFICATE INFO BLOCK (TC No / Client / Invoice / Reference Standard...) */
+/* CERTIFICATE INFO BLOCK - bordered label/value rows like the sample,       */
+/* with the client's address as its own full-width row under Client Name     */
 /* -------------------------------------------------------------------------- */
 const drawInfoBlock = (page, fonts, certificate, startY) => {
-  const rowHeight = 16;
-  const labelWidth = 140;
-  const width = PAGE.width - PAGE.margin * 2;
+  const labelWidth = 130;
+  const valueWidth = CONTENT_WIDTH - labelWidth - 18;
+  const valueSize = 7.2;
+  const lineHeight = 9;
   let y = startY;
 
   const rows = [
     ['TC No.', certificate.tc_no],
     ['Date of Inspection', certificate.inspection_date],
     ['Supplier', 'IV SQUARE STRUCTURE INDIA PVT LTD'],
-    ['Client Name', certificate.party_name],
-    ['Address', certificate.client_address || '-'],
+    ['Client Name', certificate.client_name || certificate.party_name],
+    // null label = full-width row: the client's address printed under the
+    // client name, exactly like the Excel sample.
+    certificate.client_address ? [null, certificate.client_address] : null,
     ['Third Party Name', certificate.third_party_name || '-'],
     ['Structure', certificate.structure],
-    ['Invoice No.', certificate.challan_no],
+    ['Invoice No.', certificate.invoice_no || certificate.challan_no],
     ['Quantity', certificate.quantity],
     ['Reference Standard', certificate.reference_standard],
-  ];
+  ].filter(Boolean);
 
-  rows.forEach(([label, value], index) => {
-    const bg = index % 2 === 0 ? COLORS.white : COLORS.rowAlt;
+  rows.forEach(([label, value]) => {
+    const isFullWidth = label === null;
+    const textWidth = isFullWidth ? CONTENT_WIDTH - 12 : valueWidth;
 
-    drawRect(page, PAGE.margin, y, labelWidth, rowHeight, { bg });
-    drawRect(page, PAGE.margin + labelWidth, y, width - labelWidth, rowHeight, {
-      bg,
+    const lines = wrapTextToWidth(
+      fonts.regular,
+      safeValue(value),
+      valueSize,
+      textWidth,
+      4,
+    );
+    const rowHeight = Math.max(15, lines.length * lineHeight + 7);
+    const rowBottom = y - rowHeight;
+
+    if (isFullWidth) {
+      drawRect(page, PAGE.margin, rowBottom, CONTENT_WIDTH, rowHeight);
+    } else {
+      drawRect(page, PAGE.margin, rowBottom, labelWidth, rowHeight);
+      drawRect(
+        page,
+        PAGE.margin + labelWidth,
+        rowBottom,
+        CONTENT_WIDTH - labelWidth,
+        rowHeight,
+      );
+
+      drawText(page, label, PAGE.margin + 6, y - 10.5, {
+        size: 7.2,
+        font: fonts.bold,
+        color: COLORS.text,
+      });
+    }
+
+    const textX = isFullWidth ? PAGE.margin + 6 : PAGE.margin + labelWidth + 6;
+
+    lines.forEach((line, lineIndex) => {
+      drawText(
+        page,
+        // Leading ":" before the value, matching the sample's style.
+        !isFullWidth && lineIndex === 0 ? `:  ${line}` : line,
+        textX,
+        y - 10.5 - lineIndex * lineHeight,
+        {
+          size: valueSize,
+          font: isFullWidth ? fonts.bold : fonts.regular,
+        },
+      );
     });
 
-    drawText(page, label, PAGE.margin + 6, y + 5, {
-      size: 7.2,
-      font: fonts.bold,
-      color: COLORS.navy,
-    });
-    drawText(page, safeValue(value), PAGE.margin + labelWidth + 6, y + 5, {
-      size: 7.2,
-      font: fonts.regular,
-    });
-
-    y -= rowHeight;
+    y = rowBottom;
   });
 
   return y;
@@ -226,21 +330,13 @@ const drawInfoBlock = (page, fonts, certificate, startY) => {
 /* QC CHECKLIST TABLE                                                        */
 /* -------------------------------------------------------------------------- */
 const CHECKLIST_TESTS = [
-  {
-    key: 'visual_check',
-    spec: 'IS 2629',
-    test: 'Visual Check',
-  },
+  { key: 'visual_check', spec: 'IS 2629', test: 'Visual Check' },
   {
     key: 'adhesion_test',
     spec: 'IS 2629',
     test: 'Adhesion Test (wt. of Hammer 210 gms)',
   },
-  {
-    key: 'knife_test',
-    spec: 'IS 2629',
-    test: 'Knife Test (Sharp edge)',
-  },
+  { key: 'knife_test', spec: 'IS 2629', test: 'Knife Test (Sharp edge)' },
   {
     key: 'mass_test',
     spec: 'IS 4759 / IS 6745',
@@ -254,33 +350,39 @@ const CHECKLIST_TESTS = [
 ];
 
 const CHECKLIST_COLS = [
-  { key: 'sr', label: 'Sr', width: 24 },
-  { key: 'spec', label: 'Specification', width: 70 },
-  { key: 'test', label: 'Test', width: 175 },
-  { key: 'result', label: 'Test Result', width: 130 },
-  { key: 'observation', label: 'Observation', width: 136 },
+  { key: 'sr', label: 'Sr. No', width: 30 },
+  { key: 'spec', label: 'Specification', width: 75 },
+  { key: 'test', label: 'Test', width: 170 },
+  { key: 'result', label: 'Test Result', width: 145 },
+  { key: 'observation', label: 'Observation', width: 115 },
 ];
 
 const drawChecklistTable = (page, fonts, certificate, startY) => {
   let y = startY;
-  const headerHeight = 18;
+  const headerHeight = 16;
+  const cellSize = 6.5;
+  const cellLineHeight = 7.5;
   let x = PAGE.margin;
 
   CHECKLIST_COLS.forEach(col => {
-    drawRect(page, x, y, col.width, headerHeight, { bg: COLORS.navy });
-    drawCenteredText(page, col.label, x, y, col.width, headerHeight, {
-      font: fonts.bold,
-      size: 7,
-      color: COLORS.headerText,
+    drawRect(page, x, y - headerHeight, col.width, headerHeight, {
+      bg: COLORS.bgPanel,
     });
+    drawCenteredText(
+      page,
+      col.label,
+      x,
+      y - headerHeight,
+      col.width,
+      headerHeight,
+      { font: fonts.bold, size: 7, color: COLORS.text },
+    );
     x += col.width;
   });
 
   y -= headerHeight;
 
   CHECKLIST_TESTS.forEach((row, index) => {
-    const rowHeight = 26;
-    const bg = index % 2 === 0 ? COLORS.white : COLORS.rowAlt;
     x = PAGE.margin;
 
     const values = [
@@ -291,224 +393,484 @@ const drawChecklistTable = (page, fonts, certificate, startY) => {
       certificate[`${row.key}_observation`],
     ];
 
+    // Wrap each cell against its real column width so the row can grow
+    // to fit the tallest cell instead of clipping.
+    const cellLines = CHECKLIST_COLS.map((col, colIndex) =>
+      wrapTextToWidth(
+        fonts.regular,
+        values[colIndex],
+        cellSize,
+        col.width - 8,
+        3,
+      ),
+    );
+    const maxLinesUsed = Math.max(1, ...cellLines.map(l => l.length));
+    const rowHeight = Math.max(18, 10 + maxLinesUsed * cellLineHeight);
+    const rowBottom = y - rowHeight;
+
     CHECKLIST_COLS.forEach((col, colIndex) => {
-      drawRect(page, x, y, col.width, rowHeight, { bg });
-      drawWrappedText(page, values[colIndex], x + 4, y + rowHeight - 9, {
-        size: 6.5,
-        font: fonts.regular,
-        maxCharsPerLine: colIndex === 2 ? 34 : 22,
-        maxLines: 3,
-        lineHeight: 7.5,
-      });
+      drawRect(page, x, rowBottom, col.width, rowHeight);
+
+      if (cellLines[colIndex].length === 1) {
+        drawCenteredText(
+          page,
+          cellLines[colIndex][0],
+          x,
+          rowBottom,
+          col.width,
+          rowHeight,
+          { font: fonts.regular, size: cellSize },
+        );
+      } else {
+        cellLines[colIndex].forEach((line, lineIndex) => {
+          page.drawText(line, {
+            x: x + 4,
+            y: y - 10 - lineIndex * cellLineHeight,
+            size: cellSize,
+            font: fonts.regular,
+            color: COLORS.text,
+          });
+        });
+      }
+
       x += col.width;
     });
 
-    y -= rowHeight;
+    y = rowBottom;
   });
 
   return y;
 };
 
 /* -------------------------------------------------------------------------- */
-/* READINGS TABLE                                                            */
+/* READINGS TABLE - matches the sample:                                      */
+/*  Sr | Name of Kem | Section as per BOM | Readings in Micron by Elcometer  */
+/*  (grouped over 1-5) | Avrg.Coating In Micron | Avg. Coating in gm/mtr²    */
 /* -------------------------------------------------------------------------- */
 const READING_COLS = [
-  { key: 'sr', label: 'Sr', width: 22 },
-  { key: 'kem', label: 'Name of Kem', width: 90 },
-  { key: 'section', label: 'Section as per BOM', width: 100 },
-  { key: 'r1', label: '1', width: 26 },
-  { key: 'r2', label: '2', width: 26 },
-  { key: 'r3', label: '3', width: 26 },
-  { key: 'r4', label: '4', width: 26 },
-  { key: 'r5', label: '5', width: 26 },
-  { key: 'avgMicron', label: 'Avg (Micron)', width: 65 },
-  { key: 'avgGm', label: 'Avg (gm/m²)', width: 62 },
+  { key: 'sr', width: 24 },
+  { key: 'kem', width: 118 },
+  { key: 'section', width: 113 },
+  { key: 'r1', width: 26 },
+  { key: 'r2', width: 26 },
+  { key: 'r3', width: 26 },
+  { key: 'r4', width: 26 },
+  { key: 'r5', width: 26 },
+  { key: 'avgMicron', width: 72 },
+  { key: 'avgGm', width: 78 },
 ];
 
-const drawReadingsTableHeader = (page, fonts, y) => {
+const READING_CELL_SIZE = 6.8;
+const READING_LINE_HEIGHT = 8;
+const READING_WRAP_KEYS = ['kem', 'section'];
+
+const readingColX = key => {
   let x = PAGE.margin;
-  const headerHeight = 24;
-
-  drawRect(page, PAGE.margin, y, PAGE.width - PAGE.margin * 2, headerHeight, {
-    bg: COLORS.navy,
-    borderColor: COLORS.navy,
-  });
-
-  // sub-header label spanning the 5 reading columns
-  READING_COLS.forEach(col => {
-    drawRect(page, x, y, col.width, headerHeight, {
-      bg: COLORS.navy,
-      borderColor: rgb(0.2, 0.23, 0.35),
-    });
-    drawCenteredText(page, col.label, x, y, col.width, headerHeight, {
-      font: fonts.bold,
-      size: 6.5,
-      color: COLORS.headerText,
-    });
+  for (const col of READING_COLS) {
+    if (col.key === key) return x;
     x += col.width;
-  });
-
-  page.drawRectangle({
-    x: PAGE.margin,
-    y: y - 1.5,
-    width: PAGE.width - PAGE.margin * 2,
-    height: 1.5,
-    color: COLORS.amber,
-  });
+  }
+  return x;
 };
 
-const drawReadingsRow = (page, fonts, row, rowIndex, y, rowHeight) => {
-  let x = PAGE.margin;
-  const bg = rowIndex % 2 === 0 ? COLORS.white : COLORS.rowAlt;
+const readingColW = key => READING_COLS.find(c => c.key === key).width;
 
-  const avgMicron = toNumber(row.avg_coating);
+const drawReadingsTableHeader = (page, fonts, startY) => {
+  const totalHeight = 30;
+  const subRowHeight = 13;
+  const y = startY - totalHeight;
+
+  // Full-height cells: Sr, Name of Kem, Section, both average columns
+  ['sr', 'kem', 'section', 'avgMicron', 'avgGm'].forEach(key => {
+    drawRect(page, readingColX(key), y, readingColW(key), totalHeight, {
+      bg: COLORS.bgPanel,
+    });
+  });
+
+  drawCenteredText(
+    page,
+    'Sr',
+    readingColX('sr'),
+    y,
+    readingColW('sr'),
+    totalHeight,
+    {
+      font: fonts.bold,
+      size: 6.5,
+    },
+  );
+  drawCenteredText(
+    page,
+    'Name of Kem',
+    readingColX('kem'),
+    y,
+    readingColW('kem'),
+    totalHeight,
+    { font: fonts.bold, size: 6.8 },
+  );
+  drawCenteredText(
+    page,
+    'Section as per BOM',
+    readingColX('section'),
+    y,
+    readingColW('section'),
+    totalHeight,
+    { font: fonts.bold, size: 6.8 },
+  );
+
+  // Two-line labels for the average columns
+  drawCenteredText(
+    page,
+    'Avrg. Coating',
+    readingColX('avgMicron'),
+    y + subRowHeight,
+    readingColW('avgMicron'),
+    subRowHeight,
+    { font: fonts.bold, size: 6.4 },
+  );
+  drawCenteredText(
+    page,
+    'In Micron',
+    readingColX('avgMicron'),
+    y + 2,
+    readingColW('avgMicron'),
+    subRowHeight,
+    { font: fonts.bold, size: 6.4 },
+  );
+  drawCenteredText(
+    page,
+    'Avg. Coating',
+    readingColX('avgGm'),
+    y + subRowHeight,
+    readingColW('avgGm'),
+    subRowHeight,
+    { font: fonts.bold, size: 6.4 },
+  );
+  drawCenteredText(
+    page,
+    'in gm/mtr²',
+    readingColX('avgGm'),
+    y + 2,
+    readingColW('avgGm'),
+    subRowHeight,
+    { font: fonts.bold, size: 6.4 },
+  );
+
+  // Grouped header spanning the 5 reading columns
+  const readingsX = readingColX('r1');
+  const readingsW = 26 * 5;
+
+  drawRect(
+    page,
+    readingsX,
+    y + subRowHeight,
+    readingsW,
+    totalHeight - subRowHeight,
+    { bg: COLORS.bgPanel },
+  );
+  drawCenteredText(
+    page,
+    'Readings in Micron by Elcometer',
+    readingsX,
+    y + subRowHeight,
+    readingsW,
+    totalHeight - subRowHeight,
+    { font: fonts.bold, size: 6.4 },
+  );
+
+  ['r1', 'r2', 'r3', 'r4', 'r5'].forEach((key, index) => {
+    drawRect(page, readingColX(key), y, 26, subRowHeight, {
+      bg: COLORS.bgPanel,
+    });
+    drawCenteredText(
+      page,
+      String(index + 1),
+      readingColX(key),
+      y,
+      26,
+      subRowHeight,
+      { font: fonts.bold, size: 6.5 },
+    );
+  });
+
+  return y;
+};
+
+const buildReadingsRowValues = (certificate, row, rowIndex) => {
+  // Avrg.Coating In Micron: use the server-computed average if present,
+  // otherwise average whatever of the 5 readings are filled in (manual
+  // mode rows have no server-computed average).
+  let avgMicron = toNumber(row.avg_coating);
+  if (avgMicron === null) {
+    const filled = [row.c1, row.c2, row.c3, row.c4, row.c5]
+      .map(toNumber)
+      .filter(v => v !== null);
+    if (filled.length) {
+      avgMicron = Math.round(filled.reduce((a, b) => a + b, 0) / filled.length);
+    }
+  } else {
+    avgMicron = Math.round(avgMicron);
+  }
+
+  // Avg. Coating in gm/mtr² = avg micron x 7.14
   const avgGm =
     avgMicron !== null
       ? Math.round(avgMicron * ZINC_DENSITY_G_PER_M2_PER_MICRON)
       : null;
 
-  const values = {
+  return {
     sr: String(rowIndex + 1),
-    kem: row.material,
+    // Per the certificate spec: "Name of Kem" is always the structure
+    // selected on the form, for every reading row.
+    kem: certificate.structure,
     section: row.section || 'As per challan',
-    r1: row.c1,
-    r2: row.c2,
-    r3: row.c3,
-    r4: row.c4,
-    r5: row.c5,
+    r1: roundedOrDash(row.c1),
+    r2: roundedOrDash(row.c2),
+    r3: roundedOrDash(row.c3),
+    r4: roundedOrDash(row.c4),
+    r5: roundedOrDash(row.c5),
     avgMicron: avgMicron !== null ? String(avgMicron) : '-',
     avgGm: avgGm !== null ? String(avgGm) : '-',
   };
+};
+
+const measureReadingsRow = (fonts, values, minHeight) => {
+  const wrapped = {};
+  let maxLines = 1;
+
+  READING_WRAP_KEYS.forEach(key => {
+    const lines = wrapTextToWidth(
+      fonts.regular,
+      safeValue(values[key]),
+      READING_CELL_SIZE,
+      readingColW(key) - 8,
+      3,
+    );
+    wrapped[key] = lines;
+    maxLines = Math.max(maxLines, lines.length);
+  });
+
+  return {
+    wrapped,
+    rowHeight: Math.max(minHeight, 8 + maxLines * READING_LINE_HEIGHT),
+  };
+};
+
+const drawReadingsRow = (page, fonts, values, wrapped, y, rowHeight) => {
+  let x = PAGE.margin;
 
   READING_COLS.forEach(col => {
-    drawRect(page, x, y, col.width, rowHeight, { bg });
-    drawCenteredText(
-      page,
-      safeValue(values[col.key]),
-      x,
-      y,
-      col.width,
-      rowHeight,
-      {
-        font:
-          col.key === 'avgMicron' || col.key === 'avgGm'
-            ? fonts.bold
-            : fonts.regular,
-        size: 6.8,
-        color: col.key === 'avgGm' ? COLORS.navy : COLORS.text,
-      },
-    );
+    drawRect(page, x, y, col.width, rowHeight);
+
+    if (READING_WRAP_KEYS.includes(col.key)) {
+      const lines = wrapped[col.key];
+      if (lines.length === 1) {
+        drawCenteredText(page, lines[0], x, y, col.width, rowHeight, {
+          font: fonts.regular,
+          size: READING_CELL_SIZE,
+        });
+      } else {
+        lines.forEach((line, lineIndex) => {
+          page.drawText(line, {
+            x: x + 4,
+            y: y + rowHeight - 9 - lineIndex * READING_LINE_HEIGHT,
+            size: READING_CELL_SIZE,
+            font: fonts.regular,
+            color: COLORS.text,
+          });
+        });
+      }
+    } else {
+      drawCenteredText(
+        page,
+        safeValue(values[col.key]),
+        x,
+        y,
+        col.width,
+        rowHeight,
+        {
+          font:
+            col.key === 'avgMicron' || col.key === 'avgGm'
+              ? fonts.bold
+              : fonts.regular,
+          size: READING_CELL_SIZE,
+        },
+      );
+    }
+
     x += col.width;
   });
 };
 
 /* -------------------------------------------------------------------------- */
-/* COATING REQUIREMENT REFERENCE + REMARKS                                  */
+/* COATING REQUIREMENT BLOCK - like the sample, with a merged left cell      */
 /* -------------------------------------------------------------------------- */
 const drawRequirementNote = (page, fonts, startY) => {
-  const width = PAGE.width - PAGE.margin * 2;
+  const leftW = 150;
+  const midW = 235;
+  const rightW = CONTENT_WIDTH - leftW - midW;
+  const headerH = 14;
+  const rowH = 13;
   let y = startY;
 
-  drawRect(page, PAGE.margin, y, width, 16, { bg: COLORS.bgPanel });
-  drawText(
+  // Header row
+  drawRect(page, PAGE.margin, y - headerH, leftW, headerH, {
+    bg: COLORS.bgPanel,
+  });
+  drawRect(page, PAGE.margin + leftW, y - headerH, midW, headerH, {
+    bg: COLORS.bgPanel,
+  });
+  drawRect(page, PAGE.margin + leftW + midW, y - headerH, rightW, headerH, {
+    bg: COLORS.bgPanel,
+  });
+
+  drawCenteredText(
     page,
-    'Coating Requirement (IS 4759 / IS 6745)',
-    PAGE.margin + 6,
-    y + 5,
-    {
-      size: 7.2,
-      font: fonts.bold,
-      color: COLORS.navy,
-    },
+    'Coating Requirement',
+    PAGE.margin,
+    y - headerH,
+    leftW,
+    headerH,
+    { font: fonts.bold, size: 6.8 },
   );
-  y -= 16;
+  drawCenteredText(
+    page,
+    'Thickness of Steel Section',
+    PAGE.margin + leftW,
+    y - headerH,
+    midW,
+    headerH,
+    { font: fonts.bold, size: 6.8 },
+  );
+  drawCenteredText(
+    page,
+    'Minimum Avg. Coating',
+    PAGE.margin + leftW + midW,
+    y - headerH,
+    rightW,
+    headerH,
+    { font: fonts.bold, size: 6.8 },
+  );
+
+  y -= headerH;
 
   const requirementRows = [
-    ['Section thickness 5 mm & above', 'Min. Average 86 micron or 610 gm/m²'],
+    ['Section thickness 5 mm & above', 'Min. Average 86 micron or 614 gm/mtr²'],
     [
       'Section thickness 2 mm to below 5 mm',
-      'Min. Average 65 micron or 460 gm/m²',
+      'Min. Average 65 micron or 464 gm/mtr²',
     ],
     [
       'Section thickness 2 mm but not less than 1.2 mm',
-      'Min. Average 48 micron or 340 gm/m²',
+      'Min. Average 48 micron or 343 gm/mtr²',
     ],
   ];
 
-  requirementRows.forEach((cols, index) => {
-    const bg = index % 2 === 0 ? COLORS.white : COLORS.rowAlt;
-    const colWidth = width * 0.62;
+  const bodyH = rowH * requirementRows.length;
 
-    drawRect(page, PAGE.margin, y, colWidth, 14, { bg });
-    drawRect(page, PAGE.margin + colWidth, y, width - colWidth, 14, { bg });
+  // Merged left cell spanning all 3 rows, like the sample
+  drawRect(page, PAGE.margin, y - bodyH, leftW, bodyH);
+  const leftText = wrapTextToWidth(
+    fonts.regular,
+    'Specification for Hot Dip Galvanizing of structural steel products.',
+    6.4,
+    leftW - 10,
+    3,
+  );
+  const leftBlockH = leftText.length * 8;
+  leftText.forEach((line, index) => {
+    page.drawText(line, {
+      x: PAGE.margin + 5,
+      y: y - (bodyH - leftBlockH) / 2 - 8 - index * 8,
+      size: 6.4,
+      font: fonts.regular,
+      color: COLORS.text,
+    });
+  });
 
-    drawText(page, cols[0], PAGE.margin + 5, y + 4, {
-      size: 6.6,
+  requirementRows.forEach(cols => {
+    drawRect(page, PAGE.margin + leftW, y - rowH, midW, rowH);
+    drawRect(page, PAGE.margin + leftW + midW, y - rowH, rightW, rowH);
+
+    drawText(page, cols[0], PAGE.margin + leftW + 5, y - rowH + 4, {
+      size: 6.4,
       font: fonts.regular,
     });
-    drawText(page, cols[1], PAGE.margin + colWidth + 5, y + 4, {
-      size: 6.6,
+    drawText(page, cols[1], PAGE.margin + leftW + midW + 5, y - rowH + 4, {
+      size: 6.4,
       font: fonts.bold,
-      color: COLORS.navy,
     });
 
-    y -= 14;
+    y -= rowH;
   });
 
   return y;
 };
 
 const drawRemarks = (page, fonts, remarks, startY) => {
-  const width = PAGE.width - PAGE.margin * 2;
-  let y = startY - 8;
+  const rowH = 15;
+  const y = startY - rowH;
 
-  drawText(page, 'Remarks:', PAGE.margin, y, {
-    size: 7.5,
-    font: fonts.bold,
-    color: COLORS.navy,
-  });
+  drawRect(page, PAGE.margin, y, CONTENT_WIDTH, rowH);
   drawText(
     page,
-    remarks || 'The average coating found within limit, so found satisfactory.',
-    PAGE.margin + 48,
-    y,
-    {
-      size: 7.2,
-      font: fonts.regular,
-      color: COLORS.success,
-      maxWidth: width - 48,
-    },
+    `Remarks: ${cleanPdfText(
+      remarks ||
+        'The average coating found within limit, so found satisfactory.',
+    )}`,
+    PAGE.margin + 5,
+    y + 4.5,
+    { size: 7, font: fonts.bold, color: COLORS.text },
   );
 
-  return y - 14;
+  return y;
 };
 
 /* -------------------------------------------------------------------------- */
 /* FOOTER / SIGNATURE                                                        */
 /* -------------------------------------------------------------------------- */
-const drawFooter = (page, fonts, pageNumber) => {
+const drawFooter = (page, fonts, pageNumber, stampImage) => {
   const signY = 60;
   const signW = 150;
+  const signX = PAGE.width - PAGE.margin - signW;
+
+  if (stampImage) {
+    const stampSize = 170;
+    const scale = Math.min(
+      stampSize / stampImage.width,
+      stampSize / stampImage.height,
+    );
+    const w = stampImage.width * scale;
+    const h = stampImage.height * scale;
+
+    // Centered over the signature line, slightly overlapping it - like a
+    // real rubber stamp placed across the signature.
+    page.drawImage(stampImage, {
+      x: signX + (signW - w) / 2,
+      y: 10,
+      width: w,
+      height: h,
+      opacity: 0.9,
+    });
+  }
 
   page.drawLine({
-    start: { x: PAGE.width - PAGE.margin - signW, y: signY },
+    start: { x: signX, y: signY },
     end: { x: PAGE.width - PAGE.margin, y: signY },
     thickness: 0.7,
-    color: COLORS.borderStrong,
+    color: COLORS.borderLight,
   });
-  drawText(
-    page,
-    'Authorized Signatory (Quality)',
-    PAGE.width - PAGE.margin - signW,
-    signY - 10,
-    { size: 6.8, font: fonts.bold, color: COLORS.textMuted },
-  );
+  drawText(page, 'Authorized Signatory (Quality)', signX, signY - 10, {
+    size: 6.8,
+    font: fonts.bold,
+    color: COLORS.textMuted,
+  });
 
   page.drawLine({
     start: { x: PAGE.margin, y: 24 },
     end: { x: PAGE.width - PAGE.margin, y: 24 },
     thickness: 0.6,
-    color: COLORS.border,
+    color: COLORS.borderLight,
   });
 
   drawText(
@@ -525,7 +887,6 @@ const drawFooter = (page, fonts, pageNumber) => {
     color: COLORS.textMuted,
   });
 };
-
 /* -------------------------------------------------------------------------- */
 /* MAIN GENERATOR                                                           */
 /* -------------------------------------------------------------------------- */
@@ -540,72 +901,71 @@ export const generateCoatingCertificatePdf = async ({
     bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
   };
 
+  const logoImage = await loadLogoImage(pdfDoc);
+  const stampImage = await loadStampImage(pdfDoc);
+
   let pageNumber = 1;
   let page = pdfDoc.addPage(A4_PORTRAIT);
 
-  drawHeader(page, fonts);
+  let y = drawHeader(page, fonts, logoImage);
 
-  let y = PAGE.height - 90;
   y = drawInfoBlock(page, fonts, certificate, y);
 
-  y -= 10;
+  y -= 8;
   y = drawChecklistTable(page, fonts, certificate, y);
 
-  y -= 14;
-  drawReadingsTableHeader(page, fonts, y);
-  y -= 24;
+  y -= 8;
+  y = drawReadingsTableHeader(page, fonts, y);
 
-  const rowHeight = 20;
+  const minRowHeight = 18;
 
   readings.forEach((row, index) => {
-    if (y < 140) {
-      drawFooter(page, fonts, pageNumber);
+    const values = buildReadingsRowValues(certificate, row, index);
+    const { wrapped, rowHeight } = measureReadingsRow(
+      fonts,
+      values,
+      minRowHeight,
+    );
+
+    if (y - rowHeight < 130) {
+      drawFooter(page, fonts, pageNumber, stampImage);
       pageNumber += 1;
       page = pdfDoc.addPage(A4_PORTRAIT);
-      y = PAGE.height - 60;
-      drawReadingsTableHeader(page, fonts, y);
-      y -= 24;
+      y = drawReadingsTableHeader(page, fonts, PAGE.height - 50);
     }
 
-    drawReadingsRow(page, fonts, row, index, y, rowHeight);
     y -= rowHeight;
+    drawReadingsRow(page, fonts, values, wrapped, y, rowHeight);
   });
 
   if (readings.length === 0) {
-    drawRect(page, PAGE.margin, y - 24, PAGE.width - PAGE.margin * 2, 24, {
-      bg: COLORS.white,
-    });
+    drawRect(page, PAGE.margin, y - 20, CONTENT_WIDTH, 20);
     drawText(
       page,
-      'No production entries found for this challan.',
+      'No coating readings available for this certificate.',
       PAGE.margin + 8,
-      y - 15,
-      {
-        size: 8,
-        font: fonts.bold,
-        color: COLORS.textMuted,
-      },
+      y - 13,
+      { size: 7.5, font: fonts.bold, color: COLORS.textMuted },
     );
-    y -= 24;
+    y -= 20;
   }
 
-  y -= 10;
-  if (y < 140) {
-    drawFooter(page, fonts, pageNumber);
+  if (y < 180) {
+    drawFooter(page, fonts, pageNumber, stampImage);
     pageNumber += 1;
     page = pdfDoc.addPage(A4_PORTRAIT);
-    y = PAGE.height - 60;
+    y = PAGE.height - 50;
   }
 
   y = drawRequirementNote(page, fonts, y);
   y = drawRemarks(page, fonts, certificate.remarks, y);
 
-  drawFooter(page, fonts, pageNumber);
+  drawFooter(page, fonts, pageNumber, stampImage);
 
   const pdfBytes = await pdfDoc.save();
   const base64 = Buffer.from(pdfBytes).toString('base64');
 
-  const fileName = `certificate-${certificate.tc_no.replace(
+  const fileName = `certificate-${String(certificate.tc_no).replace(
     /[^A-Za-z0-9-]/g,
     '_',
   )}.pdf`;

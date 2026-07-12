@@ -53,21 +53,28 @@ export default function HistoryListScreen({ navigation }) {
 
   return (
     <View style={[styles.container, styles.safe]}>
-      <View style={styles.searchCard}>
-        <Search size={20} color={COLORS.gray} />
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingTop: 16,
+        }}
+      >
+        <View style={styles.searchCard}>
+          <Search size={20} color={COLORS.gray} />
 
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search date..."
-          mode="flat"
-          underlineColor="transparent"
-          activeUnderlineColor="transparent"
-          style={styles.searchInput}
-          textColor={COLORS.text}
-          placeholderTextColor={COLORS.gray}
-          theme={PAPER_THEME}
-        />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search date..."
+            mode="flat"
+            underlineColor="transparent"
+            activeUnderlineColor="transparent"
+            style={styles.searchInput}
+            textColor={COLORS.text}
+            placeholderTextColor={COLORS.gray}
+            theme={PAPER_THEME}
+          />
+        </View>
       </View>
 
       {isLoading ? (
@@ -153,7 +160,6 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    padding: 16,
   },
 
   searchCard: {
@@ -183,6 +189,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 14,
     paddingBottom: 30,
+    padding: 16,
   },
 
   emptyCard: {

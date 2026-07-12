@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { Maximize2 } from 'lucide-react-native';
+import { FileCheck2, Maximize2 } from 'lucide-react-native';
 
 import AppHeader from '../../components/AppHeader';
 import { getHistoryShiftTableApi } from '../../api/historyApi';
@@ -27,7 +27,7 @@ const COLORS = {
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
-
+  const [saving, setSaving] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['history-shift-table', date, shift_name],
     queryFn: () =>
@@ -36,6 +36,28 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
         shift_name,
       }),
   });
+
+  const handleGenerate = async () => {
+    setSaving(true);
+
+    try {
+      await generateProductionPdf({
+        date,
+        shiftName: shift_name,
+        summary,
+        tableData,
+      });
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Could not generate pdf',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const summary = data?.data?.summary || {};
   const tableData = data?.data?.table_data || [];
@@ -49,7 +71,7 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, styles.safe]}>
+    <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.summaryCard}>
         <Text style={styles.sectionTitle}>Shift Summary</Text>
 
@@ -172,17 +194,19 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
       </View>
 
       <TouchableOpacity
-        style={styles.pdfBtn}
-        onPress={async () =>
-          await generateProductionPdf({
-            date,
-            shiftName: shift_name,
-            summary,
-            tableData,
-          })
-        }
+        style={[styles.generateBtn, saving && styles.generateBtnDisabled]}
+        activeOpacity={0.85}
+        disabled={saving}
+        onPress={handleGenerate}
       >
-        <Text style={styles.pdfBtnText}>GENERATE PDF</Text>
+        {saving ? (
+          <ActivityIndicator color={COLORS.white} />
+        ) : (
+          <>
+            <FileCheck2 size={20} color={COLORS.white} />
+            <Text style={styles.generateText}>GENERATE REPORT</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -365,5 +389,25 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 13,
     fontWeight: '900',
+  },
+
+  generateBtn: {
+    backgroundColor: COLORS.primary,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+  },
+
+  generateBtnDisabled: { opacity: 0.6 },
+
+  generateText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
 });

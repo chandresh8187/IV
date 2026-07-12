@@ -1,3 +1,5 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Factory, Moon, Sun, TrendingUp, Zap } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -6,23 +8,12 @@ import {
   StyleSheet,
   Text,
   View,
-  PermissionsAndroid,
 } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Factory,
-  Moon,
-  Sun,
-  TrendingUp,
-  Users,
-  Zap,
-} from 'lucide-react-native';
 
-import { getDashboardApi } from '../../api/dashboardApi';
-import { socket } from '../../socket/socket';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import moment from 'moment';
+import { getDashboardApi } from '../../api/dashboardApi';
 import { COLORS } from '../../assets/Colors';
+import { socket } from '../../socket/socket';
 
 export default function DashboardScreen() {
   const queryClient = useQueryClient();
@@ -34,22 +25,30 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
-    PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-    );
-    socket.connect();
+    // Notification permission is already requested once at login
+    // (LoginScreen.js) - asking again here just re-prompts on every
+    // dashboard mount/focus.
+    if (!socket.connected) {
+      socket.connect();
+    }
 
-    socket.on('production_updated', () => {
+    const handleProductionUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    });
+    };
 
-    socket.on('shift_updated', () => {
+    const handleShiftUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    });
+    };
+
+    socket.on('production_updated', handleProductionUpdated);
+    socket.on('shift_updated', handleShiftUpdated);
 
     return () => {
-      socket.off('production_updated');
-      socket.off('shift_updated');
+      // Passing the specific handler (not just the event name) means this
+      // cleanup won't accidentally remove listeners other screens
+      // (ProductionScreen, ShiftScreen) registered for the same events.
+      socket.off('production_updated', handleProductionUpdated);
+      socket.off('shift_updated', handleShiftUpdated);
     };
   }, [queryClient]);
 

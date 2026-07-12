@@ -13,7 +13,14 @@ import {
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Edit3, FileCheck2, Plus, Trash2, X } from 'lucide-react-native';
+import {
+  ClipboardList,
+  Edit3,
+  FileCheck2,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import {
   createProductionPlanningApi,
   deleteProductionPlanningApi,
@@ -280,11 +287,6 @@ export default function ProductionPlanningScreen() {
                   item={item}
                   onEdit={() => openEditModal(item)}
                   onDelete={() => handleDelete(item)}
-                  onGenerateCertificate={() =>
-                    navigation.navigate('GenerateCertificate', {
-                      planning: item,
-                    })
-                  }
                 />
               ))
             )}
@@ -306,7 +308,7 @@ export default function ProductionPlanningScreen() {
   );
 }
 
-function PlanningCard({ item, onEdit, onDelete, onGenerateCertificate }) {
+function PlanningCard({ item, onEdit, onDelete }) {
   const partyText = item.third_party_name
     ? `${item.party_name} (${item.third_party_name})`
     : item.party_name;
@@ -331,17 +333,6 @@ function PlanningCard({ item, onEdit, onDelete, onGenerateCertificate }) {
         <InfoBox label="Completed" value={`${item.completed_qty || 0} NOS`} />
         <InfoBox label="Remaining" value={`${item.remaining_qty || 0} NOS`} />
       </View>
-
-      {isCompleted && (
-        <TouchableOpacity
-          style={styles.certificateBtn}
-          activeOpacity={0.85}
-          onPress={onGenerateCertificate}
-        >
-          <FileCheck2 size={16} color={COLORS.white} />
-          <Text style={styles.certificateText}>GENERATE CERTIFICATE</Text>
-        </TouchableOpacity>
-      )}
 
       <View style={styles.actionRow}>
         <TouchableOpacity

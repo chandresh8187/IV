@@ -70,9 +70,11 @@ export default function LoginScreen() {
           }),
         );
         try {
-          await PermissionsAndroid.request(
+          const granted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-          ).then(async () => {
+          );
+
+          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
             const fcmToken = await getFCMToken();
 
             if (fcmToken) {
@@ -81,7 +83,7 @@ export default function LoginScreen() {
                 device_type: 'android',
               });
             }
-          });
+          }
         } catch (error) {
           console.log('SAVE FCM ERROR', error);
         }

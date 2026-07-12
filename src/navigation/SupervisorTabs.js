@@ -1,11 +1,11 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Clock, Factory, UserCircle2 } from 'lucide-react-native';
-import ShiftScreen from '../screens/supervisor/ShiftScreen';
-import ProfileScreen from '../screens/superadmin/ProfileScreen';
-import ProductionStack from './comman/ProductionStock';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../assets/Colors';
+import ProductionScreen from '../screens/superadmin/ProductionScreen';
+import ProfileScreen from '../screens/superadmin/ProfileScreen';
+import ShiftScreen from '../screens/supervisor/ShiftScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -65,7 +65,7 @@ export default function SupervisorTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Production" component={ProductionStack} />
+      <Tab.Screen name="Production" component={ProductionScreen} />
       <Tab.Screen name="Shift" component={ShiftScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -74,7 +74,6 @@ export default function SupervisorTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 76,
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: COLORS.white,

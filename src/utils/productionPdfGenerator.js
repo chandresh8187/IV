@@ -1,4 +1,5 @@
 import RNFS from 'react-native-fs';
+import { Platform } from 'react-native';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Buffer } from 'buffer';
 
@@ -11,23 +12,23 @@ const PAGE = {
 };
 
 const A4_LANDSCAPE = [PAGE.width, PAGE.height];
+const CONTENT_WIDTH = PAGE.width - PAGE.margin * 2;
 
 /* -------------------------------------------------------------------------- */
-/* PALETTE — corporate ERP look: deep navy / slate / steel-blue / amber accent */
+/* PALETTE — matches certificatePdfGenerator.js: white letterhead, navy text,*/
+/* light-gray table panels, amber accent line                                */
 /* -------------------------------------------------------------------------- */
 const COLORS = {
-  navy: rgb(0.086, 0.114, 0.235), // #16172F-ish deep header navy
-  navyDark: rgb(0.055, 0.075, 0.165), // darker strip under header
-  steel: rgb(0.204, 0.396, 0.612), // #34659C steel blue accent
-  amber: rgb(0.788, 0.6, 0.098), // #C99919 gold accent (ERP highlight)
+  navy: rgb(0.086, 0.114, 0.235),
+  steel: rgb(0.204, 0.396, 0.612),
+  amber: rgb(0.788, 0.6, 0.098),
   white: rgb(1, 1, 1),
-  bgPanel: rgb(0.964, 0.968, 0.976), // very light gray panel
-  rowAlt: rgb(0.953, 0.958, 0.968), // zebra row
-  border: rgb(0.78, 0.8, 0.85),
-  borderStrong: rgb(0.55, 0.58, 0.65),
-  text: rgb(0.12, 0.13, 0.18),
+  bgPanel: rgb(0.945, 0.95, 0.958),
+  rowAlt: rgb(0.965, 0.968, 0.975),
+  border: rgb(0.25, 0.27, 0.32),
+  borderLight: rgb(0.65, 0.68, 0.73),
+  text: rgb(0.1, 0.11, 0.15),
   textMuted: rgb(0.4, 0.43, 0.49),
-  headerText: rgb(0.93, 0.94, 0.97),
   danger: rgb(0.72, 0.14, 0.14),
   success: rgb(0.11, 0.45, 0.28),
 };
@@ -37,12 +38,16 @@ const COLORS = {
 /* -------------------------------------------------------------------------- */
 const cleanPdfText = value => {
   if (value === null || value === undefined || value === '') return '-';
-  return String(value)
-    .replace(/\u202f/g, ' ')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[^\x20-\x7E]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    String(value)
+      .replace(/\u202f/g, ' ')
+      .replace(/\u00a0/g, ' ')
+      // Superscript-two (U+00B2) renders fine with the standard Helvetica
+      // fonts (WinAnsi encoding) - kept explicitly rather than stripped.
+      .replace(/[^\x20-\x7E\u00B2]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 };
 
 const safeValue = value =>
@@ -56,6 +61,31 @@ const safeKg = value =>
 const toNumber = value => {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Wrap text into lines that actually fit a given pixel width, measured with
+ * real font metrics (font.widthOfTextAtSize) instead of a character-count
+ * guess - this is what lets long Party / Material values wrap correctly
+ * instead of being cut off mid-word.
+ */
+const wrapTextToWidth = (font, text, size, maxWidth, maxLines = 3) => {
+  const words = cleanPdfText(text).split(' ');
+  const lines = [];
+  let line = '';
+
+  words.forEach(word => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  });
+  if (line) lines.push(line);
+
+  return lines.slice(0, maxLines);
 };
 
 const drawText = (page, text, x, y, options = {}) => {
@@ -84,43 +114,6 @@ const drawCenteredText = (page, text, x, y, width, height, options = {}) => {
   });
 };
 
-const wrapText = (text, maxCharsPerLine = 22, maxLines = 3) => {
-  const words = cleanPdfText(text).split(' ');
-  const lines = [];
-  let line = '';
-
-  words.forEach(word => {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > maxCharsPerLine) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
-  });
-  if (line) lines.push(line);
-
-  return lines.slice(0, maxLines);
-};
-
-const drawWrappedText = (page, text, x, y, options = {}) => {
-  const lines = wrapText(
-    text,
-    options.maxCharsPerLine || 22,
-    options.maxLines || 3,
-  );
-  lines.forEach((line, index) => {
-    page.drawText(line, {
-      x,
-      y: y - index * (options.lineHeight || 8),
-      size: options.size || 6,
-      font: options.font,
-      color: options.color || COLORS.text,
-    });
-  });
-  return lines.length;
-};
-
 const drawRoundedBox = (page, x, y, width, height, options = {}) => {
   page.drawRectangle({
     x,
@@ -131,6 +124,33 @@ const drawRoundedBox = (page, x, y, width, height, options = {}) => {
     borderColor: options.borderColor || COLORS.border,
     borderWidth: options.borderWidth ?? 0.6,
   });
+};
+
+/* -------------------------------------------------------------------------- */
+/* COMPANY LOGO - same lookup as certificatePdfGenerator.js:                 */
+/*   Android -> android/app/src/main/assets/logo.png                         */
+/*   iOS     -> logo.png added to the Xcode bundle resources                 */
+/* Falls back to an "IV" monogram block if the file isn't found, so a        */
+/* missing logo never breaks report generation.                             */
+/* -------------------------------------------------------------------------- */
+const loadLogoImage = async pdfDoc => {
+  try {
+    let base64 = null;
+
+    if (Platform.OS === 'android') {
+      base64 = await RNFS.readFileAssets('IV_logo.png', 'base64');
+    } else {
+      base64 = await RNFS.readFile(
+        `${RNFS.MainBundlePath}/IV_logo.png`,
+        'base64',
+      );
+    }
+
+    if (!base64) return null;
+    return await pdfDoc.embedPng(Buffer.from(base64, 'base64'));
+  } catch (error) {
+    return null;
+  }
 };
 
 /* -------------------------------------------------------------------------- */
@@ -148,136 +168,150 @@ const buildReportNo = (date, shiftName) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* HEADER                                                                    */
+/* HEADER - white letterhead, same visual language as the coating           */
+/* certificate: company block + logo top, centered title + meta line below, */
+/* amber accent line. Returns the y where the body content should start,    */
+/* so everything below chains off this instead of hardcoded page positions. */
 /* -------------------------------------------------------------------------- */
-const drawHeader = ({ page, fonts, date, shiftName }) => {
-  // Main navy header band
-  page.drawRectangle({
-    x: 0,
-    y: PAGE.height - 60,
-    width: PAGE.width,
-    height: 60,
+const COMPANY_ADDRESS_LINES = [
+  'PLANT-4, PLOT NO. 2526, NEAR MASCUT POLYMER, NEAR RADHE FORGE,',
+  'VERAVAL-SHAPAR RAJKOT - 360024 (Guj) INDIA.',
+];
+
+const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
+  const topY = PAGE.height - PAGE.margin;
+
+  // Left: company name + address
+  drawText(page, 'IV SQUARE STRUCTURE INDIA PVT LTD', PAGE.margin, topY - 14, {
+    size: 15,
+    font: fonts.bold,
     color: COLORS.navy,
   });
+  COMPANY_ADDRESS_LINES.forEach((line, index) => {
+    drawText(page, line, PAGE.margin, topY - 42 - index * 9, {
+      size: 7,
+      font: fonts.regular,
+      color: COLORS.textMuted,
+    });
+  });
 
-  // Amber accent line separating header from body
+  // Right: logo image, or "IV" monogram fallback (same box size/behavior
+  // as the certificate generator for a consistent brand look)
+  const logoBoxW = 140;
+  const logoBoxH = 60;
+  const logoX = PAGE.width - PAGE.margin - logoBoxW;
+  const logoY = topY - logoBoxH - 2;
+
+  if (logoImage) {
+    const scale = Math.min(
+      logoBoxW / logoImage.width,
+      logoBoxH / logoImage.height,
+    );
+    const w = logoImage.width * scale;
+    const h = logoImage.height * scale;
+    page.drawImage(logoImage, {
+      x: logoX + (logoBoxW - w) / 2,
+      y: logoY + (logoBoxH - h) / 2,
+      width: w,
+      height: h,
+    });
+  } else {
+    drawRoundedBox(page, logoX + logoBoxW - 48, logoY + 12, 44, 44, {
+      bg: COLORS.steel,
+      borderColor: COLORS.amber,
+      borderWidth: 1.2,
+    });
+    drawCenteredText(page, 'IV', logoX + logoBoxW - 48, logoY + 12, 44, 44, {
+      font: fonts.bold,
+      size: 20,
+      color: COLORS.white,
+    });
+  }
+
+  // Divider under the company/logo block
+  const dividerY = topY - 76;
+  page.drawLine({
+    start: { x: PAGE.margin, y: dividerY },
+    end: { x: PAGE.width - PAGE.margin, y: dividerY },
+    thickness: 0.8,
+    color: COLORS.borderLight,
+  });
+
+  // Centered report title
+  const titleY = dividerY - 20;
+  drawCenteredText(
+    page,
+    `${String(shiftName).toUpperCase()} SHIFT PRODUCTION REPORT`,
+    PAGE.margin,
+    titleY,
+    CONTENT_WIDTH,
+    14,
+    { font: fonts.bold, size: 13, color: COLORS.text },
+  );
+
+  // Centered meta line: date, report no, generated timestamp
+  const metaY = titleY - 15;
+  const reportNo = buildReportNo(date, shiftName);
+  const generatedAt = new Date().toLocaleString('en-IN');
+  drawCenteredText(
+    page,
+    `Date: ${date}   •   Report No: ${reportNo}   •   Generated: ${generatedAt}`,
+    PAGE.margin,
+    metaY,
+    CONTENT_WIDTH,
+    11,
+    { font: fonts.regular, size: 7.5, color: COLORS.textMuted },
+  );
+
+  // Amber accent line closing off the header
+  const accentY = metaY - 8;
   page.drawRectangle({
-    x: 0,
-    y: PAGE.height - 63,
-    width: PAGE.width,
-    height: 3,
+    x: PAGE.margin,
+    y: accentY,
+    width: CONTENT_WIDTH,
+    height: 1.6,
     color: COLORS.amber,
   });
 
-  // Logo placeholder block
-  drawRoundedBox(page, PAGE.margin, PAGE.height - 50, 34, 34, {
-    bg: COLORS.steel,
-    borderColor: COLORS.amber,
-    borderWidth: 1,
-  });
-  drawCenteredText(page, 'IV', PAGE.margin, PAGE.height - 50, 34, 34, {
-    font: fonts.bold,
-    size: 14,
-    color: COLORS.white,
-  });
-
-  drawText(
-    page,
-    'IV SQUARE STRUCTURE INDIA PVT. LTD.',
-    PAGE.margin + 46,
-    PAGE.height - 24,
-    {
-      size: 14,
-      font: fonts.bold,
-      color: COLORS.white,
-    },
-  );
-
-  drawText(
-    page,
-    `GALVANIZING PLANT  |  ${String(
-      shiftName,
-    ).toUpperCase()} SHIFT PRODUCTION REPORT`,
-    PAGE.margin + 46,
-    PAGE.height - 38,
-    { size: 8, font: fonts.bold, color: COLORS.amber },
-  );
-
-  const reportNo = buildReportNo(date, shiftName);
-  const rightLabelX = PAGE.width - PAGE.margin - 190;
-
-  drawText(page, 'REPORT NO.', rightLabelX, PAGE.height - 20, {
-    size: 6.5,
-    font: fonts.bold,
-    color: COLORS.headerText,
-  });
-  drawText(page, reportNo, rightLabelX, PAGE.height - 30, {
-    size: 9,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
-
-  drawText(page, 'REPORT DATE', rightLabelX + 100, PAGE.height - 20, {
-    size: 6.5,
-    font: fonts.bold,
-    color: COLORS.headerText,
-  });
-  drawText(page, date, rightLabelX + 100, PAGE.height - 30, {
-    size: 9,
-    font: fonts.bold,
-    color: COLORS.white,
-  });
-
-  drawText(
-    page,
-    `Generated: ${new Date().toLocaleString('en-IN')}`,
-    rightLabelX,
-    PAGE.height - 44,
-    { size: 6.5, font: fonts.regular, color: COLORS.headerText },
-  );
+  return accentY - 10;
 };
 
 /* -------------------------------------------------------------------------- */
 /* CONTINUATION BANNER (subsequent pages)                                    */
 /* -------------------------------------------------------------------------- */
 const drawContinuationBar = ({ page, fonts, date, shiftName, pageNumber }) => {
-  drawRoundedBox(
-    page,
-    PAGE.margin,
-    PAGE.height - 90,
-    PAGE.width - PAGE.margin * 2,
-    20,
-    {
-      bg: COLORS.bgPanel,
-      borderColor: COLORS.border,
-    },
-  );
+  const topY = PAGE.height - PAGE.margin;
+
+  drawRoundedBox(page, PAGE.margin, topY - 22, CONTENT_WIDTH, 22, {
+    bg: COLORS.bgPanel,
+    borderColor: COLORS.border,
+  });
   drawText(
     page,
     `Production Table (Continued) — ${String(
       shiftName,
     ).toUpperCase()} SHIFT — ${date}`,
-    PAGE.margin + 8,
-    PAGE.height - 84,
-    { size: 8, font: fonts.bold, color: COLORS.navy },
+    PAGE.margin + 10,
+    topY - 15,
+    { size: 8.5, font: fonts.bold, color: COLORS.navy },
   );
   drawText(
     page,
     `Page ${pageNumber}`,
-    PAGE.width - PAGE.margin - 50,
-    PAGE.height - 84,
-    {
-      size: 8,
-      font: fonts.bold,
-      color: COLORS.textMuted,
-    },
+    PAGE.width - PAGE.margin - 55,
+    topY - 15,
+    { size: 8.5, font: fonts.bold, color: COLORS.textMuted },
   );
+
+  return topY - 22 - 12;
 };
 
 /* -------------------------------------------------------------------------- */
 /* SUMMARY / KPI CARDS                                                       */
 /* -------------------------------------------------------------------------- */
-const drawSummaryCards = ({ page, fonts, summary, startY }) => {
+const CARD_HEIGHT = 52;
+
+const drawSummaryCards = ({ page, fonts, summary, topY }) => {
   const zincConsumption = Number(summary?.zinc_consumption || 0);
 
   const cards = [
@@ -305,47 +339,41 @@ const drawSummaryCards = ({ page, fonts, summary, startY }) => {
   ];
 
   const gap = 10;
-  const cardW = (PAGE.width - PAGE.margin * 2 - gap * 3) / 4;
-  const cardH = 52;
+  const cardW = (CONTENT_WIDTH - gap * 3) / 4;
 
-  // Section label above cards
-  drawText(
-    page,
-    'SHIFT PERFORMANCE SUMMARY',
-    PAGE.margin,
-    startY + cardH + 10,
-    {
-      size: 8.5,
-      font: fonts.bold,
-      color: COLORS.navy,
-    },
-  );
+  drawText(page, 'SHIFT PERFORMANCE SUMMARY', PAGE.margin, topY, {
+    size: 8.5,
+    font: fonts.bold,
+    color: COLORS.navy,
+  });
   page.drawLine({
-    start: { x: PAGE.margin, y: startY + cardH + 4 },
-    end: { x: PAGE.width - PAGE.margin, y: startY + cardH + 4 },
+    start: { x: PAGE.margin, y: topY - 6 },
+    end: { x: PAGE.width - PAGE.margin, y: topY - 6 },
     thickness: 0.8,
     color: COLORS.border,
   });
 
+  const cardsTop = topY - 10;
+  const startY = cardsTop - CARD_HEIGHT;
+
   cards.forEach((card, index) => {
     const x = PAGE.margin + index * (cardW + gap);
 
-    drawRoundedBox(page, x, startY, cardW, cardH, {
+    drawRoundedBox(page, x, startY, cardW, CARD_HEIGHT, {
       bg: COLORS.white,
       borderColor: COLORS.border,
       borderWidth: 0.7,
     });
 
-    // Left accent bar (ERP-style KPI card)
     page.drawRectangle({
       x,
       y: startY,
       width: 4,
-      height: cardH,
+      height: CARD_HEIGHT,
       color: card.accent,
     });
 
-    drawText(page, card.label, x + 12, startY + cardH - 16, {
+    drawText(page, card.label, x + 12, startY + CARD_HEIGHT - 16, {
       size: 6.6,
       font: fonts.bold,
       color: COLORS.textMuted,
@@ -361,7 +389,7 @@ const drawSummaryCards = ({ page, fonts, summary, startY }) => {
       const flagWidth = fonts.bold.widthOfTextAtSize(card.flag, 5.8) + 10;
       page.drawRectangle({
         x: x + cardW - flagWidth - 8,
-        y: startY + cardH - 18,
+        y: startY + CARD_HEIGHT - 18,
         width: flagWidth,
         height: 11,
         color: card.accent,
@@ -370,17 +398,15 @@ const drawSummaryCards = ({ page, fonts, summary, startY }) => {
         page,
         card.flag,
         x + cardW - flagWidth - 8,
-        startY + cardH - 18,
+        startY + CARD_HEIGHT - 18,
         flagWidth,
         11,
-        {
-          font: fonts.bold,
-          size: 5.8,
-          color: COLORS.white,
-        },
+        { font: fonts.bold, size: 5.8, color: COLORS.white },
       );
     }
   });
+
+  return startY;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -405,64 +431,60 @@ const drawSectionTitle = (page, fonts, title, y) => {
     thickness: 0.8,
     color: COLORS.border,
   });
+
+  return y - 6;
 };
 
 /* -------------------------------------------------------------------------- */
 /* TABLE                                                                     */
 /* -------------------------------------------------------------------------- */
 const columns = [
-  { label: 'Sr', key: 'sr_no', width: 28, chars: 5, lines: 1 },
-  { label: 'Time', key: 'production_time', width: 50, chars: 10, lines: 1 },
-  { label: 'Challan No.', key: 'challan_no', width: 80, chars: 16, lines: 2 },
-  { label: 'Party Name', key: 'party_name', width: 118, chars: 20, lines: 3 },
-  {
-    label: 'Material Description',
-    key: 'material',
-    width: 182,
-    chars: 32,
-    lines: 4,
-  },
-  {
-    label: 'Kettle Temp',
-    key: 'kettle_temperature',
-    width: 44,
-    chars: 6,
-    lines: 1,
-  },
-  { label: 'Dipping Qty', key: 'dipping_qty', width: 42, chars: 6, lines: 1 },
-  { label: 'MS Wt.', key: 'ms_weight', width: 44, chars: 7, lines: 1 },
-  { label: 'GI Wt.', key: 'gi_weight', width: 44, chars: 7, lines: 1 },
-  { label: 'Zn %', key: 'zinc_percentage', width: 42, chars: 7, lines: 1 },
-  { label: 'Avg. Coating', key: 'avg_coating', width: 60, chars: 6, lines: 1 },
+  { label: 'Sr', key: 'sr_no', width: 28, lines: 1 },
+  { label: 'Time', key: 'production_time', width: 50, lines: 1 },
+  { label: 'Challan No.', key: 'challan_no', width: 80, lines: 2 },
+  { label: 'Party Name', key: 'party_name', width: 118, lines: 3 },
+  { label: 'Material Description', key: 'material', width: 182, lines: 4 },
+  { label: 'Kettle Temp', key: 'kettle_temperature', width: 44, lines: 1 },
+  { label: 'Dipping Qty', key: 'dipping_qty', width: 42, lines: 1 },
+  { label: 'MS Wt.', key: 'ms_weight', width: 44, lines: 1 },
+  { label: 'GI Wt.', key: 'gi_weight', width: 44, lines: 1 },
+  { label: 'Zn %', key: 'zinc_percentage', width: 42, lines: 1 },
+  { label: 'Avg. Coating', key: 'avg_coating', width: 60, lines: 1 },
 ];
 
 const TABLE_WIDTH = columns.reduce((sum, col) => sum + col.width, 0);
 
+const CELL_FONT_SIZE = 5.9;
+const CELL_LINE_HEIGHT = 7;
+const MIN_ROW_HEIGHT = 23;
+const TABLE_HEADER_HEIGHT = 24;
+
+// Light-panel table header - matches the certificate's checklist/readings
+// tables (bordered, bgPanel fill, navy bold text) instead of a solid navy
+// band, so both documents read as the same product.
 const drawTableHeader = (page, fonts, y) => {
   let x = PAGE.margin;
-  const headerHeight = 26;
 
   columns.forEach(col => {
     page.drawRectangle({
       x,
       y,
       width: col.width,
-      height: headerHeight,
-      color: COLORS.navy,
-      borderColor: COLORS.navyDark,
+      height: TABLE_HEADER_HEIGHT,
+      color: COLORS.bgPanel,
+      borderColor: COLORS.border,
       borderWidth: 0.6,
     });
 
-    drawCenteredText(page, col.label, x, y, col.width, headerHeight, {
+    drawCenteredText(page, col.label, x, y, col.width, TABLE_HEADER_HEIGHT, {
       font: fonts.bold,
       size: 6.4,
-      color: COLORS.headerText,
+      color: COLORS.navy,
     });
 
     x += col.width;
   });
 
-  // amber underline under table header
   page.drawRectangle({
     x: PAGE.margin,
     y: y - 1.5,
@@ -483,24 +505,51 @@ const getCellValue = (row, key) => {
   return safeValue(value);
 };
 
-const drawCell = (page, text, x, y, width, height, options = {}) => {
+/**
+ * Wrap every cell of a row against its column's real width, and work out
+ * how tall the row needs to be to show the tallest cell in full - this is
+ * what lets long Material Description values display completely instead
+ * of being cut off with "...".
+ */
+const measureRow = (fonts, row) => {
+  const cellLines = columns.map(col =>
+    wrapTextToWidth(
+      fonts.regular,
+      getCellValue(row, col.key),
+      CELL_FONT_SIZE,
+      col.width - 8,
+      col.lines || 3,
+    ),
+  );
+
+  const maxLinesUsed = Math.max(1, ...cellLines.map(l => l.length));
+  const rowHeight = Math.max(
+    MIN_ROW_HEIGHT,
+    12 + maxLinesUsed * CELL_LINE_HEIGHT,
+  );
+
+  return { cellLines, rowHeight };
+};
+
+const drawCell = (page, lines, x, y, width, height, options = {}) => {
   page.drawRectangle({
     x,
     y,
     width,
     height,
     color: options.bg || COLORS.white,
-    borderColor: options.borderColor || COLORS.border,
+    borderColor: options.borderColor || COLORS.borderLight,
     borderWidth: 0.45,
   });
 
-  drawWrappedText(page, text, x + 4, y + height - 9, {
-    size: options.size || 5.9,
-    font: options.font,
-    color: options.color || COLORS.text,
-    maxCharsPerLine: options.maxCharsPerLine || 20,
-    maxLines: options.maxLines || 3,
-    lineHeight: options.lineHeight || 7,
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x: x + 4,
+      y: y + height - 9 - index * CELL_LINE_HEIGHT,
+      size: options.size || CELL_FONT_SIZE,
+      font: options.font,
+      color: options.color || COLORS.text,
+    });
   });
 };
 
@@ -521,7 +570,7 @@ const drawTotalsRow = (page, fonts, y, totals, rowHeight) => {
       width: col.width,
       height: rowHeight,
       color: COLORS.bgPanel,
-      borderColor: COLORS.borderStrong,
+      borderColor: COLORS.border,
       borderWidth: 0.7,
     });
 
@@ -543,7 +592,7 @@ const drawTotalsRow = (page, fonts, y, totals, rowHeight) => {
 const drawFooter = (page, fonts, pageNumber, isLastPage) => {
   if (isLastPage) {
     const signY = 46;
-    const signW = (PAGE.width - PAGE.margin * 2 - 20) / 3;
+    const signW = (CONTENT_WIDTH - 20) / 3;
     const labels = [
       'Prepared By',
       'Checked By (Shift Supervisor)',
@@ -553,10 +602,10 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
     labels.forEach((label, index) => {
       const x = PAGE.margin + index * (signW + 10);
       page.drawLine({
-        start: { x: x, y: signY },
+        start: { x, y: signY },
         end: { x: x + signW, y: signY },
         thickness: 0.7,
-        color: COLORS.borderStrong,
+        color: COLORS.borderLight,
       });
       drawText(page, label, x, signY - 9, {
         size: 6.8,
@@ -570,7 +619,7 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
     start: { x: PAGE.margin, y: 24 },
     end: { x: PAGE.width - PAGE.margin, y: 24 },
     thickness: 0.6,
-    color: COLORS.border,
+    color: COLORS.borderLight,
   });
 
   drawText(
@@ -578,11 +627,7 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
     'Generated by IV Production App  •  System-generated document',
     PAGE.margin,
     12,
-    {
-      size: 6.5,
-      font: fonts.regular,
-      color: COLORS.textMuted,
-    },
+    { size: 6.5, font: fonts.regular, color: COLORS.textMuted },
   );
 
   drawText(page, `Page ${pageNumber}`, PAGE.width - PAGE.margin - 46, 12, {
@@ -608,42 +653,36 @@ export const generateProductionPdf = async ({
     bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
   };
 
+  const logoImage = await loadLogoImage(pdfDoc);
+
   let pageNumber = 1;
   let page = pdfDoc.addPage(A4_LANDSCAPE);
-  const allPages = [page];
 
-  drawHeader({ page, fonts, date, shiftName });
-  drawSummaryCards({ page, fonts, summary, startY: 465 });
-  drawSectionTitle(page, fonts, 'Production Table', 438);
+  // Everything below chains off drawHeader's returned y instead of magic
+  // numbers, so the header can grow/shrink without desyncing the rest of
+  // the page.
+  let y = drawHeader({ page, fonts, date, shiftName, logoImage });
+  y = drawSummaryCards({ page, fonts, summary, topY: y });
 
-  let y = 400;
+  y -= 27;
+  y = drawSectionTitle(page, fonts, 'Production Table', y);
+
+  y -= 32;
   drawTableHeader(page, fonts, y);
-  y -= 26;
+  y -= TABLE_HEADER_HEIGHT;
 
-  const rowHeight = 23;
   const totals = { ms: 0, gi: 0 };
 
   if (!tableData.length) {
-    drawRoundedBox(
-      page,
-      PAGE.margin,
-      y - 40,
-      PAGE.width - PAGE.margin * 2,
-      40,
-      {
-        bg: COLORS.white,
-      },
-    );
+    drawRoundedBox(page, PAGE.margin, y - 40, CONTENT_WIDTH, 40, {
+      bg: COLORS.white,
+    });
     drawText(
       page,
       'No production entries found for this shift.',
       PAGE.margin + 10,
       y - 18,
-      {
-        size: 9,
-        font: fonts.bold,
-        color: COLORS.textMuted,
-      },
+      { size: 9, font: fonts.bold, color: COLORS.textMuted },
     );
   }
 
@@ -651,33 +690,40 @@ export const generateProductionPdf = async ({
     totals.ms += toNumber(row?.ms_weight);
     totals.gi += toNumber(row?.gi_weight);
 
-    if (y < 70) {
+    // Measure the row's real height (wrapped Party / Material text can
+    // need extra lines) BEFORE the page-break check, so a tall row never
+    // spills into the footer area.
+    const { cellLines, rowHeight } = measureRow(fonts, row);
+
+    if (y - rowHeight < 47) {
       drawFooter(page, fonts, pageNumber, false);
 
       pageNumber += 1;
       page = pdfDoc.addPage(A4_LANDSCAPE);
-      allPages.push(page);
 
-      drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
-
-      y = PAGE.height - 110;
+      y = drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
       drawTableHeader(page, fonts, y);
-      y -= 26;
+      y -= TABLE_HEADER_HEIGHT;
     }
+
+    // pdf-lib rectangles are anchored at their BOTTOM-left corner, so a
+    // taller-than-minimum row must have its origin shifted further down
+    // for its top edge to stay flush with the previous row's bottom edge.
+    y -= rowHeight - MIN_ROW_HEIGHT;
 
     let x = PAGE.margin;
     const rowBg = rowIndex % 2 === 0 ? COLORS.white : COLORS.rowAlt;
 
-    columns.forEach(col => {
-      drawCell(page, getCellValue(row, col.key), x, y, col.width, rowHeight, {
+    columns.forEach((col, colIndex) => {
+      drawCell(page, cellLines[colIndex], x, y, col.width, rowHeight, {
         bg: rowBg,
         font: fonts.regular,
-        size: 5.9,
+        size: CELL_FONT_SIZE,
       });
       x += col.width;
     });
 
-    y -= rowHeight;
+    y -= MIN_ROW_HEIGHT;
   });
 
   if (tableData.length) {
@@ -685,14 +731,12 @@ export const generateProductionPdf = async ({
       drawFooter(page, fonts, pageNumber, false);
       pageNumber += 1;
       page = pdfDoc.addPage(A4_LANDSCAPE);
-      allPages.push(page);
-      drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
-      y = PAGE.height - 110;
+      y = drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
       drawTableHeader(page, fonts, y);
-      y -= 26;
+      y -= TABLE_HEADER_HEIGHT;
     }
-    drawTotalsRow(page, fonts, y, totals, rowHeight);
-    y -= rowHeight;
+    drawTotalsRow(page, fonts, y, totals, MIN_ROW_HEIGHT);
+    y -= MIN_ROW_HEIGHT;
   }
 
   drawFooter(page, fonts, pageNumber, true);

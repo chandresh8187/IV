@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ClipboardList,
   Factory,
+  FileCheck2,
   History,
   Settings2,
 } from 'lucide-react-native';
@@ -50,6 +51,12 @@ export default function ProductionMenuScreen({ navigation }) {
       desc: 'Manage challan wise production planning',
       icon: ClipboardList,
       screen: 'ProductionPlanning',
+    },
+    {
+      title: 'Coating Test Certificate',
+      desc: 'Generate galvanizing coating test certificate',
+      icon: FileCheck2,
+      screen: 'GenerateCertificate',
     },
   ];
 

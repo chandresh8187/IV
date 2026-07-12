@@ -86,9 +86,7 @@ export default function SuperAdminTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 100,
     paddingTop: 8,
-    paddingBottom: 8,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

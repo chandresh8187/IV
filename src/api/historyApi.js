@@ -30,6 +30,5 @@ export const getHistoryPlanningSummaryApi = async date => {
   const response = await apiClient.get('/production-history/planning-summary', {
     params: { date },
   });
-  console.log('response', response);
   return response.data;
 };
