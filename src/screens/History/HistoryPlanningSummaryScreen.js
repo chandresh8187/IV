@@ -9,6 +9,11 @@ import {
 } from 'react-native';
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
+import {
+  centeredContent,
+  gridItemWidth,
+  useResponsive,
+} from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -22,14 +27,16 @@ const COLORS = {
 
 export default function HistoryPlanningSummaryScreen({ route }) {
   const { date } = route.params;
-  console.log('date', date);
+  const { isTablet, contentMaxWidth } = useResponsive();
+  const infoBoxWidth = gridItemWidth(2, 4, isTablet);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['history-planning-summary', date],
     queryFn: () => getHistoryPlanningSummaryApi(date),
   });
 
   const planningList = data?.data || [];
-  console.log('planningList', data);
+
   if (isLoading) {
     return (
       <View style={styles.loaderBox}>
@@ -39,7 +46,13 @@ export default function HistoryPlanningSummaryScreen({ route }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, styles.safe]}>
+    <ScrollView
+      style={styles.safe}
+      contentContainerStyle={[
+        styles.container,
+        centeredContent(contentMaxWidth),
+      ]}
+    >
       {planningList.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text
@@ -84,21 +97,25 @@ export default function HistoryPlanningSummaryScreen({ route }) {
               <InfoBox
                 label="Planning Qty"
                 value={`${item.planned_qty || 0} NOS`}
+                width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Produced Qty"
                 value={`${item.completed_qty || 0} NOS`}
+                width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Remaining Qty"
                 value={`${item.remaining_qty || 0} NOS`}
+                width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Completion"
                 value={`${item.completion_percentage || 0}%`}
+                width={infoBoxWidth}
               />
             </View>
           </View>
@@ -108,9 +125,9 @@ export default function HistoryPlanningSummaryScreen({ route }) {
   );
 }
 
-function InfoBox({ label, value }) {
+function InfoBox({ label, value, width }) {
   return (
-    <View style={styles.infoBox}>
+    <View style={[styles.infoBox, { width }]}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -214,7 +231,6 @@ const styles = StyleSheet.create({
   },
 
   infoBox: {
-    width: '48%',
     backgroundColor: COLORS.bg,
     borderRadius: 14,
     padding: 10,

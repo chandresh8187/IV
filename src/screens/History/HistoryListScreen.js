@@ -8,13 +8,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextInput } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Search } from 'lucide-react-native';
 
-import AppHeader from '../../components/AppHeader';
 import { getHistoryDatesApi } from '../../api/historyApi';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -39,6 +38,7 @@ const PAPER_THEME = {
 
 export default function HistoryListScreen({ navigation }) {
   const [search, setSearch] = useState('');
+  const { contentMaxWidth } = useResponsive();
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['history-dates'],
@@ -54,10 +54,13 @@ export default function HistoryListScreen({ navigation }) {
   return (
     <View style={[styles.container, styles.safe]}>
       <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 16,
-        }}
+        style={[
+          {
+            paddingHorizontal: 16,
+            paddingTop: 16,
+          },
+          centeredContent(contentMaxWidth),
+        ]}
       >
         <View style={styles.searchCard}>
           <Search size={20} color={COLORS.gray} />
@@ -84,7 +87,10 @@ export default function HistoryListScreen({ navigation }) {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            centeredContent(contentMaxWidth),
+          ]}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
           }

@@ -24,6 +24,7 @@ import {
 } from '../../api/certificateApi';
 import { getProductionPlanningApi } from '../../api/productionPlanningApi';
 import { generateCoatingCertificatePdf } from '../../utils/certificatePdfGenerator';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const DEFAULT_REFERENCE_STANDARD = 'IS 4759, IS 6745, IS 2633, IS 2629';
 const FIXED_QUANTITY = 'As per challan';
@@ -102,6 +103,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   // "Generate Certificate" button on ProductionPlanningScreen) - it just
   // pre-selects the challan dropdown now instead of being mandatory.
   const initialPlanning = route?.params?.planning || null;
+
+  const { contentMaxWidth } = useResponsive();
 
   /* ------------------------------ form state ----------------------------- */
   const [certificateType, setCertificateType] = useState('auto');
@@ -370,7 +373,10 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   return (
     <>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          centeredContent(contentMaxWidth),
+        ]}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
       >
@@ -937,6 +943,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     elevation: 12,
+    // Keep the calendar a comfortable size on tablets instead of
+    // stretching the full window width.
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
 
   dateHeader: {

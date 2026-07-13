@@ -30,6 +30,7 @@ import {
 
 import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 import { pick } from '@react-native-documents/picker';
 import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -44,6 +45,7 @@ const emptyForm = {
 
 export default function ProductionPlanningScreen() {
   const queryClient = useQueryClient();
+  const { contentMaxWidth } = useResponsive();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -246,21 +248,23 @@ export default function ProductionPlanningScreen() {
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.headerCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Production Planning</Text>
-            <Text style={styles.description}>
-              Challan wise production planning
-            </Text>
-          </View>
+        <View style={styles.headerWrap}>
+          <View style={[styles.headerCard, centeredContent(contentMaxWidth)]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Production Planning</Text>
+              <Text style={styles.description}>
+                Challan wise production planning
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            style={styles.addBtn}
-            activeOpacity={0.85}
-            onPress={openAddModal}
-          >
-            <Plus size={24} color={COLORS.white} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addBtn}
+              activeOpacity={0.85}
+              onPress={openAddModal}
+            >
+              <Plus size={24} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
@@ -270,7 +274,10 @@ export default function ProductionPlanningScreen() {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              centeredContent(contentMaxWidth),
+            ]}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
             }
@@ -392,6 +399,8 @@ function PlanningModal({
   onSave,
   pickAndExtractPdf,
 }) {
+  const { formMaxWidth } = useResponsive();
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.modalSafe}>
@@ -411,9 +420,12 @@ function PlanningModal({
         </View>
 
         <View
-          style={{
-            padding: 15,
-          }}
+          style={[
+            {
+              padding: 15,
+            },
+            centeredContent(formMaxWidth),
+          ]}
         >
           <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
             <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
@@ -431,7 +443,12 @@ function PlanningModal({
         >
           -- OR --
         </Text>
-        <ScrollView contentContainerStyle={styles.modalBody}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.modalBody,
+            centeredContent(formMaxWidth),
+          ]}
+        >
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Planning Details</Text>
 
@@ -541,6 +558,11 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
 
+  headerWrap: {
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+
   headerCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -549,8 +571,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 15,
-    marginHorizontal: 15,
   },
 
   title: {

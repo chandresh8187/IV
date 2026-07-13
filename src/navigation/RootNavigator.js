@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StatusBar, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -22,7 +22,6 @@ const Stack = createNativeStackNavigator();
 export default function RootNavigator() {
   const dispatch = useDispatch();
   const { token, user, isLoading } = useSelector(state => state.auth);
-  let StatusBarHeight = StatusBar?.currentHeight;
   useEffect(() => {
     // Wait until auth has finished loading and there's a logged-in,
     // non-superadmin-only-assumption user before trying to jump into the

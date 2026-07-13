@@ -9,7 +9,6 @@ export const COLORS = {
   black: '#000000',
   text: '#1F2544',
   gray: '#6B7280',
-  border: '#E5E7EB',
   inputBorder: '#B8C4D6',
   success: '#16A34A',
   danger: '#DC2626',

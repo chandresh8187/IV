@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { TextInput } from 'react-native-paper';
 import dayjs from 'dayjs';
 import DateTimePicker from 'react-native-ui-datepicker';
@@ -12,6 +19,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -38,6 +46,7 @@ const formatDate = date => dayjs(date).format('YYYY-MM-DD');
 
 export default function HistoryScreen() {
   const navigation = useNavigation();
+  const { contentMaxWidth } = useResponsive();
   const today = formatDate(new Date());
 
   const [filters, setFilters] = useState({
@@ -101,7 +110,13 @@ export default function HistoryScreen() {
   };
 
   return (
-    <>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.screenContent,
+        centeredContent(contentMaxWidth),
+      ]}
+    >
       <View style={styles.headerCard}>
         <View>
           <Text style={styles.title}>Production History</Text>
@@ -185,7 +200,7 @@ export default function HistoryScreen() {
         onChange={handleDateChange}
         onClose={closeDatePicker}
       />
-    </>
+    </ScrollView>
   );
 }
 
@@ -256,6 +271,16 @@ function ShiftButton({ title, active, onPress, icon }) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+
+  screenContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+
   headerCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -357,6 +382,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     elevation: 12,
+    // Keep the calendar a comfortable size on tablets instead of
+    // stretching the full window width.
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
 
   dateHeader: {

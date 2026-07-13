@@ -9,16 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Moon, PlayCircle, Square, Sun } from 'lucide-react-native';
 
 import { getShiftStatusApi, toggleShiftApi } from '../../api/shiftApi';
 import { socket } from '../../socket/socket';
 import { COLORS } from '../../assets/Colors';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function ShiftScreen() {
   const queryClient = useQueryClient();
+  const { contentMaxWidth } = useResponsive();
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['shift-status'],
@@ -74,7 +75,12 @@ export default function ShiftScreen() {
   const isActive = shift?.is_shift_active;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        centeredContent(contentMaxWidth),
+      ]}
+    >
       <View style={styles.headerCard}>
         <View>
           <Text style={styles.title}>Shift Control</Text>

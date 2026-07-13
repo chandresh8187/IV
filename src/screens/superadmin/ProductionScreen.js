@@ -30,6 +30,7 @@ import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import { socket } from '../../socket/socket';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import { formatNumber } from '../../utils/format';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -80,40 +81,35 @@ function FormInput({
   );
 }
 
+const emptyFullForm = {
+  sr_no: '',
+  planning_id: '',
+  challan_no: '',
+  party_name: '',
+  material: '',
+  material_description: '',
+  production_time: '',
+  dipping_qty: '',
+  kettle_temperature: '',
+  ms_weight: '',
+  gi_weight: '',
+  c1: '',
+  c2: '',
+  c3: '',
+  c4: '',
+  c5: '',
+};
+
 export default function ProductionScreen() {
   const queryClient = useQueryClient();
-  const emptyFullForm = {
-    sr_no: '',
-    planning_id: '',
-    challan_no: '',
-    party_name: '',
-    material: '',
-    material_description: '',
-    production_time: '',
-    dipping_qty: '',
-    kettle_temperature: '',
-    ms_weight: '',
-    gi_weight: '',
-    c1: '',
-    c2: '',
-    c3: '',
-    c4: '',
-    c5: '',
-  };
+  const { formMaxWidth } = useResponsive();
 
   const [fullForm, setFullForm] = useState(emptyFullForm);
   const [modalType, setModalType] = useState(null);
   const loggedUser = useSelector(state => state.auth.user);
-  const [materialOpen, setMaterialOpen] = useState(false);
-  const [challanOpen, setChallanOpen] = useState(false);
-  const [partyOpen, setPartyOpen] = useState(false);
   const [planningOpen, setPlanningOpen] = useState(false);
 
-  const {
-    data: shiftStatusData,
-    isFetching: isShiftFetching,
-    refetch: refetchShiftStatus,
-  } = useQuery({
+  const { data: shiftStatusData, refetch: refetchShiftStatus } = useQuery({
     queryKey: ['shift-status'],
     queryFn: getShiftStatusApi,
   });
@@ -126,7 +122,7 @@ export default function ProductionScreen() {
     (loggedUser?.role === 'superadmin' || loggedUser?.role === 'supervisor') &&
     isShiftActive;
 
-  const { data, isLoading, isFetching, isRefetching, refetch } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId],
     queryFn: () =>
       getProductionsApi({
@@ -308,7 +304,10 @@ export default function ProductionScreen() {
     }));
   };
 
-  const saveFullEntry = async () => {
+  // The mutation's onSuccess handles invalidation and closing the modal.
+  // Closing here (before the request settles) would wipe the form even
+  // when the save fails, losing everything the user typed.
+  const saveFullEntry = () => {
     saveMutation.mutate({
       entry_type: 'full',
       sr_no: fullForm.sr_no,
@@ -327,11 +326,6 @@ export default function ProductionScreen() {
       c4: fullForm.c4,
       c5: fullForm.c5,
     });
-
-    queryClient.invalidateQueries({ queryKey: ['productions'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-
-    closeModal();
   };
 
   const previewZinc = (() => {
@@ -503,7 +497,12 @@ export default function ProductionScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalBody}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.modalBody,
+              centeredContent(formMaxWidth),
+            ]}
+          >
             <FormCard title="Production Details">
               <FormInput
                 label="Sr No"
@@ -637,15 +636,15 @@ export default function ProductionScreen() {
   );
 }
 
-function HeaderCell({ children, width }) {
+const HeaderCell = React.memo(function HeaderCell({ children, width }) {
   return (
     <View style={[styles.headerCell, { width }]}>
       <Text style={styles.headerCellText}>{children}</Text>
     </View>
   );
-}
+});
 
-function Cell({ children, width, bold }) {
+const Cell = React.memo(function Cell({ children, width, bold }) {
   return (
     <View style={[styles.cell, { width }]}>
       <Text
@@ -656,7 +655,7 @@ function Cell({ children, width, bold }) {
       </Text>
     </View>
   );
-}
+});
 
 function FormCard({ title, children }) {
   return (

@@ -1,8 +1,5 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import AppHeader from '../../components/AppHeader';
 
 const COLORS = {
   primary: '#232B5D',
@@ -15,7 +12,7 @@ const COLORS = {
 };
 
 export default function HistoryFullTableScreen({ route }) {
-  const { date, shift_name, tableData = [] } = route.params;
+  const { tableData = [] } = route.params;
 
   return (
     <ScrollView style={[styles.container, styles.safe]}>

@@ -9,10 +9,12 @@ import { removeFcmTokenApi } from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
 import { clearAuth } from '../../redux/slices/authSlice';
 import { COLORS } from '../../assets/Colors';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function ProfileScreen() {
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth.user);
+  const { contentMaxWidth } = useResponsive();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -36,7 +38,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, centeredContent(contentMaxWidth)]}>
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
           <UserCircle2 size={64} color={COLORS.primary} />

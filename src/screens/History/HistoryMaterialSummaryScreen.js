@@ -6,11 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 
-import AppHeader from '../../components/AppHeader';
 import { getHistoryMaterialSummaryApi } from '../../api/historyApi';
+import {
+  centeredContent,
+  gridItemWidth,
+  useResponsive,
+} from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -24,6 +27,8 @@ const COLORS = {
 
 export default function HistoryMaterialSummaryScreen({ route }) {
   const { date } = route.params;
+  const { isTablet, contentMaxWidth } = useResponsive();
+  const infoBoxWidth = gridItemWidth(2, 3, isTablet);
 
   const { data, isLoading } = useQuery({
     queryKey: ['history-material-summary', date],
@@ -42,7 +47,11 @@ export default function HistoryMaterialSummaryScreen({ route }) {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, styles.safe]}
+      style={styles.safe}
+      contentContainerStyle={[
+        styles.container,
+        centeredContent(contentMaxWidth),
+      ]}
       showsVerticalScrollIndicator={false}
     >
       {materials.length === 0 ? (
@@ -55,26 +64,41 @@ export default function HistoryMaterialSummaryScreen({ route }) {
             <Text style={styles.materialName}>{item.material}</Text>
 
             <View style={styles.grid}>
-              <InfoBox label="Qty" value={`${item.total_dip_qty || 0} Nos`} />
+              <InfoBox
+                label="Qty"
+                value={`${item.total_dip_qty || 0} Nos`}
+                width={infoBoxWidth}
+              />
 
               <InfoBox
                 label="MS Production"
                 value={`${item.total_ms_production_kg || 0} KG`}
+                width={infoBoxWidth}
               />
 
               <InfoBox
                 label="GI Production"
                 value={`${item.total_gi_production_kg || 0} KG`}
+                width={infoBoxWidth}
               />
 
-              <InfoBox label="Zinc Used" value={`${item.zink_used || 0} KG`} />
+              <InfoBox
+                label="Zinc Used"
+                value={`${item.zink_used || 0} KG`}
+                width={infoBoxWidth}
+              />
 
               <InfoBox
                 label="Zinc %"
                 value={`${item.zinc_consumption || 0}%`}
+                width={infoBoxWidth}
               />
 
-              <InfoBox label="Avg Coating" value={`${item.avg_coating || 0}`} />
+              <InfoBox
+                label="Avg Coating"
+                value={`${item.avg_coating || 0}`}
+                width={infoBoxWidth}
+              />
             </View>
           </View>
         ))
@@ -83,9 +107,9 @@ export default function HistoryMaterialSummaryScreen({ route }) {
   );
 }
 
-function InfoBox({ label, value }) {
+function InfoBox({ label, value, width }) {
   return (
-    <View style={styles.infoBox}>
+    <View style={[styles.infoBox, { width }]}>
       <Text style={styles.infoLabel}>{label}</Text>
 
       <Text style={styles.infoValue}>{value}</Text>
@@ -145,7 +169,6 @@ const styles = StyleSheet.create({
   },
 
   infoBox: {
-    width: '48%',
     backgroundColor: COLORS.bg,
     borderRadius: 14,
     padding: 10,

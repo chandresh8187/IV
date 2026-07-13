@@ -20,9 +20,11 @@ import { IVSnackbar } from './../../components/IVSnackbar';
 import { getFCMToken } from '../../services/firebaseService';
 import { saveFcmTokenApi } from '../../api/notificationApi';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function LoginScreen() {
   const dispatch = useDispatch();
+  const { isTablet } = useResponsive();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -115,7 +117,7 @@ export default function LoginScreen() {
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="always"
       >
-        <View style={styles.card}>
+        <View style={[styles.card, isTablet && centeredContent(480)]}>
           <Text style={styles.title}>Login</Text>
 
           <Text style={styles.description}>
@@ -191,6 +193,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
+    // flexGrow (not flex) lets the card center vertically while still
+    // allowing the view to scroll when the keyboard shrinks the space.
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
   },

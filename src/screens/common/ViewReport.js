@@ -10,7 +10,7 @@ const ViewReport = ({ route }) => {
   const { tableData = [] } = route?.params || {};
 
   return (
-    <>
+    <View style={styles.screen}>
       <View style={styles.blockHeader}>
         <Text style={styles.blockTitleNoMargin}>Production Entries</Text>
 
@@ -23,7 +23,7 @@ const ViewReport = ({ route }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={{ paddingHorizontal: 15, height: '50%' }}>
+      <View style={styles.tableWrap}>
         <HistoryTable tableData={tableData} />
       </View>
 
@@ -45,13 +45,24 @@ const ViewReport = ({ route }) => {
           </View>
         </SafeAreaView>
       </Modal>
-    </>
+    </View>
   );
 };
 
 export default ViewReport;
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  // Let the table use all remaining height instead of a fixed 50% that
+  // left dead space below it.
+  tableWrap: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
+  },
   fullBtn: {
     flexDirection: 'row',
     alignItems: 'center',

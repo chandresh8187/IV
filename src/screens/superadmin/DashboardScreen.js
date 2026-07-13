@@ -14,9 +14,11 @@ import moment from 'moment';
 import { getDashboardApi } from '../../api/dashboardApi';
 import { COLORS } from '../../assets/Colors';
 import { socket } from '../../socket/socket';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function DashboardScreen() {
   const queryClient = useQueryClient();
+  const { isTablet, wideMaxWidth } = useResponsive();
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: ['dashboard'],
@@ -83,7 +85,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, centeredContent(wideMaxWidth)]}
       refreshControl={
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
       }
@@ -144,21 +146,25 @@ export default function DashboardScreen() {
           <SummaryBox
             label="MS Production"
             value={`${monthlySummary.total_ms_production_kg || 0} KG`}
+            isTablet={isTablet}
           />
 
           <SummaryBox
             label="GI Production"
             value={`${monthlySummary.total_gi_production_kg || 0} KG`}
+            isTablet={isTablet}
           />
 
           <SummaryBox
             label="Zinc Used"
             value={`${monthlySummary.zink_used || 0} KG`}
+            isTablet={isTablet}
           />
 
           <SummaryBox
             label="Zinc Consumption"
             value={`${monthlySummary.zinc_consumption || 0}%`}
+            isTablet={isTablet}
           />
         </View>
       </View>
@@ -168,7 +174,8 @@ export default function DashboardScreen() {
           title="Active MS Production"
           value={`${activeShift.total_ms_production_kg || 0} kg`}
           icon={<TrendingUp size={22} color={COLORS.primary} />}
-          isfull={true}
+          isfull={!isTablet}
+          isTablet={isTablet}
         />
 
         <SummaryCard
@@ -177,6 +184,7 @@ export default function DashboardScreen() {
             activeShift.zink_used || activeShift.difference_kg || 0
           } kg`}
           icon={<Zap size={22} color={COLORS.orange} />}
+          isTablet={isTablet}
         />
 
         <SummaryCard
@@ -187,31 +195,37 @@ export default function DashboardScreen() {
             0
           }%`}
           icon={<Zap size={22} color={COLORS.orange} />}
+          isTablet={isTablet}
         />
       </View>
 
       <SectionTitle title="Today Shift Summary" />
 
-      <View style={styles.shiftGrid}>
+      <View style={[styles.shiftGrid, isTablet && styles.shiftGridTablet]}>
         <ShiftSummaryCard
           title="Day Shift"
           icon={<Sun size={22} color={COLORS.orange} />}
           data={dayShift}
+          isTablet={isTablet}
         />
 
         <ShiftSummaryCard
           title="Night Shift"
           icon={<Moon size={22} color={COLORS.primary} />}
           data={nightShift}
+          isTablet={isTablet}
         />
       </View>
     </ScrollView>
   );
 }
 
-function SummaryCard({ title, value, icon, isfull }) {
+function SummaryCard({ title, value, icon, isfull, isTablet }) {
+  // Tablets have room for all three cards in a single row.
+  const width = isfull ? '100%' : isTablet ? '31.5%' : '48%';
+
   return (
-    <View style={[styles.summaryCard, { width: isfull ? '100%' : '48%' }]}>
+    <View style={[styles.summaryCard, { width }]}>
       <View
         style={[
           isfull
@@ -234,9 +248,9 @@ function SummaryCard({ title, value, icon, isfull }) {
   );
 }
 
-function ShiftSummaryCard({ title, icon, data }) {
+function ShiftSummaryCard({ title, icon, data, isTablet }) {
   return (
-    <View style={styles.shiftCard}>
+    <View style={[styles.shiftCard, isTablet && styles.shiftCardTablet]}>
       <View style={styles.cardHeaderRow}>
         <View style={styles.iconBox}>{icon}</View>
         <Text style={styles.cardTitle}>{title}</Text>
@@ -252,11 +266,11 @@ function ShiftSummaryCard({ title, icon, data }) {
   );
 }
 
-function SummaryBox({ label, value }) {
+function SummaryBox({ label, value, isTablet }) {
   return (
-    <View style={styles.summaryBox}>
+    <View style={[styles.summaryBox, isTablet && styles.summaryBoxTablet]}>
       <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryBoxValue}>{value}</Text>
     </View>
   );
 }
@@ -443,11 +457,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
+  shiftGridTablet: {
+    flexDirection: 'row',
+  },
+
   shiftCard: {
     backgroundColor: COLORS.white,
     borderRadius: 22,
     padding: 16,
     elevation: 3,
+  },
+
+  shiftCardTablet: {
+    flex: 1,
   },
 
   monthCard: {
@@ -490,13 +512,19 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 
+  summaryBoxTablet: {
+    width: '23.5%',
+  },
+
   summaryLabel: {
     color: COLORS.gray,
     fontSize: 11,
     fontWeight: '800',
   },
 
-  summaryValue: {
+  // Named differently from summaryValue: duplicate StyleSheet keys silently
+  // override each other, which was shrinking the summary card values.
+  summaryBoxValue: {
     color: COLORS.primary,
     fontSize: 15,
     fontWeight: '900',

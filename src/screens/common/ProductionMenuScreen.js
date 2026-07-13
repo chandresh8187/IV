@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ClipboardList,
   Factory,
@@ -14,6 +13,7 @@ import {
   History,
   Settings2,
 } from 'lucide-react-native';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -27,6 +27,8 @@ const COLORS = {
 };
 
 export default function ProductionMenuScreen({ navigation }) {
+  const { isTablet, wideMaxWidth } = useResponsive();
+
   const menus = [
     {
       title: 'Live Production',
@@ -65,34 +67,36 @@ export default function ProductionMenuScreen({ navigation }) {
       style={{
         backgroundColor: COLORS.bg,
       }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, centeredContent(wideMaxWidth)]}
     >
       <Text style={styles.title}>Production</Text>
       <Text style={styles.subtitle}>Select production module</Text>
 
-      {menus.map(item => {
-        const Icon = item.icon;
+      <View style={[styles.menuList, isTablet && styles.menuGridTablet]}>
+        {menus.map(item => {
+          const Icon = item.icon;
 
-        return (
-          <TouchableOpacity
-            key={item.screen}
-            style={styles.card}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate(item.screen)}
-          >
-            <View style={styles.iconBox}>
-              <Icon size={24} color={COLORS.primary} />
-            </View>
+          return (
+            <TouchableOpacity
+              key={item.screen}
+              style={[styles.card, isTablet && styles.cardTablet]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(item.screen)}
+            >
+              <View style={styles.iconBox}>
+                <Icon size={24} color={COLORS.primary} />
+              </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardDesc}>{item.desc}</Text>
-            </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardDesc}>{item.desc}</Text>
+              </View>
 
-            <Text style={styles.arrow}>›</Text>
-          </TouchableOpacity>
-        );
-      })}
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
@@ -111,6 +115,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
+  menuList: {},
+
+  menuGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+
   card: {
     backgroundColor: COLORS.white,
     borderRadius: 22,
@@ -122,6 +134,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     elevation: 3,
+  },
+
+  cardTablet: {
+    width: '48.5%',
   },
 
   iconBox: {

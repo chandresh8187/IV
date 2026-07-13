@@ -23,6 +23,7 @@ import {
 } from '../../api/userApi';
 import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const emptyForm = {
   name: '',
@@ -35,6 +36,7 @@ const emptyForm = {
 export default function UsersScreen() {
   const queryClient = useQueryClient();
   const loggedUser = useSelector(state => state.auth.user);
+  const { contentMaxWidth } = useResponsive();
 
   const isSuperAdmin = loggedUser?.role === 'superadmin';
 
@@ -124,30 +126,35 @@ export default function UsersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.title}>Users</Text>
-          <Text style={styles.description}>
-            {isSuperAdmin
-              ? 'Manage admins and supervisors'
-              : 'View supervisors'}
-          </Text>
-        </View>
+      <View style={styles.headerWrap}>
+        <View style={[styles.headerCard, centeredContent(contentMaxWidth)]}>
+          <View>
+            <Text style={styles.title}>Users</Text>
+            <Text style={styles.description}>
+              {isSuperAdmin
+                ? 'Manage admins and supervisors'
+                : 'View supervisors'}
+            </Text>
+          </View>
 
-        {isSuperAdmin && (
-          <TouchableOpacity
-            style={styles.addBtn}
-            activeOpacity={0.85}
-            onPress={() => setModalVisible(true)}
-          >
-            <Plus size={24} color={COLORS.white} />
-          </TouchableOpacity>
-        )}
+          {isSuperAdmin && (
+            <TouchableOpacity
+              style={styles.addBtn}
+              activeOpacity={0.85}
+              onPress={() => setModalVisible(true)}
+            >
+              <Plus size={24} color={COLORS.white} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={[
+          { padding: 16 },
+          centeredContent(contentMaxWidth),
+        ]}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
@@ -272,6 +279,8 @@ function RegisterModal({
   loading,
   onSubmit,
 }) {
+  const { formMaxWidth } = useResponsive();
+
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.modalSafe}>
@@ -286,7 +295,12 @@ function RegisterModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.modalBody}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.modalBody,
+            centeredContent(formMaxWidth),
+          ]}
+        >
           <View style={styles.formCard}>
             <TextInput
               label="Full Name"
@@ -427,6 +441,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
 
+  headerWrap: {
+    paddingHorizontal: 16,
+  },
+
   headerCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -435,7 +453,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: 16,
   },
 
   title: { color: COLORS.primary, fontSize: 27, fontWeight: '900' },

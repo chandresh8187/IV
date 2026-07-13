@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { getHistoryDateSummaryApi } from '../../api/historyApi';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -23,6 +24,7 @@ const COLORS = {
 
 export default function HistoryDateDetailsScreen({ navigation, route }) {
   const { date } = route.params;
+  const { isTablet, contentMaxWidth } = useResponsive();
 
   const { data, isLoading } = useQuery({
     queryKey: ['history-date-summary', date],
@@ -45,7 +47,10 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container]}
+      contentContainerStyle={[
+        styles.container,
+        centeredContent(contentMaxWidth),
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <SummaryCard
@@ -84,9 +89,10 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
         </View>
       </View>
 
-      <View style={styles.buttonGrid}>
+      <View style={[styles.buttonGrid, isTablet && styles.buttonGridTablet]}>
         <MenuButton
           title="View Day Shift"
+          isTablet={isTablet}
           onPress={() =>
             navigation.navigate('HistoryShiftTable', {
               date,
@@ -97,6 +103,7 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
 
         <MenuButton
           title="View Night Shift"
+          isTablet={isTablet}
           onPress={() =>
             navigation.navigate('HistoryShiftTable', {
               date,
@@ -107,6 +114,7 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
 
         <MenuButton
           title="Material Summary"
+          isTablet={isTablet}
           onPress={() =>
             navigation.navigate('HistoryMaterialSummary', { date })
           }
@@ -114,6 +122,7 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
 
         <MenuButton
           title="Planning Summary"
+          isTablet={isTablet}
           onPress={() =>
             navigation.navigate('HistoryPlanningSummary', { date })
           }
@@ -149,11 +158,11 @@ function InfoBox({ label, value }) {
   );
 }
 
-function MenuButton({ title, onPress }) {
+function MenuButton({ title, onPress, isTablet }) {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      style={styles.menuButton}
+      style={[styles.menuButton, isTablet && styles.menuButtonTablet]}
       onPress={onPress}
     >
       <Text style={styles.menuButtonText}>{title}</Text>
@@ -258,12 +267,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  buttonGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
   menuButton: {
     backgroundColor: COLORS.primary,
     height: 52,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  menuButtonTablet: {
+    flexGrow: 1,
+    flexBasis: '45%',
   },
 
   menuButtonText: {

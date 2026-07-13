@@ -1,4 +1,3 @@
-import { View, Text } from 'react-native';
 import React from 'react';
 import HistoryDateDetailsScreen from '../../screens/History/HistoryDateDetailsScreen';
 import HistoryListScreen from '../../screens/History/HistoryListScreen';
@@ -9,8 +8,9 @@ import AppHeader from '../../components/AppHeader';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HistoryFullTableScreen from './../../screens/History/HistoryFullTableScreen';
 
+const Stack = createNativeStackNavigator();
+
 const HistoryStack = () => {
-  const Stack = createNativeStackNavigator();
   return (
     <Stack.Navigator
       screenOptions={{
@@ -35,11 +35,11 @@ const HistoryStack = () => {
       <Stack.Screen
         name="HistoryMaterialSummary"
         component={HistoryMaterialSummaryScreen}
-        options={{ title: 'Material Summery' }}
+        options={{ title: 'Material Summary' }}
       />
       <Stack.Screen
         name="HistoryPlanningSummary"
-        options={{ title: 'Planing Summery' }}
+        options={{ title: 'Planning Summary' }}
         component={HistoryPlanningSummaryScreen}
       />
       <Stack.Screen

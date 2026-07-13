@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { FileCheck2, Maximize2 } from 'lucide-react-native';
 
-import AppHeader from '../../components/AppHeader';
 import { getHistoryShiftTableApi } from '../../api/historyApi';
 import { generateProductionPdf } from '../../utils/productionPdfGenerator';
+import { centeredContent, useResponsive } from '../../utils/responsive';
 
 const COLORS = {
   primary: '#232B5D',
@@ -28,6 +28,7 @@ const COLORS = {
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
   const [saving, setSaving] = useState(false);
+  const { wideMaxWidth } = useResponsive();
   const { data, isLoading } = useQuery({
     queryKey: ['history-shift-table', date, shift_name],
     queryFn: () =>
@@ -71,7 +72,9 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[styles.container, centeredContent(wideMaxWidth)]}
+    >
       <View style={styles.summaryCard}>
         <Text style={styles.sectionTitle}>Shift Summary</Text>
 

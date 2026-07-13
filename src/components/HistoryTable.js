@@ -1,17 +1,17 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../assets/Colors';
 import { formatNumber } from '../utils/format';
 
-function HeaderCell({ children, width }) {
+const HeaderCell = React.memo(function HeaderCell({ children, width }) {
   return (
     <View style={[styles.headerCell, { width }]}>
       <Text style={styles.headerCellText}>{children}</Text>
     </View>
   );
-}
+});
 
-function Cell({ children, width, bold }) {
+const Cell = React.memo(function Cell({ children, width, bold }) {
   return (
     <View style={[styles.cell, { width }]}>
       <Text
@@ -22,9 +22,49 @@ function Cell({ children, width, bold }) {
       </Text>
     </View>
   );
-}
+});
+
+const Row = React.memo(function Row({ item, index }) {
+  return (
+    <View style={[styles.tableRow, index % 2 === 1 && styles.altRow]}>
+      <Cell width={55} bold>
+        {item.sr_no}
+      </Cell>
+      <Cell width={90}>{item.challan_no || '-'}</Cell>
+      <Cell width={150}>{item.party_name || '-'}</Cell>
+      <Cell width={150}>{item.material || '-'}</Cell>
+      <Cell width={90}>{item.production_time || '-'}</Cell>
+      <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+      <Cell width={90}>
+        {item.kettle_temperature ? `${item.kettle_temperature}°` : '-'}
+      </Cell>
+      <Cell width={90}>
+        {item.ms_weight != null ? `${item.ms_weight} KG` : '-'}
+      </Cell>
+      <Cell width={90}>
+        {item.gi_weight != null ? `${item.gi_weight} KG` : '-'}
+      </Cell>
+      <Cell width={90}>
+        {item.zinc_percentage != null ? `${item.zinc_percentage} %` : '-'}
+      </Cell>
+      <Cell width={80}>{formatNumber(item.c1)}</Cell>
+      <Cell width={80}>{formatNumber(item.c2)}</Cell>
+      <Cell width={80}>{formatNumber(item.c3)}</Cell>
+      <Cell width={80}>{formatNumber(item.c4)}</Cell>
+      <Cell width={80}>{formatNumber(item.c5)}</Cell>
+      <Cell width={90} bold>
+        {item.avg_coating != null ? formatNumber(item.avg_coating) : '-'}
+      </Cell>
+    </View>
+  );
+});
 
 export default function HistoryTable({ tableData = [] }) {
+  const renderItem = useCallback(
+    ({ item, index }) => <Row item={item} index={index} />,
+    [],
+  );
+
   return (
     <View style={styles.tableCard}>
       <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -48,57 +88,23 @@ export default function HistoryTable({ tableData = [] }) {
             <HeaderCell width={90}>Avg</HeaderCell>
           </View>
 
-          <ScrollView>
-            {tableData.length === 0 ? (
+          <FlatList
+            data={tableData}
+            keyExtractor={(item, index) =>
+              String(item.id || item.sr_no || index)
+            }
+            renderItem={renderItem}
+            initialNumToRender={12}
+            windowSize={7}
+            removeClippedSubviews
+            ListEmptyComponent={
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyText}>
                   No production entries found
                 </Text>
               </View>
-            ) : (
-              tableData.map((item, index) => (
-                <View
-                  key={item.id || item.sr_no}
-                  style={[styles.tableRow, index % 2 === 1 && styles.altRow]}
-                >
-                  <Cell width={55} bold>
-                    {item.sr_no}
-                  </Cell>
-                  <Cell width={90}>{item.challan_no || '-'}</Cell>
-                  <Cell width={150}>{item.party_name || '-'}</Cell>
-                  <Cell width={150}>{item.material || '-'}</Cell>
-                  <Cell width={90}>{item.production_time || '-'}</Cell>
-                  <Cell width={80}>{item.dipping_qty || '-'}</Cell>
-                  <Cell width={90}>
-                    {item.kettle_temperature
-                      ? `${item.kettle_temperature}°`
-                      : '-'}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.ms_weight != null ? `${item.ms_weight} KG` : '-'}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.gi_weight != null ? `${item.gi_weight} KG` : '-'}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.zinc_percentage != null
-                      ? `${item.zinc_percentage} %`
-                      : '-'}
-                  </Cell>
-                  <Cell width={80}>{formatNumber(item.c1)}</Cell>
-                  <Cell width={80}>{formatNumber(item.c2)}</Cell>
-                  <Cell width={80}>{formatNumber(item.c3)}</Cell>
-                  <Cell width={80}>{formatNumber(item.c4)}</Cell>
-                  <Cell width={80}>{formatNumber(item.c5)}</Cell>
-                  <Cell width={90} bold>
-                    {item.avg_coating != null
-                      ? formatNumber(item.avg_coating)
-                      : '-'}
-                  </Cell>
-                </View>
-              ))
-            )}
-          </ScrollView>
+            }
+          />
         </View>
       </ScrollView>
     </View>
