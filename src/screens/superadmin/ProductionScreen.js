@@ -439,14 +439,18 @@ export default function ProductionScreen() {
                           : '-'}
                       </Cell>
                       <Cell width={90}>
-                        {item?.ms_weight != null ? `${item.ms_weight} KG` : '-'}
+                        {item?.ms_weight != null
+                          ? `${parseFloat(item.ms_weight).toFixed(2)} KG`
+                          : '-'}
                       </Cell>
                       <Cell width={90}>
-                        {item?.gi_weight != null ? `${item.gi_weight} KG` : '-'}
+                        {item?.gi_weight != null
+                          ? `${parseFloat(item.gi_weight).toFixed(2)} KG`
+                          : '-'}
                       </Cell>
                       <Cell width={90}>
                         {item?.zinc_percentage != null
-                          ? `${item.zinc_percentage} %`
+                          ? `${parseFloat(item.zinc_percentage).toFixed(2)} %`
                           : '-'}
                       </Cell>
                       <Cell width={80}>{formatNumber(item.c1)}</Cell>
