@@ -118,9 +118,10 @@ export default function ProductionScreen() {
   const activeShiftId = activeShift?.id || null;
   const isShiftActive = !!activeShiftId;
 
+  const isSuperAdmin = loggedUser?.role === 'superadmin';
+
   const canManageProduction =
-    (loggedUser?.role === 'superadmin' || loggedUser?.role === 'supervisor') &&
-    isShiftActive;
+    (isSuperAdmin || loggedUser?.role === 'supervisor') && isShiftActive;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId],
@@ -191,6 +192,24 @@ export default function ProductionScreen() {
   }, [queryClient]);
 
   const rows = activeShiftId ? data?.data?.table_data || data?.data || [] : [];
+
+  // Next serial number for this shift, based on the highest Sr No already
+  // filled. Supervisors always get this assigned automatically; only the
+  // superadmin can type a Sr No (e.g. to pull up and correct an old entry).
+  const nextSrNo = useMemo(
+    () =>
+      rows.reduce((max, item) => Math.max(max, Number(item.sr_no) || 0), 0) + 1,
+    [rows],
+  );
+
+  const openEntryModal = () => {
+    setFullForm(
+      isSuperAdmin
+        ? emptyFullForm
+        : { ...emptyFullForm, sr_no: String(nextSrNo) },
+    );
+    setModalType('Full');
+  };
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
@@ -476,7 +495,7 @@ export default function ProductionScreen() {
         <TouchableOpacity
           style={styles.fab}
           activeOpacity={0.85}
-          onPress={() => setModalType('Full')}
+          onPress={openEntryModal}
         >
           <Plus size={28} color={COLORS.white} />
         </TouchableOpacity>
@@ -509,14 +528,21 @@ export default function ProductionScreen() {
           >
             <FormCard title="Production Details">
               <FormInput
-                label="Sr No"
+                label={isSuperAdmin ? 'Sr No' : 'Sr No (auto)'}
                 value={fullForm.sr_no}
                 keyboardType="numeric"
+                editable={isSuperAdmin}
                 onChangeText={v => {
                   setFullForm(prev => ({ ...prev, sr_no: v }));
                   fillFromSrNo(v);
                 }}
               />
+
+              {isSuperAdmin && (
+                <Text style={styles.srHint}>
+                  Type an existing Sr No to load that entry for update.
+                </Text>
+              )}
 
               <FormDropdown
                 label="Select Challan No"
@@ -873,6 +899,14 @@ const styles = StyleSheet.create({
 
   input: { backgroundColor: COLORS.white, marginBottom: 14 },
   inputDisabled: { backgroundColor: COLORS.bg },
+
+  srHint: {
+    color: COLORS.gray,
+    fontSize: 11.5,
+    fontWeight: '700',
+    marginTop: -8,
+    marginBottom: 12,
+  },
 
   coatingRow: { flexDirection: 'row', gap: 8 },
 
