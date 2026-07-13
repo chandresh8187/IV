@@ -105,15 +105,21 @@ export default function RootNavigator() {
       return LoginScreen;
     }
 
-    if (user.role === 'superadmin') {
+    // Normalized so role casing/whitespace differences from the server
+    // ("Admin", " supervisor ") still route to the right tabs.
+    const role = String(user.role || '')
+      .toLowerCase()
+      .trim();
+
+    if (role === 'superadmin') {
       return SuperAdminTabs;
     }
 
-    if (user.role === 'admin') {
+    if (role === 'admin') {
       return AdminTabs;
     }
 
-    if (user.role === 'supervisor') {
+    if (role === 'supervisor') {
       return SupervisorTabs;
     }
 

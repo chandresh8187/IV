@@ -38,7 +38,10 @@ export default function UsersScreen() {
   const loggedUser = useSelector(state => state.auth.user);
   const { contentMaxWidth } = useResponsive();
 
-  const isSuperAdmin = loggedUser?.role === 'superadmin';
+  const isSuperAdmin =
+    String(loggedUser?.role || '')
+      .toLowerCase()
+      .trim() === 'superadmin';
 
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm] = useState(emptyForm);

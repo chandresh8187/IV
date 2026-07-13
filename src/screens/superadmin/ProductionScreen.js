@@ -109,7 +109,12 @@ export default function ProductionScreen() {
   const loggedUser = useSelector(state => state.auth.user);
   const [planningOpen, setPlanningOpen] = useState(false);
 
-  const { data: shiftStatusData, refetch: refetchShiftStatus } = useQuery({
+  const {
+    data: shiftStatusData,
+    refetch: refetchShiftStatus,
+    isError: shiftStatusError,
+    error: shiftStatusErrorObj,
+  } = useQuery({
     queryKey: ['shift-status'],
     queryFn: getShiftStatusApi,
   });
@@ -118,10 +123,15 @@ export default function ProductionScreen() {
   const activeShiftId = activeShift?.id || null;
   const isShiftActive = !!activeShiftId;
 
-  const isSuperAdmin = loggedUser?.role === 'superadmin';
+  // Normalized so a role stored as "Supervisor" / " superadmin " on the
+  // server still unlocks the entry button.
+  const role = String(loggedUser?.role || '')
+    .toLowerCase()
+    .trim();
+  const isSuperAdmin = role === 'superadmin';
 
   const canManageProduction =
-    (isSuperAdmin || loggedUser?.role === 'supervisor') && isShiftActive;
+    (isSuperAdmin || role === 'supervisor') && isShiftActive;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId],
@@ -386,15 +396,28 @@ export default function ProductionScreen() {
           onPress={handleRefresh}
         />
       </View>
-      <View style={styles.shiftInfoCard}>
-        <Text style={styles.shiftInfoTitle}>
-          {isShiftActive
+      <View
+        style={[styles.shiftInfoCard, shiftStatusError && styles.shiftErrorCard]}
+      >
+        <Text
+          style={[
+            styles.shiftInfoTitle,
+            shiftStatusError && styles.shiftErrorTitle,
+          ]}
+        >
+          {shiftStatusError
+            ? 'COULD NOT LOAD SHIFT STATUS'
+            : isShiftActive
             ? `${activeShift.shift_name?.toUpperCase()} SHIFT ACTIVE`
             : 'NO ACTIVE SHIFT'}
         </Text>
 
         <Text style={styles.shiftInfoText}>
-          {isShiftActive
+          {shiftStatusError
+            ? shiftStatusErrorObj?.response?.data?.message ||
+              shiftStatusErrorObj?.message ||
+              'Check your internet connection and pull refresh.'
+            : isShiftActive
             ? `Shift Date: ${moment(activeShift.shift_date).format(
                 'DD/MM/YYYY',
               )}`
@@ -959,6 +982,13 @@ const styles = StyleSheet.create({
   },
 
   shiftInfoTitle: { color: COLORS.primary, fontSize: 14, fontWeight: '900' },
+
+  shiftErrorCard: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+
+  shiftErrorTitle: { color: '#B91C1C' },
   shiftInfoText: {
     color: COLORS.gray,
     fontSize: 12,
