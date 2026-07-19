@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,7 +16,14 @@ import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { Plus, UserPlus, Users, ShieldCheck, X } from 'lucide-react-native';
+import {
+  Plus,
+  UserPlus,
+  Users,
+  ShieldCheck,
+  X,
+  LockKeyhole,
+} from 'lucide-react-native';
 
 import {
   getActiveSupervisorsApi,
@@ -55,11 +64,13 @@ export default function UsersScreen() {
     queryKey: ['users'],
     queryFn: getUsersApi,
   });
-
+  console.log('usersData', usersData);
   const { data: activeData } = useQuery({
     queryKey: ['active-supervisors'],
     queryFn: getActiveSupervisorsApi,
   });
+
+  console.log('activeData', activeData);
 
   const registerMutation = useMutation({
     mutationFn: registerUserApi,
@@ -95,6 +106,11 @@ export default function UsersScreen() {
   }, [queryClient]);
 
   const admins = usersData?.data?.admins || [];
+  const plantManagers =
+    usersData?.data?.plant_managers ||
+    usersData?.data?.plantManagers ||
+    usersData?.data?.users?.filter(item => item.role === 'plant_manager') ||
+    [];
   const supervisors = usersData?.data?.supervisors || [];
   const activeSupervisors = activeData?.data || [];
 
@@ -135,7 +151,7 @@ export default function UsersScreen() {
             <Text style={styles.title}>Users</Text>
             <Text style={styles.description}>
               {isSuperAdmin
-                ? 'Manage admins and supervisors'
+                ? 'Manage plant managers, admins and supervisors'
                 : 'View supervisors'}
             </Text>
           </View>
@@ -192,6 +208,22 @@ export default function UsersScreen() {
 
         {isSuperAdmin && (
           <>
+            <Text style={styles.sectionTitle}>Plant Managers</Text>
+
+            {isLoading ? (
+              <Loader />
+            ) : plantManagers.length === 0 ? (
+              <Empty text="No plant managers found" />
+            ) : (
+              plantManagers.map(item => (
+                <UserCard key={item.id} item={item} type="plant_manager" />
+              ))
+            )}
+          </>
+        )}
+
+        {isSuperAdmin && (
+          <>
             <Text style={styles.sectionTitle}>Admins</Text>
 
             {isLoading ? (
@@ -235,11 +267,12 @@ export default function UsersScreen() {
 
 function UserCard({ item, type }) {
   const isAdmin = type === 'admin';
+  const isPlantManager = type === 'plant_manager';
 
   return (
     <View style={styles.userCard}>
       <View style={styles.avatar}>
-        {isAdmin ? (
+        {isAdmin || isPlantManager ? (
           <ShieldCheck size={22} color={COLORS.primary} />
         ) : (
           <Users size={22} color={COLORS.primary} />
@@ -250,10 +283,12 @@ function UserCard({ item, type }) {
         <Text style={styles.userName}>{item.name}</Text>
         <Text style={styles.userEmail}>{item.email}</Text>
 
-        <Text style={styles.shiftText}>Role: {item.role}</Text>
-
-        {isAdmin ? (
-          <Text style={styles.grayText}>Admin user</Text>
+        <Text style={styles.shiftText}>
+          Role: {item.role?.replaceAll('_', ' ')}
+        </Text>
+        {isAdmin && <Text style={styles.grayText}>Admin user</Text>}
+        {isPlantManager ? (
+          <Text style={styles.grayText}>Manager user</Text>
         ) : (
           <>
             <Text style={styles.shiftText}>
@@ -283,125 +318,187 @@ function RegisterModal({
   onSubmit,
 }) {
   const { formMaxWidth } = useResponsive();
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowPassword(false);
+    }
+  }, [visible]);
 
   return (
-    <Modal visible={visible} animationType="slide">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
       <SafeAreaView style={styles.modalSafe}>
-        <View style={styles.modalHeader}>
-          <View>
-            <Text style={styles.modalTitle}>Register User</Text>
-            <Text style={styles.modalDesc}>Create admin or supervisor</Text>
-          </View>
-
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <X size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={[
-            styles.modalBody,
-            centeredContent(formMaxWidth),
-          ]}
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.formCard}>
-            <TextInput
-              label="Full Name"
-              value={form.name}
-              onChangeText={v => updateForm('name', v)}
-              mode="outlined"
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-            />
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalIconBox}>
+                <UserPlus size={22} color={COLORS.primary} />
+              </View>
 
-            <TextInput
-              label="Email"
-              value={form.email}
-              onChangeText={v => updateForm('email', v)}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-            />
-
-            <TextInput
-              label="Password"
-              value={form.password}
-              onChangeText={v => updateForm('password', v)}
-              mode="outlined"
-              secureTextEntry
-              style={styles.input}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              textColor={COLORS.text}
-              theme={PAPER_THEME}
-            />
-
-            <Text style={styles.fieldLabel}>Role</Text>
-
-            <View style={styles.choiceRow}>
-              <ChoiceButton
-                title="Supervisor"
-                active={form.role === 'supervisor'}
-                onPress={() => updateForm('role', 'supervisor')}
-              />
-
-              <ChoiceButton
-                title="Admin"
-                active={form.role === 'admin'}
-                onPress={() => updateForm('role', 'admin')}
-              />
+              <View style={styles.modalTitleText}>
+                <Text style={styles.modalTitle}>Register User</Text>
+                <Text style={styles.modalDesc}>
+                  Create plant manager, admin or supervisor
+                </Text>
+              </View>
             </View>
 
-            {form.role === 'supervisor' && (
-              <>
-                <Text style={styles.fieldLabel}>Assigned Shift</Text>
-
-                <View style={styles.choiceRow}>
-                  <ChoiceButton
-                    title="Day"
-                    active={form.assigned_shift === 'day'}
-                    onPress={() => updateForm('assigned_shift', 'day')}
-                  />
-
-                  <ChoiceButton
-                    title="Night"
-                    active={form.assigned_shift === 'night'}
-                    onPress={() => updateForm('assigned_shift', 'night')}
-                  />
-
-                  <ChoiceButton
-                    title="Both"
-                    active={form.assigned_shift === 'both'}
-                    onPress={() => updateForm('assigned_shift', 'both')}
-                  />
-                </View>
-              </>
-            )}
-
-            <TouchableOpacity
-              style={[styles.saveBtn, loading && { opacity: 0.6 }]}
-              disabled={loading}
-              onPress={onSubmit}
-            >
-              {loading ? (
-                <ActivityIndicator color={COLORS.white} />
-              ) : (
-                <>
-                  <UserPlus size={20} color={COLORS.white} />
-                  <Text style={styles.saveText}>REGISTER USER</Text>
-                </>
-              )}
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <X size={22} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
-        </ScrollView>
+
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.modalBody,
+              centeredContent(formMaxWidth),
+            ]}
+          >
+            <View style={styles.formCard}>
+              <TextInput
+                label="Full Name"
+                value={form.name}
+                onChangeText={v => updateForm('name', v)}
+                mode="outlined"
+                style={styles.input}
+                outlineColor={COLORS.inputBorder}
+                activeOutlineColor={COLORS.accent}
+                textColor={COLORS.text}
+                cursorColor={COLORS.accent}
+                selectionColor={COLORS.lightBlue}
+                theme={PAPER_THEME}
+              />
+
+              <TextInput
+                label="Email"
+                value={form.email}
+                onChangeText={v => updateForm('email', v)}
+                mode="outlined"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={styles.input}
+                outlineColor={COLORS.inputBorder}
+                activeOutlineColor={COLORS.accent}
+                textColor={COLORS.text}
+                cursorColor={COLORS.accent}
+                selectionColor={COLORS.lightBlue}
+                theme={PAPER_THEME}
+              />
+
+              <TextInput
+                label="Password"
+                value={form.password}
+                onChangeText={v => updateForm('password', v)}
+                mode="outlined"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                style={styles.input}
+                outlineColor={COLORS.inputBorder}
+                activeOutlineColor={COLORS.accent}
+                textColor={COLORS.text}
+                cursorColor={COLORS.accent}
+                selectionColor={COLORS.lightBlue}
+                theme={PAPER_THEME}
+                left={
+                  <TextInput.Icon
+                    icon={() => <LockKeyhole size={20} color={COLORS.gray} />}
+                  />
+                }
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    color={COLORS.primary}
+                    forceTextInputFocus={false}
+                    onPress={() => setShowPassword(prev => !prev)}
+                    accessibilityLabel={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }
+                  />
+                }
+              />
+
+              <Text style={styles.passwordHint}>
+                Use at least 6 characters for a stronger password.
+              </Text>
+
+              <Text style={styles.fieldLabel}>Role</Text>
+
+              <View style={styles.choiceRow}>
+                <ChoiceButton
+                  title="Supervisor"
+                  active={form.role === 'supervisor'}
+                  onPress={() => updateForm('role', 'supervisor')}
+                />
+
+                <ChoiceButton
+                  title="Admin"
+                  active={form.role === 'admin'}
+                  onPress={() => updateForm('role', 'admin')}
+                />
+
+                <ChoiceButton
+                  title="Plant Manager"
+                  active={form.role === 'plant_manager'}
+                  onPress={() => updateForm('role', 'plant_manager')}
+                />
+              </View>
+
+              {form.role === 'supervisor' && (
+                <>
+                  <Text style={styles.fieldLabel}>Assigned Shift</Text>
+
+                  <View style={styles.choiceRow}>
+                    <ChoiceButton
+                      title="Day"
+                      active={form.assigned_shift === 'day'}
+                      onPress={() => updateForm('assigned_shift', 'day')}
+                    />
+
+                    <ChoiceButton
+                      title="Night"
+                      active={form.assigned_shift === 'night'}
+                      onPress={() => updateForm('assigned_shift', 'night')}
+                    />
+
+                    <ChoiceButton
+                      title="Both"
+                      active={form.assigned_shift === 'both'}
+                      onPress={() => updateForm('assigned_shift', 'both')}
+                    />
+                  </View>
+                </>
+              )}
+
+              <TouchableOpacity
+                style={[styles.saveBtn, loading && { opacity: 0.6 }]}
+                disabled={loading}
+                onPress={onSubmit}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <>
+                    <UserPlus size={20} color={COLORS.white} />
+                    <Text style={styles.saveText}>REGISTER USER</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -557,6 +654,10 @@ const styles = StyleSheet.create({
 
   modalSafe: { flex: 1, backgroundColor: COLORS.bg },
 
+  keyboardView: {
+    flex: 1,
+  },
+
   modalHeader: {
     backgroundColor: COLORS.white,
     padding: 18,
@@ -567,8 +668,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  modalTitle: { color: COLORS.primary, fontSize: 24, fontWeight: '900' },
-  modalDesc: { color: COLORS.gray, fontSize: 14, marginTop: 3 },
+  modalTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  modalIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: COLORS.lightBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  modalTitleText: {
+    flex: 1,
+  },
+
+  modalTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
+  modalDesc: {
+    color: COLORS.gray,
+    fontSize: 12,
+    marginTop: 3,
+    lineHeight: 17,
+  },
 
   closeBtn: {
     width: 42,
@@ -579,7 +706,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  modalBody: { padding: 16 },
+  modalBody: { padding: 16, paddingBottom: 32 },
 
   formCard: {
     backgroundColor: COLORS.white,
@@ -588,7 +715,20 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  input: { backgroundColor: COLORS.white, marginBottom: 14 },
+  input: {
+    backgroundColor: COLORS.white,
+    marginBottom: 14,
+    fontSize: 15,
+  },
+
+  passwordHint: {
+    color: COLORS.gray,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: -7,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
 
   fieldLabel: {
     color: COLORS.primary,

@@ -37,7 +37,7 @@ export default function ProductionMenuScreen({ navigation }) {
       screen: 'LiveProduction',
     },
     {
-      title: 'Shift Control',
+      title: 'Shift Status',
       desc: 'Start and end day/night shift',
       icon: Settings2,
       screen: 'ShiftControl',

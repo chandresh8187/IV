@@ -32,7 +32,7 @@ export default function ProductionStack() {
       <Stack.Screen
         name="ShiftControl"
         component={ShiftScreen}
-        options={{ title: 'Shift Control' }}
+        options={{ title: 'Automatic Shift' }}
       />
 
       <Stack.Screen

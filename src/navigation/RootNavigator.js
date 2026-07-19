@@ -9,6 +9,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import SuperAdminTabs from './SuperAdminTabs';
 import AdminTabs from './AdminTabs';
 import SupervisorTabs from './SupervisorTabs';
+import PlantManagerTabs from './PlantManagerTabs';
 
 import { getStoredAuth } from '../api/authApi';
 import { setAuth, stopLoading } from '../redux/slices/authSlice';
@@ -113,6 +114,10 @@ export default function RootNavigator() {
 
     if (role === 'superadmin') {
       return SuperAdminTabs;
+    }
+
+    if (role === 'plant_manager') {
+      return PlantManagerTabs;
     }
 
     if (role === 'admin') {

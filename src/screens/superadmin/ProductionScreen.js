@@ -120,18 +120,23 @@ export default function ProductionScreen() {
   });
 
   const activeShift = shiftStatusData?.data?.active_shift || null;
+  console.log('activeShift');
   const activeShiftId = activeShift?.id || null;
   const isShiftActive = !!activeShiftId;
-
+  const productionAllowed = shiftStatusData?.data?.production_allowed !== false;
+  const plantStatus = shiftStatusData?.data?.plant_status || 'running';
   // Normalized so a role stored as "Supervisor" / " superadmin " on the
   // server still unlocks the entry button.
   const role = String(loggedUser?.role || '')
     .toLowerCase()
     .trim();
   const isSuperAdmin = role === 'superadmin';
+  const isPlantManager = role === 'plant_manager';
 
   const canManageProduction =
-    (isSuperAdmin || role === 'supervisor') && isShiftActive;
+    (isSuperAdmin || isPlantManager || role === 'supervisor') &&
+    isShiftActive &&
+    productionAllowed;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId],
@@ -192,11 +197,13 @@ export default function ProductionScreen() {
 
     socket.on('production_updated', handleProductionUpdated);
     socket.on('shift_updated', handleShiftUpdated);
+    socket.on('plant_status_updated', handleShiftUpdated);
     socket.on('production_planning_updated', handlePlanningUpdated);
 
     return () => {
       socket.off('production_updated', handleProductionUpdated);
       socket.off('shift_updated', handleShiftUpdated);
+      socket.off('plant_status_updated', handleShiftUpdated);
       socket.off('production_planning_updated', handlePlanningUpdated);
     };
   }, [queryClient]);
@@ -333,6 +340,8 @@ export default function ProductionScreen() {
     }));
   };
 
+  console.log('shiftStatusError', shiftStatusError);
+
   // The mutation's onSuccess handles invalidation and closing the modal.
   // Closing here (before the request settles) would wipe the form even
   // when the save fails, losing everything the user typed.
@@ -397,7 +406,10 @@ export default function ProductionScreen() {
         />
       </View>
       <View
-        style={[styles.shiftInfoCard, shiftStatusError && styles.shiftErrorCard]}
+        style={[
+          styles.shiftInfoCard,
+          shiftStatusError && styles.shiftErrorCard,
+        ]}
       >
         <Text
           style={[
@@ -407,8 +419,14 @@ export default function ProductionScreen() {
         >
           {shiftStatusError
             ? 'COULD NOT LOAD SHIFT STATUS'
+            : !productionAllowed
+            ? `PLANT ${String(plantStatus).toUpperCase()}`
             : isShiftActive
-            ? `${activeShift.shift_name?.toUpperCase()} SHIFT ACTIVE`
+            ? `${(
+                activeShift.shift_name ||
+                shiftStatusData?.data?.current_shift ||
+                ''
+              ).toUpperCase()} SHIFT ACTIVE`
             : 'NO ACTIVE SHIFT'}
         </Text>
 
@@ -417,11 +435,14 @@ export default function ProductionScreen() {
             ? shiftStatusErrorObj?.response?.data?.message ||
               shiftStatusErrorObj?.message ||
               'Check your internet connection and pull refresh.'
+            : !productionAllowed
+            ? shiftStatusData?.data?.plant_notice?.expected_restart_at ||
+              'Production entry is blocked until the plant is marked running.'
             : isShiftActive
             ? `Shift Date: ${moment(activeShift.shift_date).format(
                 'DD/MM/YYYY',
               )}`
-            : 'Start shift first to add production entries.'}
+            : 'Automatic shift is not available. Pull refresh and try again.'}
         </Text>
       </View>
       <View style={styles.tableCard}>
@@ -482,12 +503,12 @@ export default function ProductionScreen() {
                       </Cell>
                       <Cell width={90}>
                         {item?.ms_weight != null
-                          ? `${parseFloat(item.ms_weight).toFixed(2)} KG`
+                          ? `${parseFloat(item.ms_weight).toFixed(3)} KG`
                           : '-'}
                       </Cell>
                       <Cell width={90}>
                         {item?.gi_weight != null
-                          ? `${parseFloat(item.gi_weight).toFixed(2)} KG`
+                          ? `${parseFloat(item.gi_weight).toFixed(3)} KG`
                           : '-'}
                       </Cell>
                       <Cell width={90}>

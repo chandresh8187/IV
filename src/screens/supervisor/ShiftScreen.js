@@ -1,21 +1,20 @@
 import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Moon, PlayCircle, Square, Sun } from 'lucide-react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Clock, Factory, Moon, Sun } from 'lucide-react-native';
 
-import { getShiftStatusApi, toggleShiftApi } from '../../api/shiftApi';
+import { getShiftStatusApi } from '../../api/shiftApi';
 import { socket } from '../../socket/socket';
 import { COLORS } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import moment from 'moment';
 
 export default function ShiftScreen() {
   const queryClient = useQueryClient();
@@ -24,23 +23,7 @@ export default function ShiftScreen() {
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['shift-status'],
     queryFn: getShiftStatusApi,
-  });
-
-  const shiftMutation = useMutation({
-    mutationFn: toggleShiftApi,
-    onSuccess: res => {
-      Alert.alert('Success', res?.message || 'Shift updated');
-
-      queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-    },
-    onError: error => {
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Something went wrong',
-      );
-    },
+    refetchInterval: 60 * 1000,
   });
 
   useEffect(() => {
@@ -48,16 +31,18 @@ export default function ShiftScreen() {
       socket.connect();
     }
 
-    const handleShiftUpdate = () => {
+    const refresh = () => {
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['productions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     };
 
-    socket.on('shift_updated', handleShiftUpdate);
+    socket.on('shift_updated', refresh);
+    socket.on('plant_status_updated', refresh);
 
     return () => {
-      socket.off('shift_updated', handleShiftUpdate);
+      socket.off('shift_updated', refresh);
+      socket.off('plant_status_updated', refresh);
     };
   }, [queryClient]);
 
@@ -70,9 +55,12 @@ export default function ShiftScreen() {
     );
   }
 
-  const shift = data?.data;
-  const activeShift = shift?.active_shift;
-  const isActive = shift?.is_shift_active;
+  const payload = data?.data || {};
+  const activeShift = payload.active_shift || {};
+  const shiftName = payload.current_shift || activeShift.shift_name || '-';
+  const shiftDate = payload.shift_date || activeShift.shift_date || '-';
+  const plantStatus = payload.plant_status || 'running';
+  const productionAllowed = payload.production_allowed !== false;
 
   return (
     <ScrollView
@@ -80,13 +68,17 @@ export default function ShiftScreen() {
         styles.container,
         centeredContent(contentMaxWidth),
       ]}
+      refreshControl={
+        <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+      }
     >
       <View style={styles.headerCard}>
         <View>
-          <Text style={styles.title}>Shift Control</Text>
-          <Text style={styles.description}>Start or end your plant shift</Text>
+          <Text style={styles.title}>Automatic Shift</Text>
+          <Text style={styles.description}>
+            Shift is selected automatically from server time
+          </Text>
         </View>
-
         <View style={styles.headerIcon}>
           <Clock size={24} color={COLORS.primary} />
         </View>
@@ -94,7 +86,7 @@ export default function ShiftScreen() {
 
       <View style={styles.statusCard}>
         <View style={styles.shiftIconBox}>
-          {shift?.current_shift === 'day' ? (
+          {shiftName === 'day' ? (
             <Sun size={54} color={COLORS.orange} />
           ) : (
             <Moon size={54} color={COLORS.primary} />
@@ -102,76 +94,59 @@ export default function ShiftScreen() {
         </View>
 
         <Text style={styles.shiftLabel}>Current Shift</Text>
+        <Text style={styles.shiftName}>{String(shiftName).toUpperCase()}</Text>
 
-        <Text style={styles.shiftName}>
-          {shift?.current_shift?.toUpperCase()}
-        </Text>
+        <View style={styles.infoBox}>
+          <InfoLine
+            label="Shift Date"
+            value={moment(shiftDate).format('DD MMM YYYY')}
+          />
+          <InfoLine
+            label="Start Time"
+            value={
+              moment(activeShift.start_time || payload.shift_start).format(
+                'hh:mm A',
+              ) || '-'
+            }
+          />
+          <InfoLine
+            label="End Time"
+            value={
+              moment(payload.shift_end || activeShift.end_time).format(
+                'hh:mm A',
+              ) || '-'
+            }
+          />
+        </View>
+      </View>
+
+      <View style={styles.plantCard}>
+        <View style={styles.plantTitleRow}>
+          <Factory size={22} color={COLORS.primary} />
+          <Text style={styles.plantTitle}>Plant Status</Text>
+        </View>
 
         <View
           style={[
             styles.statusBadge,
-            isActive ? styles.activeBadge : styles.inactiveBadge,
+            productionAllowed ? styles.runningBadge : styles.blockedBadge,
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              isActive ? styles.activeText : styles.inactiveText,
+              productionAllowed ? styles.runningText : styles.blockedText,
             ]}
           >
-            {isActive ? 'RUNNING' : 'NOT STARTED'}
+            {String(plantStatus).toUpperCase()}
           </Text>
         </View>
 
-        {activeShift ? (
-          <View style={styles.infoBox}>
-            <InfoLine label="Shift Date" value={activeShift.shift_date} />
-            <InfoLine
-              label="Started By"
-              value={activeShift.supervisor_name || '-'}
-            />
-            <InfoLine
-              label="Start Time"
-              value={activeShift.start_time || '-'}
-            />
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>
-            No shift is active. Press start to begin {shift?.current_shift}{' '}
-            shift.
-          </Text>
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.actionBtn,
-            isActive ? styles.endBtn : styles.startBtn,
-            shiftMutation.isPending && { opacity: 0.6 },
-          ]}
-          disabled={shiftMutation.isPending}
-          onPress={() => shiftMutation.mutate()}
-        >
-          {shiftMutation.isPending ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <>
-              {isActive ? (
-                <Square size={22} color={COLORS.white} />
-              ) : (
-                <PlayCircle size={24} color={COLORS.white} />
-              )}
-
-              <Text style={styles.actionText}>{shift?.button_text}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>Important</Text>
         <Text style={styles.noteText}>
-          Production entries can be added only when a shift is running. After
-          ending shift, next shift will be ready to start.
+          {productionAllowed
+            ? 'Production entry is currently allowed.'
+            : payload.plant_notice ||
+              'Production entry is temporarily blocked by the Plant Manager.'}
         </Text>
       </View>
     </ScrollView>
@@ -188,29 +163,14 @@ function InfoLine({ label, value }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
-  container: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-
+  container: { padding: 16, paddingBottom: 32 },
   center: {
     flex: 1,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  loadingText: {
-    marginTop: 10,
-    color: COLORS.gray,
-    fontWeight: '700',
-  },
-
+  loadingText: { marginTop: 10, color: COLORS.gray, fontWeight: '700' },
   headerCard: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -220,19 +180,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
-  title: {
-    color: COLORS.primary,
-    fontSize: 27,
-    fontWeight: '900',
-  },
-
-  description: {
-    color: COLORS.gray,
-    fontSize: 13,
-    marginTop: 4,
-  },
-
+  title: { color: COLORS.primary, fontSize: 27, fontWeight: '900' },
+  description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
   headerIcon: {
     width: 48,
     height: 48,
@@ -241,7 +190,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   statusCard: {
     marginTop: 16,
     backgroundColor: COLORS.white,
@@ -250,7 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 4,
   },
-
   shiftIconBox: {
     width: 108,
     height: 108,
@@ -258,129 +205,54 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-
-  shiftLabel: {
-    color: COLORS.gray,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-
+  shiftLabel: { marginTop: 15, color: COLORS.gray, fontWeight: '700' },
   shiftName: {
-    color: COLORS.primary,
-    fontSize: 34,
-    fontWeight: '900',
     marginTop: 4,
-  },
-
-  statusBadge: {
-    marginTop: 12,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-
-  activeBadge: {
-    backgroundColor: '#DCFCE7',
-  },
-
-  inactiveBadge: {
-    backgroundColor: '#FEE2E2',
-  },
-
-  statusText: {
-    fontSize: 12,
+    color: COLORS.primary,
+    fontSize: 30,
     fontWeight: '900',
   },
-
-  activeText: {
-    color: COLORS.green,
-  },
-
-  inactiveText: {
-    color: COLORS.red,
-  },
-
   infoBox: {
     width: '100%',
-    marginTop: 18,
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-
   infoLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 9,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-
-  infoLabel: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  infoValue: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-
-  emptyText: {
-    color: COLORS.gray,
-    textAlign: 'center',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 18,
-    lineHeight: 20,
-  },
-
-  actionBtn: {
-    width: '60%',
-    height: 58,
-    borderRadius: 18,
-    marginTop: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
-
-  startBtn: {
-    backgroundColor: COLORS.green,
-  },
-
-  endBtn: {
-    backgroundColor: COLORS.red,
-  },
-
-  actionText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-
-  noteCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    elevation: 2,
+  infoLabel: { color: COLORS.gray, fontWeight: '700' },
+  infoValue: { color: COLORS.text, fontWeight: '900' },
+  plantCard: {
     marginTop: 16,
+    padding: 18,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    elevation: 3,
   },
-
-  noteTitle: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '900',
+  plantTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  plantTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '900' },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginTop: 14,
   },
-
+  runningBadge: { backgroundColor: '#DCFCE7' },
+  blockedBadge: { backgroundColor: '#FEE2E2' },
+  statusText: { fontSize: 12, fontWeight: '900' },
+  runningText: { color: COLORS.success },
+  blockedText: { color: COLORS.danger },
   noteText: {
+    marginTop: 12,
     color: COLORS.gray,
-    fontSize: 13,
     lineHeight: 20,
-    marginTop: 6,
     fontWeight: '600',
   },
 });

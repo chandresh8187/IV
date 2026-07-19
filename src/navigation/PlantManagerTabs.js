@@ -4,14 +4,12 @@ import {
   Gauge,
   LayoutDashboard,
   UserCircle2,
-  Users,
 } from 'lucide-react-native';
 import React from 'react';
 
 import DashboardScreen from '../screens/superadmin/DashboardScreen';
-import ProfileScreen from './../screens/superadmin/ProfileScreen';
-import UsersScreen from './../screens/superadmin/UsersScreen';
 import PlantControlScreen from '../screens/superadmin/PlantControlScreen';
+import ProfileScreen from '../screens/superadmin/ProfileScreen';
 import ProductionStack from './comman/ProductionStock';
 import { createTabScreenOptions } from './tabOptions';
 
@@ -20,19 +18,17 @@ const Tab = createBottomTabNavigator();
 const IconByRoute = {
   Dashboard: LayoutDashboard,
   Production: Factory,
-  Users: Users,
   PlantControl: Gauge,
   Profile: UserCircle2,
 };
 
 const screenOptions = createTabScreenOptions(IconByRoute);
 
-export default function SuperAdminTabs() {
+export default function PlantManagerTabs() {
   return (
     <Tab.Navigator initialRouteName="Dashboard" screenOptions={screenOptions}>
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Production" component={ProductionStack} />
-      <Tab.Screen name="Users" component={UsersScreen} />
       <Tab.Screen
         name="PlantControl"
         component={PlantControlScreen}
