@@ -14,6 +14,7 @@ import {
   gridItemWidth,
   useResponsive,
 } from '../../utils/responsive';
+import { formatWeight } from '../../utils/format';
 
 const COLORS = {
   primary: '#232B5D',
@@ -72,19 +73,19 @@ export default function HistoryMaterialSummaryScreen({ route }) {
 
               <InfoBox
                 label="MS Production"
-                value={`${item.total_ms_production_kg || 0} KG`}
+                value={`${formatWeight(item.total_ms_production_kg) || 0} KG`}
                 width={infoBoxWidth}
               />
 
               <InfoBox
                 label="GI Production"
-                value={`${item.total_gi_production_kg || 0} KG`}
+                value={`${formatWeight(item.total_gi_production_kg) || 0} KG`}
                 width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Zinc Used"
-                value={`${item.zink_used || 0} KG`}
+                value={`${formatWeight(item.zink_used) || 0} KG`}
                 width={infoBoxWidth}
               />
 

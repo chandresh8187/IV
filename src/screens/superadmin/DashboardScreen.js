@@ -101,7 +101,7 @@ export default function DashboardScreen() {
   const productionAllowed = plantStatusData?.production_allowed !== false;
 
   const plantStatusConfig = getPlantStatusConfig(plantStatus, plantStatusData);
-  console.log('plantStatusData', plantStatusData);
+
   return (
     <>
       <ScrollView

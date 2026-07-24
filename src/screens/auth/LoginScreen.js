@@ -86,9 +86,7 @@ export default function LoginScreen() {
               });
             }
           }
-        } catch (error) {
-          console.log('SAVE FCM ERROR', error);
-        }
+        } catch (error) {}
       } else {
         Alert.alert('Login Failed', res?.message || 'Invalid login details.');
       }

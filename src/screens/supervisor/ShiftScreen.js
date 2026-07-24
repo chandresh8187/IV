@@ -145,7 +145,7 @@ export default function ShiftScreen() {
         <Text style={styles.noteText}>
           {productionAllowed
             ? 'Production entry is currently allowed.'
-            : payload.plant_notice ||
+            : payload?.plant_notice &&
               'Production entry is temporarily blocked by the Plant Manager.'}
         </Text>
       </View>

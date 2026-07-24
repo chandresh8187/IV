@@ -23,14 +23,10 @@ export const listenSharedPdf = callback => {
           type: 'application/pdf',
         });
       },
-      error => {
-        console.log('Share intent ignored:', error?.message || error);
-      },
+      error => {},
       'IVProductionShare',
     );
-  } catch (error) {
-    console.log('Share intent catch:', error?.message || error);
-  }
+  } catch (error) {}
 };
 
 export const clearSharedPdf = () => {

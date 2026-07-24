@@ -5,12 +5,14 @@ import {
   ChevronUp,
   Check,
   ClipboardList,
+  Clock3,
   Plus,
   X,
 } from 'lucide-react-native';
 import moment from 'moment';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   ActivityIndicator,
   Alert,
@@ -108,6 +110,11 @@ export default function ProductionScreen() {
   const [modalType, setModalType] = useState(null);
   const loggedUser = useSelector(state => state.auth.user);
   const [planningOpen, setPlanningOpen] = useState(false);
+  const [showProductionTimePicker, setShowProductionTimePicker] =
+    useState(false);
+  const [productionTimePickerValue, setProductionTimePickerValue] = useState(
+    new Date(),
+  );
 
   const {
     data: shiftStatusData,
@@ -120,7 +127,7 @@ export default function ProductionScreen() {
   });
 
   const activeShift = shiftStatusData?.data?.active_shift || null;
-  console.log('activeShift');
+
   const activeShiftId = activeShift?.id || null;
   const isShiftActive = !!activeShiftId;
   const productionAllowed = shiftStatusData?.data?.production_allowed !== false;
@@ -248,8 +255,46 @@ export default function ProductionScreen() {
   };
 
   const closeModal = () => {
+    setShowProductionTimePicker(false);
     setModalType(null);
     setFullForm(emptyFullForm);
+  };
+
+  const openProductionTimePicker = () => {
+    const selectedDate = new Date();
+
+    if (fullForm.production_time) {
+      const parsedTime = moment(
+        fullForm.production_time,
+        ['HH:mm:ss', 'HH:mm', 'hh:mm A'],
+        true,
+      );
+
+      if (parsedTime.isValid()) {
+        selectedDate.setHours(parsedTime.hours());
+        selectedDate.setMinutes(parsedTime.minutes());
+        selectedDate.setSeconds(0);
+        selectedDate.setMilliseconds(0);
+      }
+    }
+
+    setProductionTimePickerValue(selectedDate);
+    setShowProductionTimePicker(true);
+  };
+
+  const selectProductionTime = date => {
+    if (!date) {
+      return;
+    }
+
+    const selectedDate = new Date(date);
+
+    setProductionTimePickerValue(selectedDate);
+    setFullForm(prev => ({
+      ...prev,
+      production_time: moment(selectedDate).format('HH:mm:ss'),
+    }));
+    setShowProductionTimePicker(false);
   };
 
   // Fills the whole form from an existing row when the user types a Sr No
@@ -339,8 +384,6 @@ export default function ProductionScreen() {
       material_description: found.material_description || '',
     }));
   };
-
-  console.log('shiftStatusError', shiftStatusError);
 
   // The mutation's onSuccess handles invalidation and closing the modal.
   // Closing here (before the request settles) would wipe the form even
@@ -545,7 +588,11 @@ export default function ProductionScreen() {
         </TouchableOpacity>
       )}
 
-      <Modal visible={!!modalType} animationType="slide">
+      <Modal
+        visible={modalType === 'Full'}
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
         <SafeAreaView style={styles.modalSafe}>
           <View style={styles.modalHeader}>
             <View>
@@ -614,14 +661,39 @@ export default function ProductionScreen() {
                 numberOfLines={2}
               />
 
-              <FormInput
-                label="Production Time"
-                value={fullForm.production_time}
-                keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, production_time: v }))
-                }
-              />
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={openProductionTimePicker}
+              >
+                <View pointerEvents="none">
+                  <TextInput
+                    label="Production Time"
+                    value={
+                      fullForm.production_time
+                        ? moment(fullForm.production_time, [
+                            'HH:mm:ss',
+                            'HH:mm',
+                            'hh:mm A',
+                          ]).format('hh:mm A')
+                        : ''
+                    }
+                    placeholder="Select production time"
+                    mode="outlined"
+                    editable={false}
+                    style={styles.input}
+                    outlineColor={COLORS.inputBorder}
+                    activeOutlineColor={COLORS.accent}
+                    textColor={COLORS.text}
+                    placeholderTextColor={COLORS.gray}
+                    theme={PAPER_THEME}
+                    right={
+                      <TextInput.Icon
+                        icon={() => <Clock3 size={21} color={COLORS.primary} />}
+                      />
+                    }
+                  />
+                </View>
+              </TouchableOpacity>
 
               <FormInput
                 label="Dipping Qty"
@@ -704,6 +776,25 @@ export default function ProductionScreen() {
               onPress={saveFullEntry}
             />
           </ScrollView>
+
+          {showProductionTimePicker && (
+            <DateTimePicker
+              value={productionTimePickerValue}
+              mode="time"
+              display="clock"
+              is24Hour={false}
+              onValueChange={(event, date) => {
+                if (event?.type === 'dismissed') {
+                  setShowProductionTimePicker(false);
+                  return;
+                }
+
+                if (date) {
+                  selectProductionTime(date);
+                }
+              }}
+            />
+          )}
         </SafeAreaView>
       </Modal>
     </View>
@@ -1077,5 +1168,111 @@ const styles = StyleSheet.create({
   dropdownSelectedItemLabel: {
     fontWeight: '900',
     color: COLORS.primary,
+  },
+
+  timeModalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 20,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+
+  timePickerCard: {
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 18,
+    elevation: 12,
+  },
+
+  timePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  timePickerTitle: {
+    color: COLORS.primary,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+
+  timePickerSubtitle: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+
+  timePickerCloseButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: COLORS.lightBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  selectedTimeBox: {
+    marginTop: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: COLORS.lightBlue,
+    borderWidth: 1,
+    borderColor: '#D8ECFA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+  },
+
+  selectedTimeText: {
+    color: COLORS.primary,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+
+  timePickerActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+
+  nowButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 15,
+    backgroundColor: COLORS.lightBlue,
+    borderWidth: 1,
+    borderColor: '#D8ECFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  nowButtonText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+
+  timeDoneButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 15,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  timeDoneButtonText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '900',
   },
 });

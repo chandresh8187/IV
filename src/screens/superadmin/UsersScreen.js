@@ -64,13 +64,11 @@ export default function UsersScreen() {
     queryKey: ['users'],
     queryFn: getUsersApi,
   });
-  console.log('usersData', usersData);
+
   const { data: activeData } = useQuery({
     queryKey: ['active-supervisors'],
     queryFn: getActiveSupervisorsApi,
   });
-
-  console.log('activeData', activeData);
 
   const registerMutation = useMutation({
     mutationFn: registerUserApi,

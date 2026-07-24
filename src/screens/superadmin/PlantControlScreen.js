@@ -4,14 +4,13 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import DateTimePicker from 'react-native-ui-datepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -20,7 +19,6 @@ import {
   PlayCircle,
   Settings,
   Square,
-  X,
 } from 'lucide-react-native';
 
 import {
@@ -62,6 +60,7 @@ export default function PlantControlScreen() {
   const [message, setMessage] = useState('');
   const [expectedRestartAt, setExpectedRestartAt] = useState(null);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [restartPickerMode, setRestartPickerMode] = useState('date');
 
   const statusQuery = useQuery({
     queryKey: ['plant-status'],
@@ -124,26 +123,93 @@ export default function PlantControlScreen() {
     [historyQuery.data],
   );
 
-  const submit = status => {
-    if (status !== 'running' && (!title.trim() || !message.trim())) {
+  const selectStatus = status => {
+    if (!['maintenance', 'stopped'].includes(status)) {
+      return;
+    }
+
+    setSelectedStatus(status);
+  };
+
+  const openRestartPicker = () => {
+    setRestartPickerMode('date');
+    setShowDateTimePicker(true);
+  };
+
+  const handleRestartPickerChange = (event, selectedValue) => {
+    if (event?.type === 'dismissed') {
+      setShowDateTimePicker(false);
+      return;
+    }
+
+    if (!selectedValue) {
+      return;
+    }
+
+    const currentValue = expectedRestartAt
+      ? new Date(expectedRestartAt)
+      : new Date();
+
+    if (restartPickerMode === 'date') {
+      const combinedDateTime = new Date(currentValue);
+
+      combinedDateTime.setFullYear(
+        selectedValue.getFullYear(),
+        selectedValue.getMonth(),
+        selectedValue.getDate(),
+      );
+
+      setExpectedRestartAt(combinedDateTime);
+      setShowDateTimePicker(false);
+
+      setTimeout(() => {
+        setRestartPickerMode('time');
+        setShowDateTimePicker(true);
+      }, 250);
+
+      return;
+    }
+
+    const combinedDateTime = new Date(currentValue);
+
+    combinedDateTime.setHours(
+      selectedValue.getHours(),
+      selectedValue.getMinutes(),
+      0,
+      0,
+    );
+
+    setExpectedRestartAt(combinedDateTime);
+    setShowDateTimePicker(false);
+  };
+
+  const submit = statusOverride => {
+    const statusToSave = statusOverride || selectedStatus;
+
+    if (!['running', 'maintenance', 'stopped'].includes(statusToSave)) {
+      Alert.alert('Invalid Status', 'Please select a valid plant status');
+      return;
+    }
+
+    if (statusToSave !== 'running' && (!title.trim() || !message.trim())) {
       Alert.alert('Required', 'Please enter title and reason');
       return;
     }
 
     Alert.alert(
       'Confirm Plant Status',
-      `Change plant status to ${STATUS_META[status].label}?`,
+      `Change plant status to ${STATUS_META[statusToSave].label}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm',
           onPress: () =>
             mutation.mutate({
-              status,
-              title: status === 'running' ? undefined : title.trim(),
-              message: status === 'running' ? undefined : message.trim(),
+              status: statusToSave,
+              title: statusToSave === 'running' ? null : title.trim(),
+              message: statusToSave === 'running' ? null : message.trim(),
               expected_restart_at:
-                status === 'running' || !expectedRestartAt
+                statusToSave === 'running' || !expectedRestartAt
                   ? null
                   : moment(expectedRestartAt).format('YYYY-MM-DD HH:mm:ss'),
             }),
@@ -227,26 +293,50 @@ export default function PlantControlScreen() {
       <View style={styles.controlCard}>
         <Text style={styles.sectionTitle}>Change Plant Status</Text>
         <View style={styles.statusRow}>
-          {['maintenance', 'stopped'].map(status => (
-            <TouchableOpacity
-              key={status}
+          <TouchableOpacity
+            style={[
+              styles.statusChoice,
+              selectedStatus === 'maintenance' && styles.statusChoiceActive,
+            ]}
+            activeOpacity={0.8}
+            onPress={() => selectStatus('maintenance')}
+          >
+            <Text
               style={[
-                styles.statusChoice,
-                selectedStatus === status && styles.statusChoiceActive,
+                styles.statusChoiceText,
+                selectedStatus === 'maintenance' &&
+                  styles.statusChoiceTextActive,
               ]}
-              onPress={() => setSelectedStatus(status)}
             >
-              <Text
-                style={[
-                  styles.statusChoiceText,
-                  selectedStatus === status && styles.statusChoiceTextActive,
-                ]}
-              >
-                {STATUS_META[status].label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              Maintenance
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.statusChoice,
+              selectedStatus === 'stopped' && styles.statusChoiceActive,
+            ]}
+            activeOpacity={0.8}
+            onPress={() => selectStatus('stopped')}
+          >
+            <Text
+              style={[
+                styles.statusChoiceText,
+                selectedStatus === 'stopped' && styles.statusChoiceTextActive,
+              ]}
+            >
+              Stopped
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        <Text style={styles.selectedStatusHint}>
+          Selected status:{' '}
+          <Text style={styles.selectedStatusValue}>
+            {STATUS_META[selectedStatus].label}
+          </Text>
+        </Text>
 
         {currentStatus !== 'running' && (
           <TouchableOpacity
@@ -295,10 +385,7 @@ export default function PlantControlScreen() {
           theme={PAPER_THEME}
         />
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setShowDateTimePicker(true)}
-        >
+        <TouchableOpacity activeOpacity={0.8} onPress={openRestartPicker}>
           <View pointerEvents="none">
             <TextInput
               label="Expected Restart Date & Time"
@@ -345,7 +432,7 @@ export default function PlantControlScreen() {
             mutation.isPending && styles.disabled,
           ]}
           disabled={mutation.isPending}
-          onPress={() => submit(selectedStatus)}
+          onPress={() => submit()}
         >
           {mutation.isPending ? (
             <ActivityIndicator color={COLORS.white} />
@@ -378,88 +465,16 @@ export default function PlantControlScreen() {
         )}
       </View>
 
-      <Modal
-        visible={showDateTimePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDateTimePicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.datePickerCard}>
-            <View style={styles.datePickerHeader}>
-              <View>
-                <Text style={styles.datePickerTitle}>Expected Restart</Text>
-                <Text style={styles.datePickerSubtitle}>
-                  Select date and time
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowDateTimePicker(false)}
-              >
-                <X size={21} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <DateTimePicker
-              mode="single"
-              date={expectedRestartAt || new Date()}
-              minDate={new Date()}
-              timePicker
-              use12Hours
-              onChange={({ date }) => {
-                if (date) {
-                  setExpectedRestartAt(new Date(date));
-                }
-              }}
-              styles={{
-                selected: {
-                  backgroundColor: COLORS.primary,
-                  borderRadius: 99,
-                },
-                selected_label: { color: COLORS.white, fontWeight: '900' },
-                today: {
-                  borderColor: COLORS.accent,
-                  borderWidth: 1,
-                  borderRadius: 99,
-                },
-                today_label: { color: COLORS.accent, fontWeight: '900' },
-                day_label: { color: COLORS.text, fontWeight: '700' },
-                weekday_label: { color: COLORS.primary, fontWeight: '900' },
-                month_selector_label: {
-                  color: COLORS.primary,
-                  fontWeight: '900',
-                },
-                year_selector_label: {
-                  color: COLORS.primary,
-                  fontWeight: '900',
-                },
-                time_selector_label: {
-                  color: COLORS.primary,
-                  fontWeight: '900',
-                },
-              }}
-            />
-
-            <View style={styles.selectedDateBox}>
-              <CalendarClock size={19} color={COLORS.primary} />
-              <Text style={styles.selectedDateText}>
-                {moment(expectedRestartAt || new Date()).format(
-                  'DD MMM YYYY, hh:mm A',
-                )}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.doneButton}
-              onPress={() => setShowDateTimePicker(false)}
-            >
-              <Text style={styles.doneButtonText}>DONE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {showDateTimePicker && (
+        <DateTimePicker
+          value={expectedRestartAt || new Date()}
+          mode={restartPickerMode}
+          display={restartPickerMode === 'time' ? 'clock' : 'default'}
+          is24Hour={false}
+          minimumDate={restartPickerMode === 'date' ? new Date() : undefined}
+          onValueChange={handleRestartPickerChange}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -552,6 +567,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statusRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
+  selectedStatusHint: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+
+  selectedStatusValue: {
+    color: COLORS.primary,
+    fontWeight: '900',
+  },
+
   statusChoice: {
     flex: 1,
     paddingVertical: 12,

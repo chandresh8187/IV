@@ -71,9 +71,7 @@ export default function RootNavigator() {
         });
 
         clearSharedPdf();
-      } catch (error) {
-        console.log('Shared PDF error:', error);
-      }
+      } catch (error) {}
     };
 
     checkSharedPdf();
@@ -93,7 +91,7 @@ export default function RootNavigator() {
         // Corrupted AsyncStorage data (e.g. malformed JSON in "user")
         // would otherwise throw here and leave isLoading stuck at true,
         // permanently freezing the app on the splash screen.
-        console.log('Failed to load stored auth:', error);
+
         dispatch(stopLoading());
       }
     };

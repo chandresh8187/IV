@@ -352,11 +352,6 @@ export default function GenerateCertificateScreen({ route, navigation }) {
     } catch (error) {
       // Log the full error so the real cause (network vs server vs a plain
       // JS exception in PDF generation) is visible in Metro/adb logs.
-      console.log('Certificate generation failed:', {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
 
       Alert.alert(
         'Error',
