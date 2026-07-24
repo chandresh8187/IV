@@ -14,17 +14,7 @@ import {
   Settings2,
 } from 'lucide-react-native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
-
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  lightBlue: '#EEF7FD',
-};
+import { COLORS, UI } from '../../assets/Colors';
 
 export default function ProductionMenuScreen({ navigation }) {
   const { isTablet, wideMaxWidth } = useResponsive();
@@ -69,11 +59,14 @@ export default function ProductionMenuScreen({ navigation }) {
       }}
       contentContainerStyle={[styles.container, centeredContent(wideMaxWidth)]}
     >
+      <Text style={styles.eyebrow}>WORKSPACE</Text>
       <Text style={styles.title}>Production</Text>
-      <Text style={styles.subtitle}>Select production module</Text>
+      <Text style={styles.subtitle}>
+        Choose a module to manage today’s operations
+      </Text>
 
       <View style={[styles.menuList, isTablet && styles.menuGridTablet]}>
-        {menus.map(item => {
+        {menus.map((item, index) => {
           const Icon = item.icon;
 
           return (
@@ -92,7 +85,12 @@ export default function ProductionMenuScreen({ navigation }) {
                 <Text style={styles.cardDesc}>{item.desc}</Text>
               </View>
 
-              <Text style={styles.arrow}>›</Text>
+              <View style={styles.cardMeta}>
+                <Text style={styles.cardNumber}>
+                  {String(index + 1).padStart(2, '0')}
+                </Text>
+                <Text style={styles.arrow}>›</Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -103,16 +101,29 @@ export default function ProductionMenuScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: UI.pagePadding,
+    paddingTop: 22,
+    paddingBottom: 30,
   },
-  title: { color: COLORS.primary, fontSize: 28, fontWeight: '900' },
+  eyebrow: {
+    color: COLORS.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    marginBottom: 6,
+  },
+  title: {
+    color: COLORS.primary,
+    fontSize: 29,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+  },
   subtitle: {
     color: COLORS.gray,
     fontSize: 14,
-    fontWeight: '700',
     marginTop: 4,
-    marginBottom: 18,
+    marginBottom: 22,
+    lineHeight: 20,
   },
 
   menuList: {},
@@ -125,15 +136,15 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: UI.radius,
+    padding: 17,
+    marginBottom: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    elevation: 3,
+    ...UI.shadow,
   },
 
   cardTablet: {
@@ -143,18 +154,29 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 50,
     height: 50,
-    borderRadius: 18,
+    borderRadius: 14,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '900' },
+  cardTitle: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
   cardDesc: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '700',
     marginTop: 4,
+    lineHeight: 17,
   },
-  arrow: { color: COLORS.accent, fontSize: 34, fontWeight: '900' },
+  cardMeta: {
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    alignSelf: 'stretch',
+  },
+  cardNumber: {
+    color: COLORS.muted,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  arrow: { color: COLORS.accent, fontSize: 30, fontWeight: '700' },
 });

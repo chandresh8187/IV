@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  CalendarDays,
   CircleCheck,
   Factory,
   Moon,
@@ -21,7 +22,7 @@ import {
 
 import moment from 'moment';
 import { getDashboardApi } from '../../api/dashboardApi';
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { socket } from '../../socket/socket';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -111,6 +112,20 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
       >
+        <View style={styles.pageIntro}>
+          <View style={styles.introCopy}>
+            <Text style={styles.eyebrow}>PLANT OPERATIONS</Text>
+            <Text style={styles.title}>Operations overview</Text>
+            <Text style={styles.subTitle}>
+              Live production and plant performance at a glance
+            </Text>
+          </View>
+          <View style={styles.dateChip}>
+            <CalendarDays size={16} color={COLORS.accent} />
+            <Text style={styles.dateChipText}>{moment().format('DD MMM')}</Text>
+          </View>
+        </View>
+
         {plantStatusData?.production_allowed && (
           <View style={styles.activeShiftCard}>
             <View style={styles.cardHeaderRow}>
@@ -428,9 +443,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    paddingTop: 10,
+    paddingHorizontal: UI.pagePadding,
+    paddingBottom: 30,
+    paddingTop: 20,
   },
 
   center: {
@@ -451,33 +466,61 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  headerCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 24,
-    padding: 18,
-    elevation: 4,
+  pageIntro: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 
+  introCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  eyebrow: {
+    color: COLORS.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.8,
+    marginBottom: 6,
+  },
+
   title: {
     color: COLORS.primary,
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 27,
+    fontWeight: '800',
+    letterSpacing: -0.7,
   },
 
   subTitle: {
     color: COLORS.gray,
     fontSize: 13,
     marginTop: 4,
-    fontWeight: 'bold',
+    lineHeight: 19,
+  },
+
+  dateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: UI.radiusSmall,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+
+  dateChipText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   shiftBadge: {
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 99,
+    borderRadius: 4,
   },
 
   activeBadge: {
@@ -490,7 +533,7 @@ const styles = StyleSheet.create({
 
   shiftBadgeText: {
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   activeText: {
@@ -502,10 +545,10 @@ const styles = StyleSheet.create({
   },
 
   plantStatusCard: {
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: UI.radius,
+    padding: UI.cardPadding,
     borderWidth: 1,
-    elevation: 2,
+    ...UI.shadow,
   },
 
   runningStatusCard: {
@@ -532,7 +575,7 @@ const styles = StyleSheet.create({
   plantStatusIcon: {
     width: 44,
     height: 44,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -545,7 +588,7 @@ const styles = StyleSheet.create({
   plantStatusTitle: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   plantStatusDescription: {
@@ -559,12 +602,12 @@ const styles = StyleSheet.create({
   plantStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 99,
+    borderRadius: 4,
   },
 
   plantStatusBadgeText: {
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   runningStatusBadge: {
@@ -602,9 +645,13 @@ const styles = StyleSheet.create({
   activeShiftCard: {
     marginTop: 14,
     backgroundColor: COLORS.white,
-    borderRadius: 24,
-    padding: 16,
-    elevation: 3,
+    borderRadius: UI.radius,
+    padding: UI.cardPadding,
+    ...UI.shadow,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.teal,
   },
 
   cardHeaderRow: {
@@ -616,8 +663,8 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 44,
     height: 44,
-    borderRadius: 16,
-    backgroundColor: COLORS.lightBlue,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.tealSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -625,7 +672,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   cardDesc: {
@@ -648,15 +695,17 @@ const styles = StyleSheet.create({
   summaryCard: {
     // width: '48%',
     backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 15,
-    elevation: 3,
+    borderRadius: UI.radius,
+    padding: 16,
+    ...UI.shadow,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   summaryIcon: {
     width: 42,
     height: 42,
-    borderRadius: 15,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -672,14 +721,14 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 5,
   },
 
   sectionTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 22,
     marginBottom: 12,
   },
@@ -694,9 +743,11 @@ const styles = StyleSheet.create({
 
   shiftCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
-    elevation: 3,
+    borderRadius: UI.radius,
+    padding: UI.cardPadding,
+    ...UI.shadow,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   shiftCardTablet: {
@@ -705,10 +756,10 @@ const styles = StyleSheet.create({
 
   monthCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: UI.radius,
+    padding: UI.cardPadding,
     marginTop: 14,
-    elevation: 3,
+    ...UI.shadow,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -720,7 +771,7 @@ const styles = StyleSheet.create({
   monthTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 
   monthSubTitle: {
@@ -738,9 +789,11 @@ const styles = StyleSheet.create({
 
   summaryBox: {
     width: '48%',
-    backgroundColor: COLORS.bg,
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: UI.radiusSmall,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 13,
   },
 
   summaryBoxTablet: {
@@ -750,7 +803,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     color: COLORS.gray,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   // Named differently from summaryValue: duplicate StyleSheet keys silently
@@ -758,7 +811,7 @@ const styles = StyleSheet.create({
   summaryBoxValue: {
     color: COLORS.primary,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 5,
   },
 
@@ -768,16 +821,16 @@ const styles = StyleSheet.create({
 
   materialCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
-    elevation: 3,
+    elevation: 2,
     marginBottom: 12,
   },
 
   materialTitle: {
     color: COLORS.primary,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 12,
   },
 
@@ -802,12 +855,12 @@ const styles = StyleSheet.create({
   infoValue: {
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 18,
     elevation: 2,
   },

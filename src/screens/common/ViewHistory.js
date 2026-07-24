@@ -123,16 +123,16 @@ const styles = StyleSheet.create({
 
   summaryCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 15,
-    elevation: 3,
+    elevation: 2,
   },
 
   summaryTitle: { color: COLORS.gray, fontSize: 12, fontWeight: '700' },
   summaryValue: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 6,
   },
 
@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
   buttonCard: {
     width: '100%',
     backgroundColor: COLORS.white,
-    borderRadius: 20,
-    elevation: 3,
+    borderRadius: 12,
+    elevation: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

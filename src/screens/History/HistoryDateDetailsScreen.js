@@ -12,15 +12,7 @@ import {
 import { getHistoryDateSummaryApi } from '../../api/historyApi';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function HistoryDateDetailsScreen({ navigation, route }) {
   const { date } = route.params;
@@ -186,15 +178,15 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 12,
-    elevation: 3,
+    elevation: 2,
   },
 
   cardTitle: {
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     color: COLORS.primary,
     marginBottom: 12,
   },
@@ -207,7 +199,7 @@ const styles = StyleSheet.create({
   infoBox: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 10,
   },
 
@@ -220,22 +212,22 @@ const styles = StyleSheet.create({
   infoValue: {
     color: COLORS.primary,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 3,
   },
 
   totalCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
     marginTop: 5,
-    elevation: 3,
+    elevation: 2,
   },
 
   totalTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 12,
   },
 
@@ -258,7 +250,7 @@ const styles = StyleSheet.create({
   zincValue: {
     color: COLORS.accent,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 2,
   },
 
@@ -275,7 +267,7 @@ const styles = StyleSheet.create({
   menuButton: {
     backgroundColor: COLORS.primary,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -288,6 +280,6 @@ const styles = StyleSheet.create({
   menuButtonText: {
     color: COLORS.white,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

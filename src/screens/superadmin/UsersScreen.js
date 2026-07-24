@@ -545,21 +545,21 @@ const styles = StyleSheet.create({
 
   headerCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
-    elevation: 4,
+    elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 
-  title: { color: COLORS.primary, fontSize: 27, fontWeight: '900' },
+  title: { color: COLORS.primary, fontSize: 27, fontWeight: '800' },
   description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
 
   addBtn: {
     width: 50,
     height: 50,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -568,16 +568,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 20,
     marginBottom: 12,
   },
 
   activeCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
-    elevation: 3,
+    elevation: 2,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -585,9 +585,9 @@ const styles = StyleSheet.create({
 
   userCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
-    elevation: 3,
+    elevation: 2,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -596,14 +596,14 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46,
     height: 46,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
 
-  userName: { color: COLORS.primary, fontSize: 16, fontWeight: '900' },
+  userName: { color: COLORS.primary, fontSize: 16, fontWeight: '800' },
   userEmail: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
 
   shiftText: {
@@ -637,12 +637,12 @@ const styles = StyleSheet.create({
   activeBadgeText: {
     color: COLORS.green,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 18,
     elevation: 2,
   },
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
   modalIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  modalTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
+  modalTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
   modalDesc: {
     color: COLORS.gray,
     fontSize: 12,
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -708,9 +708,9 @@ const styles = StyleSheet.create({
 
   formCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
-    elevation: 3,
+    elevation: 2,
   },
 
   input: {
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: COLORS.primary,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 8,
     marginTop: 4,
   },
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   choiceBtn: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
     borderWidth: 1,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
 
   choiceText: {
     color: COLORS.gray,
-    fontWeight: '900',
+    fontWeight: '800',
     fontSize: 13,
   },
 
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
   saveText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.6,
   },
 });

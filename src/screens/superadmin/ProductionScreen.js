@@ -34,17 +34,7 @@ import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import { formatNumber } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-};
+import { COLORS } from '../../assets/Colors';
 
 const PAPER_THEME = {
   colors: {
@@ -914,24 +904,24 @@ const styles = StyleSheet.create({
 
   headerCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
-    elevation: 4,
+    elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 
-  title: { fontSize: 25, fontWeight: '900', color: COLORS.primary },
+  title: { fontSize: 25, fontWeight: '800', color: COLORS.primary },
   description: { fontSize: 13, color: COLORS.gray, marginTop: 4 },
 
   tableCard: {
     flex: 1,
     marginTop: 12,
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 2,
   },
 
   loaderBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -950,7 +940,7 @@ const styles = StyleSheet.create({
   headerCellText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     textAlign: 'center',
   },
 
@@ -973,7 +963,7 @@ const styles = StyleSheet.create({
   },
 
   cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
-  boldCell: { fontWeight: '900', color: COLORS.primary },
+  boldCell: { fontWeight: '800', color: COLORS.primary },
 
   emptyBox: { height: 180, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: COLORS.gray, fontWeight: '700' },
@@ -1003,13 +993,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  modalTitle: { color: COLORS.primary, fontSize: 24, fontWeight: '900' },
+  modalTitle: { color: COLORS.primary, fontSize: 24, fontWeight: '800' },
   modalDesc: { color: COLORS.gray, fontSize: 14, marginTop: 3 },
 
   closeBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1019,16 +1009,16 @@ const styles = StyleSheet.create({
 
   formCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
-    elevation: 3,
+    elevation: 2,
     marginVertical: 10,
   },
 
   formTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 14,
   },
 
@@ -1054,7 +1044,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -1063,13 +1053,13 @@ const styles = StyleSheet.create({
   saveText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 
   previewBox: {
     backgroundColor: COLORS.lightBlue,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
@@ -1080,20 +1070,20 @@ const styles = StyleSheet.create({
   previewValue: {
     color: COLORS.primary,
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 4,
   },
 
   shiftInfoCard: {
     backgroundColor: COLORS.lightBlue,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 12,
     marginTop: 10,
     borderWidth: 1,
     borderColor: '#D8ECFA',
   },
 
-  shiftInfoTitle: { color: COLORS.primary, fontSize: 14, fontWeight: '900' },
+  shiftInfoTitle: { color: COLORS.primary, fontSize: 14, fontWeight: '800' },
 
   shiftErrorCard: {
     backgroundColor: '#FEF2F2',
@@ -1122,7 +1112,7 @@ const styles = StyleSheet.create({
 
   dropdown: {
     minHeight: 56,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: COLORS.inputBorder,
     backgroundColor: COLORS.white,
@@ -1133,7 +1123,7 @@ const styles = StyleSheet.create({
 
   dropdownContainer: {
     borderColor: COLORS.inputBorder,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
     elevation: 8,
     marginTop: 4,
@@ -1166,7 +1156,7 @@ const styles = StyleSheet.create({
   dropdownSelectedItem: { backgroundColor: COLORS.lightBlue },
 
   dropdownSelectedItemLabel: {
-    fontWeight: '900',
+    fontWeight: '800',
     color: COLORS.primary,
   },
 
@@ -1184,7 +1174,7 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     alignSelf: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
     elevation: 12,
   },
@@ -1199,7 +1189,7 @@ const styles = StyleSheet.create({
   timePickerTitle: {
     color: COLORS.primary,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   timePickerSubtitle: {
@@ -1212,7 +1202,7 @@ const styles = StyleSheet.create({
   timePickerCloseButton: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1222,7 +1212,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     borderWidth: 1,
     borderColor: '#D8ECFA',
@@ -1235,7 +1225,7 @@ const styles = StyleSheet.create({
   selectedTimeText: {
     color: COLORS.primary,
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   timePickerActions: {
@@ -1247,7 +1237,7 @@ const styles = StyleSheet.create({
   nowButton: {
     flex: 1,
     minHeight: 50,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     borderWidth: 1,
     borderColor: '#D8ECFA',
@@ -1258,13 +1248,13 @@ const styles = StyleSheet.create({
   nowButtonText: {
     color: COLORS.primary,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   timeDoneButton: {
     flex: 1,
     minHeight: 50,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1273,6 +1263,6 @@ const styles = StyleSheet.create({
   timeDoneButtonText: {
     color: COLORS.white,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

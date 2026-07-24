@@ -15,17 +15,7 @@ import { CalendarDays, Search } from 'lucide-react-native';
 import { getHistoryDatesApi } from '../../api/historyApi';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-};
+import { COLORS } from '../../assets/Colors';
 
 const PAPER_THEME = {
   colors: {
@@ -170,7 +160,7 @@ const styles = StyleSheet.create({
 
   searchCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 12,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,7 +190,7 @@ const styles = StyleSheet.create({
 
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 30,
     alignItems: 'center',
     marginTop: 20,
@@ -215,10 +205,10 @@ const styles = StyleSheet.create({
 
   dateCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 12,
-    elevation: 3,
+    elevation: 2,
     borderWidth: 1,
     borderColor: COLORS.border,
     flexDirection: 'row',
@@ -229,7 +219,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 52,
     height: 52,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -238,7 +228,7 @@ const styles = StyleSheet.create({
   dateText: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   metaText: {
@@ -270,13 +260,13 @@ const styles = StyleSheet.create({
   miniValue: {
     color: COLORS.primary,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 2,
   },
 
   arrow: {
     color: COLORS.accent,
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

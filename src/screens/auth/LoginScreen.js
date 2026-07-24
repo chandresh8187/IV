@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Factory, ShieldCheck } from 'lucide-react-native';
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +20,7 @@ import { setAuth } from '../../redux/slices/authSlice';
 import { IVSnackbar } from './../../components/IVSnackbar';
 import { getFCMToken } from '../../services/firebaseService';
 import { saveFcmTokenApi } from '../../api/notificationApi';
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function LoginScreen() {
@@ -116,10 +117,14 @@ export default function LoginScreen() {
         contentInsetAdjustmentBehavior="always"
       >
         <View style={[styles.card, isTablet && centeredContent(480)]}>
-          <Text style={styles.title}>Login</Text>
+          <View style={styles.brandMark}>
+            <Factory size={25} color={COLORS.white} strokeWidth={2.2} />
+          </View>
+          <Text style={styles.eyebrow}>IV PRODUCTION</Text>
+          <Text style={styles.title}>Welcome back.</Text>
 
           <Text style={styles.description}>
-            Login with your registered email and password
+            Sign in to continue managing your plant operations.
           </Text>
 
           <TextInput
@@ -168,11 +173,16 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.loginText}>LOGIN</Text>
+              <Text style={styles.loginText}>Sign in</Text>
             )}
           </TouchableOpacity>
 
-          <View style={{ height: 20 }} />
+          <View style={styles.secureNote}>
+            <ShieldCheck size={16} color={COLORS.teal} />
+            <Text style={styles.secureNoteText}>
+              Secure access for authorised plant staff
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -196,6 +206,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: COLORS.bg,
   },
 
   logoBox: {
@@ -211,21 +222,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
-    elevation: 5,
+    elevation: 3,
     overflow: 'hidden',
   },
 
   logoText: {
     color: COLORS.white,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 1,
   },
 
   appTitle: {
     color: COLORS.primary,
     fontSize: 26,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   appSubtitle: {
@@ -237,22 +248,49 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 26,
-    padding: 20,
-    elevation: 5,
+    borderRadius: UI.radiusLarge,
+    padding: 26,
+    ...UI.shadow,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  brandMark: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent,
+    marginBottom: 22,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+
+  eyebrow: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    marginBottom: 9,
   },
 
   title: {
     color: COLORS.primary,
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.8,
   },
 
   description: {
     marginTop: 6,
-    marginBottom: 20,
+    marginBottom: 24,
     color: COLORS.gray,
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 22,
   },
 
   input: {
@@ -261,9 +299,9 @@ const styles = StyleSheet.create({
   },
 
   loginBtn: {
-    height: 56,
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
+    height: 54,
+    backgroundColor: COLORS.accent,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
@@ -276,14 +314,23 @@ const styles = StyleSheet.create({
   loginText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1,
+    fontWeight: '700',
   },
 
-  note: {
-    marginTop: 16,
-    color: COLORS.gray,
+  secureNote: {
+    marginTop: 20,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.divider,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 7,
+  },
+
+  secureNoteText: {
+    color: COLORS.muted,
     fontSize: 12,
-    textAlign: 'center',
+    fontWeight: '600',
   },
 });

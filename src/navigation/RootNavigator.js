@@ -13,7 +13,7 @@ import PlantManagerTabs from './PlantManagerTabs';
 
 import { getStoredAuth } from '../api/authApi';
 import { setAuth, stopLoading } from '../redux/slices/authSlice';
-import { COLORS } from './../assets/Colors';
+import { COLORS, UI } from './../assets/Colors';
 import { getSharedPdf, clearSharedPdf } from '../native/ShareIntent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { extractPlanningPdfApi } from '../api/productionPlanningApi';
@@ -136,20 +136,20 @@ export default function RootNavigator() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#232B5D',
+          backgroundColor: COLORS.primary,
         }}
       >
         <View
           style={{
-            backgroundColor: '#fff',
+            backgroundColor: COLORS.white,
             height: 80,
             width: 80,
-            borderRadius: 10,
+            borderRadius: UI.radius,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <ActivityIndicator size="large" color="#232B5D" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       </View>
     );

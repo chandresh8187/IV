@@ -64,12 +64,12 @@ const styles = StyleSheet.create({
   button: {
     width: 46,
     height: 46,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
 
     justifyContent: 'center',
     alignItems: 'center',
 
-    elevation: 5,
+    elevation: 3,
   },
 });

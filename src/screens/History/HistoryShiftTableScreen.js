@@ -15,15 +15,7 @@ import { getHistoryShiftTableApi } from '../../api/historyApi';
 import { generateProductionPdf } from '../../utils/productionPdfGenerator';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
@@ -254,15 +246,15 @@ const styles = StyleSheet.create({
 
   summaryCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
-    elevation: 3,
+    elevation: 2,
   },
 
   sectionTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   summaryGrid: {
@@ -275,7 +267,7 @@ const styles = StyleSheet.create({
   summaryBox: {
     width: '48%',
     backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 12,
   },
 
@@ -288,16 +280,16 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: COLORS.primary,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 5,
   },
 
   tableCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 14,
     marginTop: 14,
-    elevation: 3,
+    elevation: 2,
   },
 
   tableHeaderRow: {
@@ -320,7 +312,7 @@ const styles = StyleSheet.create({
   fullBtnText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   tableHead: {
@@ -359,7 +351,7 @@ const styles = StyleSheet.create({
 
   headText: {
     color: COLORS.white,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   emptyTable: {
@@ -381,7 +373,7 @@ const styles = StyleSheet.create({
   },
   pdfBtn: {
     height: 48,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -391,13 +383,13 @@ const styles = StyleSheet.create({
   pdfBtnText: {
     color: COLORS.white,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   generateBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -410,7 +402,7 @@ const styles = StyleSheet.create({
   generateText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 });

@@ -671,23 +671,23 @@ export default function GenerateCertificateScreen({ route, navigation }) {
                   backgroundColor: COLORS.primary,
                   borderRadius: 99,
                 },
-                day_label: { color: COLORS.primary, fontWeight: 'bold' },
+                day_label: { color: COLORS.primary, fontWeight: '700' },
                 selected_label: { color: COLORS.white },
                 today_label: {
                   color: COLORS.accent,
-                  fontWeight: 'bold',
+                  fontWeight: '700',
                 },
                 weekday_label: {
                   color: COLORS.primary,
-                  fontWeight: 'bold',
+                  fontWeight: '700',
                 },
                 month_selector_label: {
                   color: COLORS.primary,
-                  fontWeight: 'bold',
+                  fontWeight: '700',
                 },
                 year_selector_label: {
                   color: COLORS.primary,
-                  fontWeight: 'bold',
+                  fontWeight: '700',
                 },
               }}
             />
@@ -712,13 +712,13 @@ const styles = StyleSheet.create({
 
   headerCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
-    elevation: 3,
+    elevation: 2,
     marginBottom: 12,
   },
 
-  title: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
+  title: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
   description: {
     color: COLORS.gray,
     fontSize: 13,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
 
   formCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
     elevation: 2,
     marginBottom: 12,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
   formTitle: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 12,
   },
 
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   typeBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
 
-  typeText: { color: COLORS.primary, fontSize: 12, fontWeight: '900' },
+  typeText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
   typeTextActive: { color: COLORS.white },
 
   typeHint: {
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
 
   dropdown: {
     borderColor: COLORS.inputBorder,
-    borderRadius: 14,
+    borderRadius: 12,
     marginBottom: 14,
     minHeight: 48,
   },
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     backgroundColor: COLORS.white,
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
   dateValue: {
     color: COLORS.text,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 2,
   },
 
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
 
   readingsInfo: {
     backgroundColor: COLORS.lightBlue,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
 
   addRowBtnDisabled: { opacity: 0.5 },
 
-  addRowText: { color: COLORS.white, fontSize: 11, fontWeight: '900' },
+  addRowText: { color: COLORS.white, fontSize: 11, fontWeight: '800' },
 
   manualRow: {
     flexDirection: 'row',
@@ -878,7 +878,7 @@ const styles = StyleSheet.create({
     width: 18,
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     textAlign: 'center',
   },
 
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
   generateBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   generateText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
 
   dateCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 28,
+    borderRadius: 12,
     padding: 18,
     elevation: 12,
     // Keep the calendar a comfortable size on tablets instead of
@@ -952,7 +952,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  dateTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '900' },
+  dateTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '800' },
 
   dateCloseBtn: {
     width: 38,
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
   doneBtn: {
     height: 50,
     backgroundColor: COLORS.primary,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
   doneText: {
     color: COLORS.white,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 });

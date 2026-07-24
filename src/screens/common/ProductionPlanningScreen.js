@@ -565,9 +565,9 @@ const styles = StyleSheet.create({
 
   headerCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
-    elevation: 4,
+    elevation: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.primary,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   description: {
@@ -589,11 +589,11 @@ const styles = StyleSheet.create({
   addBtn: {
     width: 50,
     height: 50,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 5,
+    elevation: 3,
   },
 
   listContent: {
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
 
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 30,
     alignItems: 'center',
     marginTop: 20,
@@ -624,10 +624,10 @@ const styles = StyleSheet.create({
 
   planCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 12,
-    elevation: 3,
+    elevation: 2,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   challanNo: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   partyName: {
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 99,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     overflow: 'hidden',
   },
 
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
   infoBox: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 10,
   },
 
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
   infoValue: {
     color: COLORS.primary,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 4,
   },
 
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
 
   certificateBtn: {
     height: 46,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.success,
     alignItems: 'center',
     justifyContent: 'center',
@@ -727,14 +727,14 @@ const styles = StyleSheet.create({
   certificateText: {
     color: COLORS.white,
     fontSize: 12.5,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
 
   editBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -745,13 +745,13 @@ const styles = StyleSheet.create({
   editText: {
     color: COLORS.primary,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   deleteBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
   deleteText: {
     color: COLORS.danger,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   modalSafe: {
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: COLORS.primary,
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   modalDesc: {
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
 
   formCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 14,
     elevation: 2,
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
   formTitle: {
     color: COLORS.primary,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 8,
   },
 
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
   statusBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
   statusText: {
     color: COLORS.primary,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   statusTextActive: {
@@ -860,11 +860,11 @@ const styles = StyleSheet.create({
 
   saveBtn: {
     height: 56,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
+    elevation: 2,
   },
 
   saveBtnDisabled: {
@@ -874,13 +874,13 @@ const styles = StyleSheet.create({
   saveText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
 
   pdfBtn: {
     height: 50,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     borderWidth: 1,
     borderColor: COLORS.accent,
@@ -892,6 +892,6 @@ const styles = StyleSheet.create({
   pdfBtnText: {
     color: COLORS.primary,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { COLORS } from '../assets/Colors';
+import { COLORS, UI } from '../assets/Colors';
 
 function TabIcon({ icon: Icon, focused, color }) {
   if (!Icon) {
@@ -32,11 +32,11 @@ export function createTabScreenOptions(iconByRoute) {
   return ({ route }) => ({
     headerShadowVisible: false,
     headerStyle: {
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.white,
     },
     headerTitleStyle: {
-      color: COLORS.white,
-      fontWeight: '900',
+      color: COLORS.primary,
+      fontWeight: '700',
     },
     sceneStyle: {
       backgroundColor: COLORS.bg,
@@ -56,12 +56,17 @@ export function createTabScreenOptions(iconByRoute) {
 
 const styles = StyleSheet.create({
   tabBar: {
-    paddingTop: 8,
+    height: 70,
+    paddingTop: 7,
     paddingBottom: 8,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    elevation: 12,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
   },
 
   tabBarItem: {
@@ -69,8 +74,8 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 10.5,
+    fontWeight: '700',
     marginTop: 2,
   },
 
@@ -84,7 +89,7 @@ const styles = StyleSheet.create({
   topLine: {
     position: 'absolute',
     top: -7,
-    width: 24,
+    width: 20,
     height: 3,
     borderRadius: 99,
     backgroundColor: COLORS.accent,
@@ -93,7 +98,7 @@ const styles = StyleSheet.create({
   iconPill: {
     height: 34,
     minWidth: 44,
-    borderRadius: 18,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
   },

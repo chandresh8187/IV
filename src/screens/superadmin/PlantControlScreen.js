@@ -498,19 +498,19 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     padding: 18,
-    borderRadius: 24,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 2,
   },
-  title: { color: COLORS.primary, fontSize: 27, fontWeight: '900' },
+  title: { color: COLORS.primary, fontSize: 27, fontWeight: '800' },
   description: { color: COLORS.gray, marginTop: 4 },
   headerIcon: {
     width: 48,
     height: 48,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -518,10 +518,10 @@ const styles = StyleSheet.create({
   currentCard: {
     marginTop: 16,
     padding: 22,
-    borderRadius: 28,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
     alignItems: 'center',
-    elevation: 4,
+    elevation: 2,
   },
   currentIcon: {
     width: 78,
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: { marginTop: 12, color: COLORS.gray, fontWeight: '700' },
-  currentStatus: { marginTop: 4, fontSize: 28, fontWeight: '900' },
+  currentStatus: { marginTop: 4, fontSize: 28, fontWeight: '800' },
   currentMessage: {
     marginTop: 8,
     color: COLORS.gray,
@@ -552,18 +552,18 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   infoLabel: { color: COLORS.gray, fontWeight: '700' },
-  infoValue: { color: COLORS.text, fontWeight: '900' },
+  infoValue: { color: COLORS.text, fontWeight: '800' },
   controlCard: {
     marginTop: 16,
     padding: 18,
-    borderRadius: 24,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
-    elevation: 3,
+    elevation: 2,
   },
   sectionTitle: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
     marginBottom: 12,
   },
   statusRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
@@ -578,13 +578,13 @@ const styles = StyleSheet.create({
 
   selectedStatusValue: {
     color: COLORS.primary,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   statusChoice: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   actionButton: {
     minHeight: 52,
     marginTop: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -608,21 +608,21 @@ const styles = StyleSheet.create({
   runningButton: {
     minHeight: 52,
     marginTop: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.success,
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionText: { color: COLORS.white, fontWeight: '900' },
+  actionText: { color: COLORS.white, fontWeight: '800' },
   disabled: { opacity: 0.6 },
   historyCard: {
     marginTop: 16,
     padding: 18,
-    borderRadius: 24,
+    borderRadius: 12,
     backgroundColor: COLORS.white,
-    elevation: 3,
+    elevation: 2,
   },
   historyRow: {
     flexDirection: 'row',
@@ -631,9 +631,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  historyTitle: { color: COLORS.text, fontWeight: '900' },
+  historyTitle: { color: COLORS.text, fontWeight: '800' },
   historyMessage: { color: COLORS.gray, marginTop: 3 },
-  historyStatus: { color: COLORS.primary, fontSize: 11, fontWeight: '900' },
+  historyStatus: { color: COLORS.primary, fontSize: 11, fontWeight: '800' },
   emptyText: { color: COLORS.gray, paddingVertical: 12 },
 
   messageInput: {
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   clearDateText: {
     color: COLORS.danger,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     maxWidth: 540,
     alignSelf: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
     elevation: 10,
   },
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   datePickerTitle: {
     color: COLORS.primary,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   datePickerSubtitle: {
     color: COLORS.gray,
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -699,17 +699,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     marginTop: 10,
   },
   selectedDateText: {
     color: COLORS.primary,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   doneButton: {
     minHeight: 50,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -717,6 +717,6 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     color: COLORS.white,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

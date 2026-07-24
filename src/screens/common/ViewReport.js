@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  fullBtnText: { color: COLORS.primary, fontSize: 12, fontWeight: '900' },
+  fullBtnText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
   fullSafe: { flex: 1, backgroundColor: COLORS.bg },
   fullHeader: {
     backgroundColor: COLORS.white,
@@ -83,12 +83,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  fullTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
+  fullTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
   fullBody: { flex: 1, padding: 10, backgroundColor: COLORS.bg },
   closeBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -104,6 +104,6 @@ const styles = StyleSheet.create({
   blockTitleNoMargin: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 });

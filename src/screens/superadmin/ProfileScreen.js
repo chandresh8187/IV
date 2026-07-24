@@ -8,7 +8,7 @@ import messaging from '@react-native-firebase/messaging';
 import { removeFcmTokenApi } from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
 import { clearAuth } from '../../redux/slices/authSlice';
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function ProfileScreen() {
@@ -101,22 +101,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    padding: 16,
+    padding: UI.pagePadding,
   },
 
   profileCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 28,
-    padding: 24,
+    borderRadius: UI.radiusLarge,
+    padding: 26,
     alignItems: 'center',
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...UI.shadow,
   },
 
   avatar: {
     width: 104,
     height: 104,
     borderRadius: 52,
-    backgroundColor: COLORS.lightBlue,
+    backgroundColor: COLORS.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -125,11 +127,12 @@ const styles = StyleSheet.create({
   name: {
     color: COLORS.primary,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '800',
+    letterSpacing: -0.4,
   },
 
   roleBadge: {
-    backgroundColor: COLORS.lightBlue,
+    backgroundColor: COLORS.tealSoft,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
@@ -137,16 +140,18 @@ const styles = StyleSheet.create({
   },
 
   roleText: {
-    color: COLORS.primary,
+    color: COLORS.teal,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   infoCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: UI.radius,
     padding: 16,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...UI.shadow,
     marginTop: 18,
   },
 
@@ -161,7 +166,7 @@ const styles = StyleSheet.create({
   infoIcon: {
     width: 44,
     height: 44,
-    borderRadius: 16,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -177,14 +182,14 @@ const styles = StyleSheet.create({
   infoValue: {
     color: COLORS.text,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 3,
   },
 
   logoutBtn: {
     marginTop: 'auto',
-    borderRadius: 18,
-    backgroundColor: COLORS.red,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -195,7 +200,7 @@ const styles = StyleSheet.create({
   logoutText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 });

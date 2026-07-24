@@ -1,15 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function HistoryFullTableScreen({ route }) {
   const { tableData = [] } = route.params;
@@ -145,9 +137,9 @@ const styles = StyleSheet.create({
 
   table: {
     backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 2,
     marginBottom: 30,
   },
 
@@ -184,7 +176,7 @@ const styles = StyleSheet.create({
 
   headText: {
     color: COLORS.white,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   emptyBox: {

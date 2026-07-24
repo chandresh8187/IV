@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 import { ArrowLeft } from 'lucide-react-native';
-import { COLORS } from '../assets/Colors';
+import { COLORS, UI } from '../assets/Colors';
 
 const Header = props => {
   const canGoBack = props?.navigation?.canGoBack();
@@ -19,7 +19,7 @@ const Header = props => {
           <Pressable
             onPress={() => props?.navigation.goBack()}
             android_ripple={{
-              color: 'rgba(255,255,255,0.30)',
+              color: COLORS.lightBlue,
               borderless: false,
               radius: 20,
             }}
@@ -29,7 +29,7 @@ const Header = props => {
               pressed && { opacity: 0.85 },
             ]}
           >
-            <ArrowLeft color={COLORS.white} />
+            <ArrowLeft color={COLORS.primary} />
           </Pressable>
         </View>
       )}
@@ -39,8 +39,8 @@ const Header = props => {
 
 const styles = StyleSheet.create({
   header: {
-    height: 52,
-    backgroundColor: COLORS.primary,
+    height: 64,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.divider,
   },
@@ -55,9 +55,10 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: COLORS.white,
+    color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.35,
   },
 
   backBox: {
@@ -74,7 +75,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderRadius: 20,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
   },
 });
 

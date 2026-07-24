@@ -15,15 +15,7 @@ import {
   useResponsive,
 } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-};
+import { COLORS } from '../../assets/Colors';
 
 export default function HistoryPlanningSummaryScreen({ route }) {
   const { date } = route.params;
@@ -154,7 +146,7 @@ const styles = StyleSheet.create({
 
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 25,
     alignItems: 'center',
   },
@@ -166,10 +158,10 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 14,
-    elevation: 3,
+    elevation: 2,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -184,7 +176,7 @@ const styles = StyleSheet.create({
   challan: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
 
   party: {
@@ -201,7 +193,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 99,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     overflow: 'hidden',
   },
 
@@ -232,7 +224,7 @@ const styles = StyleSheet.create({
 
   infoBox: {
     backgroundColor: COLORS.bg,
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 10,
   },
 
@@ -245,7 +237,7 @@ const styles = StyleSheet.create({
   infoValue: {
     color: COLORS.primary,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     marginTop: 4,
   },
 });

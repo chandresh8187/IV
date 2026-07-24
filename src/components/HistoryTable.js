@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
   tableCard: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 2,
   },
   tableHeader: { flexDirection: 'row', backgroundColor: COLORS.primary },
   headerCell: {
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   headerCellText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     textAlign: 'center',
   },
   tableRow: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
-  boldCell: { fontWeight: '900', color: COLORS.primary },
+  boldCell: { fontWeight: '800', color: COLORS.primary },
   emptyBox: { height: 180, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: COLORS.gray, fontWeight: '700' },
 });

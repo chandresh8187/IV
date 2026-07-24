@@ -21,17 +21,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-const COLORS = {
-  primary: '#232B5D',
-  accent: '#39A9E6',
-  bg: '#F5F8FC',
-  white: '#FFFFFF',
-  text: '#1F2544',
-  gray: '#6B7280',
-  border: '#E5E7EB',
-  inputBorder: '#B8C4D6',
-  lightBlue: '#EEF7FD',
-};
+import { COLORS } from '../../assets/Colors';
 
 const PAPER_THEME = {
   colors: {
@@ -226,23 +216,23 @@ function DatePickerModal({ visible, value, onChange, onClose }) {
                 backgroundColor: COLORS.primary,
                 borderRadius: 99,
               },
-              day_label: { color: COLORS.primary, fontWeight: 'bold' },
+              day_label: { color: COLORS.primary, fontWeight: '700' },
               selected_label: { color: COLORS.white },
               today_label: {
                 color: COLORS.accent,
-                fontWeight: 'bold',
+                fontWeight: '700',
               },
               weekday_label: {
                 color: COLORS.primary,
-                fontWeight: 'bold',
+                fontWeight: '700',
               },
               month_selector_label: {
                 color: COLORS.primary,
-                fontWeight: 'bold',
+                fontWeight: '700',
               },
               year_selector_label: {
                 color: COLORS.primary,
-                fontWeight: 'bold',
+                fontWeight: '700',
               },
             }}
           />
@@ -283,9 +273,9 @@ const styles = StyleSheet.create({
 
   headerCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 18,
-    elevation: 4,
+    elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -294,20 +284,20 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 48,
     height: 48,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  title: { color: COLORS.primary, fontSize: 26, fontWeight: '900' },
+  title: { color: COLORS.primary, fontSize: 26, fontWeight: '800' },
   description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
 
   filterCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 16,
-    elevation: 3,
+    elevation: 2,
     marginTop: 14,
   },
 
@@ -318,7 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  sectionTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '900' },
+  sectionTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '800' },
   input: { backgroundColor: COLORS.white, marginBottom: 12 },
 
   shiftRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
@@ -326,7 +316,7 @@ const styles = StyleSheet.create({
   shiftBtn: {
     flex: 1,
     height: 46,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.bg,
@@ -341,7 +331,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
 
-  shiftBtnText: { color: COLORS.primary, fontWeight: '900', fontSize: 13 },
+  shiftBtnText: { color: COLORS.primary, fontWeight: '800', fontSize: 13 },
   shiftBtnTextActive: { color: COLORS.white },
 
   actionRow: { flexDirection: 'row', gap: 10 },
@@ -349,7 +339,7 @@ const styles = StyleSheet.create({
   searchBtn: {
     flex: 1,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -357,18 +347,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  searchText: { color: COLORS.white, fontWeight: '900' },
+  searchText: { color: COLORS.white, fontWeight: '800' },
 
   clearBtn: {
     width: 110,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  clearText: { color: COLORS.gray, fontWeight: '900' },
+  clearText: { color: COLORS.gray, fontWeight: '800' },
 
   dateOverlay: {
     flex: 1,
@@ -379,7 +369,7 @@ const styles = StyleSheet.create({
 
   dateCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 28,
+    borderRadius: 12,
     padding: 18,
     elevation: 12,
     // Keep the calendar a comfortable size on tablets instead of
@@ -395,12 +385,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  dateTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '900' },
+  dateTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
 
   dateCloseBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -409,7 +399,7 @@ const styles = StyleSheet.create({
   doneBtn: {
     height: 52,
     backgroundColor: COLORS.primary,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 14,
@@ -418,7 +408,7 @@ const styles = StyleSheet.create({
   doneText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
 });
