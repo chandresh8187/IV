@@ -3,6 +3,7 @@ import { Factory, ShieldCheck } from 'lucide-react-native';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   PermissionsAndroid,
   Platform,
@@ -118,7 +119,14 @@ export default function LoginScreen() {
       >
         <View style={[styles.card, isTablet && centeredContent(480)]}>
           <View style={styles.brandMark}>
-            <Factory size={25} color={COLORS.white} strokeWidth={2.2} />
+            {/* <Factory size={25} color={COLORS.white} strokeWidth={2.2} /> */}
+            <Image
+              source={require('../../assets/Image/IV_logo.png')}
+              style={{
+                height: 60,
+                width: 60,
+              }}
+            />
           </View>
           <Text style={styles.eyebrow}>IV PRODUCTION</Text>
           <Text style={styles.title}>Welcome back.</Text>
@@ -256,12 +264,12 @@ const styles = StyleSheet.create({
   },
 
   brandMark: {
-    width: 52,
-    height: 52,
+    width: 70,
+    height: 70,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.white,
     marginBottom: 22,
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 6 },

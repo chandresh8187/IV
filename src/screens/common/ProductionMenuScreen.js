@@ -15,42 +15,69 @@ import {
 } from 'lucide-react-native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { COLORS, UI } from '../../assets/Colors';
+import { useSelector } from 'react-redux';
 
 export default function ProductionMenuScreen({ navigation }) {
   const { isTablet, wideMaxWidth } = useResponsive();
+  const loggedUser = useSelector(state => state.auth.user);
+  const role = String(loggedUser?.role || '')
+    .toLowerCase()
+    .trim();
 
-  const menus = [
-    {
-      title: 'Live Production',
-      desc: 'Add and view current shift production',
-      icon: Factory,
-      screen: 'LiveProduction',
-    },
-    {
-      title: 'Shift Status',
-      desc: 'Start and end day/night shift',
-      icon: Settings2,
-      screen: 'ShiftControl',
-    },
-    {
-      title: 'Production History',
-      desc: 'Date and shift wise production reports',
-      icon: History,
-      screen: 'ProductionHistory',
-    },
-    {
-      title: 'Production Planning',
-      desc: 'Manage challan wise production planning',
-      icon: ClipboardList,
-      screen: 'ProductionPlanning',
-    },
-    {
-      title: 'Coating Test Certificate',
-      desc: 'Generate galvanizing coating test certificate',
-      icon: FileCheck2,
-      screen: 'GenerateCertificate',
-    },
-  ];
+  const menus =
+    role === 'admin'
+      ? [
+          {
+            title: 'Live Production',
+            desc: 'Add and view current shift production',
+            icon: Factory,
+            screen: 'LiveProduction',
+          },
+          {
+            title: 'Shift Status',
+            desc: 'Start and end day/night shift',
+            icon: Settings2,
+            screen: 'ShiftControl',
+          },
+          {
+            title: 'Production History',
+            desc: 'Date and shift wise production reports',
+            icon: History,
+            screen: 'ProductionHistory',
+          },
+        ]
+      : [
+          {
+            title: 'Live Production',
+            desc: 'Add and view current shift production',
+            icon: Factory,
+            screen: 'LiveProduction',
+          },
+          {
+            title: 'Shift Status',
+            desc: 'Start and end day/night shift',
+            icon: Settings2,
+            screen: 'ShiftControl',
+          },
+          {
+            title: 'Production History',
+            desc: 'Date and shift wise production reports',
+            icon: History,
+            screen: 'ProductionHistory',
+          },
+          {
+            title: 'Production Planning',
+            desc: 'Manage challan wise production planning',
+            icon: ClipboardList,
+            screen: 'ProductionPlanning',
+          },
+          {
+            title: 'Coating Test Certificate',
+            desc: 'Generate galvanizing coating test certificate',
+            icon: FileCheck2,
+            screen: 'GenerateCertificate',
+          },
+        ];
 
   return (
     <ScrollView
