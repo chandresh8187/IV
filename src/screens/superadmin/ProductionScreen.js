@@ -116,7 +116,6 @@ export default function ProductionScreen() {
     queryFn: getAvailablePlanningApi,
   });
 
-  console.log('availablePlanningData', availablePlanningData);
   const {
     data: shiftStatusData,
     refetch: refetchShiftStatus,
