@@ -16,6 +16,7 @@ import {
 } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
+import { formatQuantity, formatWeight } from '../../utils/format';
 
 export default function HistoryPlanningSummaryScreen({ route }) {
   const { date } = route.params;
@@ -88,25 +89,25 @@ export default function HistoryPlanningSummaryScreen({ route }) {
             <View style={styles.grid}>
               <InfoBox
                 label="Planning Qty"
-                value={`${item.planned_qty || 0} NOS`}
+                value={`${formatQuantity(item.planned_qty)} NOS`}
                 width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Produced Qty"
-                value={`${item.completed_qty || 0} NOS`}
+                value={`${formatQuantity(item.completed_qty)} NOS`}
                 width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Remaining Qty"
-                value={`${item.remaining_qty || 0} NOS`}
+                value={`${formatQuantity(item.remaining_qty)} NOS`}
                 width={infoBoxWidth}
               />
 
               <InfoBox
                 label="Completion"
-                value={`${item.completion_percentage || 0}%`}
+                value={`${formatWeight(item.completion_percentage)}%`}
                 width={infoBoxWidth}
               />
             </View>

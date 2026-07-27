@@ -31,7 +31,12 @@ import { getShiftStatusApi } from '../../api/shiftApi';
 import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import { socket } from '../../socket/socket';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
-import { formatNumber } from '../../utils/format';
+import {
+  formatNumber,
+  formatQuantity,
+  formatTime12Hour,
+  formatWeight,
+} from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
@@ -106,6 +111,12 @@ export default function ProductionScreen() {
     new Date(),
   );
 
+  const { data: availablePlanningData } = useQuery({
+    queryKey: ['available-production-planning'],
+    queryFn: getAvailablePlanningApi,
+  });
+
+  console.log('availablePlanningData', availablePlanningData);
   const {
     data: shiftStatusData,
     refetch: refetchShiftStatus,
@@ -159,7 +170,9 @@ export default function ProductionScreen() {
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
       queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-
+      queryClient.invalidateQueries({
+        queryKey: ['available-production-planning'],
+      });
       closeModal();
     },
     onError: error => {
@@ -205,7 +218,10 @@ export default function ProductionScreen() {
     };
   }, [queryClient]);
 
-  const rows = activeShiftId ? data?.data?.table_data || data?.data || [] : [];
+  const rows = useMemo(
+    () => (activeShiftId ? data?.data?.table_data || data?.data || [] : []),
+    [activeShiftId, data],
+  );
 
   // Next serial number for this shift, based on the highest Sr No already
   // filled. Supervisors always get this assigned automatically; only the
@@ -322,25 +338,34 @@ export default function ProductionScreen() {
     }
   };
 
-  const { data: availablePlanningData } = useQuery({
-    queryKey: ['available-production-planning'],
-    queryFn: getAvailablePlanningApi,
-  });
+  const availablePlanning = useMemo(
+    () => availablePlanningData?.data || [],
+    [availablePlanningData],
+  );
 
-  const availablePlanning = availablePlanningData?.data || [];
+  const selectedPlanning = useMemo(
+    () =>
+      availablePlanning.find(
+        item => String(item.id) === String(fullForm.planning_id),
+      ) || null,
+    [availablePlanning, fullForm.planning_id],
+  );
 
-  // Dropdown is keyed by challan_no (stable across both "available planning"
-  // and "already-used historical" records) rather than planning_id, so a
-  // Sr No fill can always resolve to a visible selection.
   const challanItems = useMemo(() => {
     const items = availablePlanning.map(item => ({
-      label: `${item.challan_no} | ${item.party_name} | Balance ${item.remaining_qty}`,
+      label: `${item.challan_no} | ${
+        item.party_name
+      } | Balance ${formatQuantity(item.remaining_qty)}`,
       value: item.challan_no,
     }));
 
     const currentChallan = fullForm.challan_no;
-    const alreadyListed = items.some(item => item.value === currentChallan);
 
+    const alreadyListed = items.some(
+      item => String(item.value) === String(currentChallan),
+    );
+
+    // This keeps an already-used challan visible while editing an entry.
     if (currentChallan && !alreadyListed) {
       items.unshift({
         label: `${currentChallan} | ${fullForm.party_name || 'Already used'}`,
@@ -352,24 +377,23 @@ export default function ProductionScreen() {
   }, [availablePlanning, fullForm.challan_no, fullForm.party_name]);
 
   const handlePlanningSelect = challanNo => {
-    const found = availablePlanning.find(item => item.challan_no === challanNo);
+    const found = availablePlanning.find(
+      item => String(item.challan_no) === String(challanNo),
+    );
 
     if (!found) {
-      // Selecting a historical/already-used challan (came from a Sr No fill) -
-      // its party/material are already correct in state, just confirm the value.
-      setFullForm(prev => ({ ...prev, challan_no: challanNo }));
+      setFullForm(prev => ({
+        ...prev,
+        challan_no: challanNo,
+      }));
       return;
     }
-
-    const partyWithThirdParty = found.third_party_name
-      ? `${found.party_name} (${found.third_party_name})`
-      : found.party_name;
 
     setFullForm(prev => ({
       ...prev,
       planning_id: String(found.id),
       challan_no: found.challan_no || '',
-      party_name: partyWithThirdParty || '',
+      party_name: found.party_name || '',
       material: found.material_description || '',
       material_description: found.material_description || '',
     }));
@@ -379,6 +403,55 @@ export default function ProductionScreen() {
   // Closing here (before the request settles) would wipe the form even
   // when the save fails, losing everything the user typed.
   const saveFullEntry = () => {
+    const requiredFields = [
+      fullForm.sr_no,
+      fullForm.challan_no,
+      fullForm.production_time,
+      fullForm.dipping_qty,
+    ];
+
+    if (requiredFields.some(value => String(value || '').trim() === '')) {
+      Alert.alert(
+        'Required',
+        'Please select a challan and enter Sr No, production time, and dipping quantity.',
+      );
+      return;
+    }
+
+    const dippingQty = Number(fullForm.dipping_qty);
+
+    if (!Number.isInteger(dippingQty) || dippingQty <= 0) {
+      Alert.alert(
+        'Invalid Quantity',
+        'Dipping quantity must be a whole number greater than 0.',
+      );
+      return;
+    }
+
+    const selectedPlanning = availablePlanning.find(
+      item => String(item.id) === String(fullForm.planning_id),
+    );
+    const existingEntry = rows.find(
+      item => String(item.sr_no) === String(fullForm.sr_no),
+    );
+    const originalQtyForPlanning =
+      existingEntry &&
+      String(existingEntry.planning_id) === String(fullForm.planning_id)
+        ? Number(existingEntry.dipping_qty) || 0
+        : 0;
+    const maximumQty =
+      Number(selectedPlanning?.remaining_qty) + originalQtyForPlanning;
+
+    if (selectedPlanning && dippingQty > maximumQty) {
+      Alert.alert(
+        'Quantity Exceeds Plan',
+        `Only ${formatQuantity(maximumQty)} NOS remain for challan ${
+          selectedPlanning.challan_no
+        }.`,
+      );
+      return;
+    }
+
     saveMutation.mutate({
       entry_type: 'full',
       sr_no: fullForm.sr_no,
@@ -387,7 +460,7 @@ export default function ProductionScreen() {
       party_name: fullForm.party_name,
       material: fullForm.material,
       production_time: fullForm.production_time,
-      dipping_qty: fullForm.dipping_qty,
+      dipping_qty: dippingQty,
       kettle_temperature: fullForm.kettle_temperature,
       ms_weight: fullForm.ms_weight,
       gi_weight: fullForm.gi_weight,
@@ -527,8 +600,12 @@ export default function ProductionScreen() {
                       <Cell width={90}>{item.challan_no || '-'}</Cell>
                       <Cell width={150}>{item.party_name || '-'}</Cell>
                       <Cell width={150}>{item.material || '-'}</Cell>
-                      <Cell width={90}>{item.production_time || '-'}</Cell>
-                      <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+                      <Cell width={90}>
+                        {formatTime12Hour(item.production_time)}
+                      </Cell>
+                      <Cell width={80}>
+                        {formatQuantity(item.dipping_qty, '-')}
+                      </Cell>
                       <Cell width={90}>
                         {item.kettle_temperature
                           ? `${item.kettle_temperature}°`
@@ -536,17 +613,17 @@ export default function ProductionScreen() {
                       </Cell>
                       <Cell width={90}>
                         {item?.ms_weight != null
-                          ? `${parseFloat(item.ms_weight).toFixed(3)} KG`
+                          ? `${formatWeight(item.ms_weight)} KG`
                           : '-'}
                       </Cell>
                       <Cell width={90}>
                         {item?.gi_weight != null
-                          ? `${parseFloat(item.gi_weight).toFixed(3)} KG`
+                          ? `${formatWeight(item.gi_weight)} KG`
                           : '-'}
                       </Cell>
                       <Cell width={90}>
                         {item?.zinc_percentage != null
-                          ? `${parseFloat(item.zinc_percentage).toFixed(2)} %`
+                          ? `${formatWeight(item.zinc_percentage)} %`
                           : '-'}
                       </Cell>
                       <Cell width={80}>{formatNumber(item.c1)}</Cell>
@@ -636,7 +713,37 @@ export default function ProductionScreen() {
                 zIndex={3000}
                 icon={<ClipboardList size={16} color={COLORS.primary} />}
               />
+              {selectedPlanning && (
+                <View style={styles.remainingQtyBadge}>
+                  <View style={styles.remainingQtyMain}>
+                    <Text style={styles.remainingQtyLabel}>
+                      REMAINING QUANTITY
+                    </Text>
 
+                    <Text style={styles.remainingQtyValue}>
+                      {formatQuantity(selectedPlanning.remaining_qty)} NOS
+                    </Text>
+                  </View>
+
+                  <View style={styles.remainingQtyDivider} />
+
+                  <View style={styles.quantitySummary}>
+                    <Text style={styles.quantitySummaryText}>
+                      Planned:{' '}
+                      <Text style={styles.quantitySummaryValue}>
+                        {formatQuantity(selectedPlanning.planned_qty)}
+                      </Text>
+                    </Text>
+
+                    <Text style={styles.quantitySummaryText}>
+                      Completed:{' '}
+                      <Text style={styles.quantitySummaryValue}>
+                        {formatQuantity(selectedPlanning.completed_qty)}
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+              )}
               <FormInput
                 label="Party Name"
                 value={fullForm.party_name}
@@ -1263,6 +1370,56 @@ const styles = StyleSheet.create({
   timeDoneButtonText: {
     color: COLORS.white,
     fontSize: 13,
+    fontWeight: '800',
+  },
+  remainingQtyBadge: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#86EFAC',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 2,
+    marginBottom: 14,
+  },
+
+  remainingQtyMain: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  remainingQtyLabel: {
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  remainingQtyValue: {
+    color: '#15803D',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+
+  remainingQtyDivider: {
+    height: 1,
+    backgroundColor: '#BBF7D0',
+    marginVertical: 10,
+  },
+
+  quantitySummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  quantitySummaryText: {
+    color: '#4B5563',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  quantitySummaryValue: {
+    color: '#166534',
     fontWeight: '800',
   },
 });

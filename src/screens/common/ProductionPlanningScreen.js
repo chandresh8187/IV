@@ -34,6 +34,7 @@ import { centeredContent, useResponsive } from '../../utils/responsive';
 import { pick } from '@react-native-documents/picker';
 import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { formatQuantity } from '../../utils/format';
 const emptyForm = {
   challan_no: '',
   party_name: '',
@@ -197,7 +198,7 @@ export default function ProductionPlanningScreen() {
       material_description: item.material_description || '',
       planned_qty: String(item.planned_qty || ''),
       third_party_name: item.third_party_name || '',
-      status: item.status || 'pending',
+      status: 'pending',
     });
 
     setModalVisible(true);
@@ -336,9 +337,18 @@ function PlanningCard({ item, onEdit, onDelete }) {
       <Text style={styles.materialDesc}>{item.material_description}</Text>
 
       <View style={styles.qtyRow}>
-        <InfoBox label="Planned" value={`${item.planned_qty || 0} NOS`} />
-        <InfoBox label="Completed" value={`${item.completed_qty || 0} NOS`} />
-        <InfoBox label="Remaining" value={`${item.remaining_qty || 0} NOS`} />
+        <InfoBox
+          label="Planned"
+          value={`${formatQuantity(item.planned_qty)} NOS`}
+        />
+        <InfoBox
+          label="Completed"
+          value={`${formatQuantity(item.completed_qty)} NOS`}
+        />
+        <InfoBox
+          label="Remaining"
+          value={`${formatQuantity(item.remaining_qty)} NOS`}
+        />
       </View>
 
       <View style={styles.actionRow}>
@@ -484,32 +494,6 @@ function PlanningModal({
               value={form.third_party_name}
               onChangeText={v => onChange('third_party_name', v)}
             />
-          </View>
-
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Status</Text>
-
-            <View style={styles.statusRow}>
-              {['pending', 'completed', 'canceled'].map(status => (
-                <TouchableOpacity
-                  key={status}
-                  style={[
-                    styles.statusBtn,
-                    form.status === status && styles.statusBtnActive,
-                  ]}
-                  onPress={() => onChange('status', status)}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      form.status === status && styles.statusTextActive,
-                    ]}
-                  >
-                    {status.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           </View>
 
           <TouchableOpacity

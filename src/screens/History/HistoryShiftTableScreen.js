@@ -16,6 +16,12 @@ import { generateProductionPdf } from '../../utils/productionPdfGenerator';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
+import {
+  formatNumber,
+  formatQuantity,
+  formatTime12Hour,
+  formatWeight,
+} from '../../utils/format';
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
@@ -152,29 +158,35 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
               tableData.slice(0, 8).map(item => (
                 <View key={item.id} style={styles.tableRow}>
                   <Cell width={55}>{item.sr_no || '-'}</Cell>
-                  <Cell width={100}>{item.production_time || '-'}</Cell>
+                  <Cell width={100}>
+                    {formatTime12Hour(item.production_time)}
+                  </Cell>
                   <Cell width={120}>{item.challan_no || '-'}</Cell>
                   <Cell width={160}>{item.party_name || '-'}</Cell>
                   <Cell width={180}>{item.material || '-'}</Cell>
-                  <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+                  <Cell width={80}>
+                    {formatQuantity(item.dipping_qty, '-')}
+                  </Cell>
                   <Cell width={90}>
                     {item.ms_weight !== null &&
                     item.ms_weight !== undefined &&
                     item.ms_weight !== ''
-                      ? `${item.ms_weight} KG`
+                      ? `${formatWeight(item.ms_weight)} KG`
                       : '-'}
                   </Cell>
                   <Cell width={90}>
                     {item.gi_weight !== null &&
                     item.gi_weight !== undefined &&
                     item.gi_weight !== ''
-                      ? `${item.gi_weight} KG`
+                      ? `${formatWeight(item.gi_weight)} KG`
                       : '-'}
                   </Cell>
                   <Cell width={90}>
-                    {item.zinc_percentage ? `${item.zinc_percentage}%` : '-'}
+                    {item.zinc_percentage
+                      ? `${formatWeight(item.zinc_percentage)}%`
+                      : '-'}
                   </Cell>
-                  <Cell width={80}>{item.avg_coating || '-'}</Cell>
+                  <Cell width={80}>{formatNumber(item.avg_coating)}</Cell>
                 </View>
               ))
             )}

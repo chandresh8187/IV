@@ -1,7 +1,12 @@
 import React, { useCallback } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../assets/Colors';
-import { formatNumber } from '../utils/format';
+import {
+  formatNumber,
+  formatQuantity,
+  formatTime12Hour,
+  formatWeight,
+} from '../utils/format';
 
 const HeaderCell = React.memo(function HeaderCell({ children, width }) {
   return (
@@ -33,19 +38,21 @@ const Row = React.memo(function Row({ item, index }) {
       <Cell width={90}>{item.challan_no || '-'}</Cell>
       <Cell width={150}>{item.party_name || '-'}</Cell>
       <Cell width={150}>{item.material || '-'}</Cell>
-      <Cell width={90}>{item.production_time || '-'}</Cell>
-      <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+      <Cell width={90}>{formatTime12Hour(item.production_time)}</Cell>
+      <Cell width={80}>{formatQuantity(item.dipping_qty, '-')}</Cell>
       <Cell width={90}>
         {item.kettle_temperature ? `${item.kettle_temperature}°` : '-'}
       </Cell>
       <Cell width={90}>
-        {item.ms_weight != null ? `${item.ms_weight} KG` : '-'}
+        {item.ms_weight != null ? `${formatWeight(item.ms_weight)} KG` : '-'}
       </Cell>
       <Cell width={90}>
-        {item.gi_weight != null ? `${item.gi_weight} KG` : '-'}
+        {item.gi_weight != null ? `${formatWeight(item.gi_weight)} KG` : '-'}
       </Cell>
       <Cell width={90}>
-        {item.zinc_percentage != null ? `${item.zinc_percentage} %` : '-'}
+        {item.zinc_percentage != null
+          ? `${formatWeight(item.zinc_percentage)} %`
+          : '-'}
       </Cell>
       <Cell width={80}>{formatNumber(item.c1)}</Cell>
       <Cell width={80}>{formatNumber(item.c2)}</Cell>

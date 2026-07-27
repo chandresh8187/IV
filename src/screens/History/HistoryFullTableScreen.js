@@ -2,6 +2,12 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../../assets/Colors';
+import {
+  formatNumber,
+  formatQuantity,
+  formatTime12Hour,
+  formatWeight,
+} from '../../utils/format';
 
 export default function HistoryFullTableScreen({ route }) {
   const { tableData = [] } = route.params;
@@ -69,18 +75,20 @@ export default function HistoryFullTableScreen({ route }) {
             tableData.map(item => (
               <View key={item.id} style={styles.tableRow}>
                 <Cell width={55}>{item.sr_no || '-'}</Cell>
-                <Cell width={110}>{item.production_time || '-'}</Cell>
+                <Cell width={110}>
+                  {formatTime12Hour(item.production_time)}
+                </Cell>
                 <Cell width={130}>{item.challan_no || '-'}</Cell>
                 <Cell width={180}>{item.party_name || '-'}</Cell>
                 <Cell width={220}>{item.material || '-'}</Cell>
                 <Cell width={90}>{item.kettle_temperature || '-'}</Cell>
-                <Cell width={80}>{item.dipping_qty || '-'}</Cell>
+                <Cell width={80}>{formatQuantity(item.dipping_qty, '-')}</Cell>
 
                 <Cell width={100}>
                   {item.ms_weight !== null &&
                   item.ms_weight !== undefined &&
                   item.ms_weight !== ''
-                    ? `${item.ms_weight} KG`
+                    ? `${formatWeight(item.ms_weight)} KG`
                     : '-'}
                 </Cell>
 
@@ -88,20 +96,22 @@ export default function HistoryFullTableScreen({ route }) {
                   {item.gi_weight !== null &&
                   item.gi_weight !== undefined &&
                   item.gi_weight !== ''
-                    ? `${item.gi_weight} KG`
+                    ? `${formatWeight(item.gi_weight)} KG`
                     : '-'}
                 </Cell>
 
                 <Cell width={90}>
-                  {item.zinc_percentage ? `${item.zinc_percentage}%` : '-'}
+                  {item.zinc_percentage
+                    ? `${formatWeight(item.zinc_percentage)}%`
+                    : '-'}
                 </Cell>
 
-                <Cell width={70}>{item.c1 || '-'}</Cell>
-                <Cell width={70}>{item.c2 || '-'}</Cell>
-                <Cell width={70}>{item.c3 || '-'}</Cell>
-                <Cell width={70}>{item.c4 || '-'}</Cell>
-                <Cell width={70}>{item.c5 || '-'}</Cell>
-                <Cell width={90}>{item.avg_coating || '-'}</Cell>
+                <Cell width={70}>{formatNumber(item.c1)}</Cell>
+                <Cell width={70}>{formatNumber(item.c2)}</Cell>
+                <Cell width={70}>{formatNumber(item.c3)}</Cell>
+                <Cell width={70}>{formatNumber(item.c4)}</Cell>
+                <Cell width={70}>{formatNumber(item.c5)}</Cell>
+                <Cell width={90}>{formatNumber(item.avg_coating)}</Cell>
               </View>
             ))
           )}

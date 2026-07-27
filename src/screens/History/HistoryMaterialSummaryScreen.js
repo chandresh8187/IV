@@ -14,7 +14,7 @@ import {
   gridItemWidth,
   useResponsive,
 } from '../../utils/responsive';
-import { formatWeight } from '../../utils/format';
+import { formatQuantity, formatWeight } from '../../utils/format';
 
 import { COLORS } from '../../assets/Colors';
 
@@ -59,7 +59,7 @@ export default function HistoryMaterialSummaryScreen({ route }) {
             <View style={styles.grid}>
               <InfoBox
                 label="Qty"
-                value={`${item.total_dip_qty || 0} Nos`}
+                value={`${formatQuantity(item.total_dip_qty)} Nos`}
                 width={infoBoxWidth}
               />
 

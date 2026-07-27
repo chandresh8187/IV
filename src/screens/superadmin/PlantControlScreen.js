@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -95,13 +95,13 @@ export default function PlantControlScreen() {
     },
   });
 
-  const invalidatePlantData = () => {
+  const invalidatePlantData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['plant-status'] });
     queryClient.invalidateQueries({ queryKey: ['plant-status-history'] });
     queryClient.invalidateQueries({ queryKey: ['shift-status'] });
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     queryClient.invalidateQueries({ queryKey: ['productions'] });
-  };
+  }, [queryClient]);
 
   useEffect(() => {
     if (!socket.connected) {
@@ -110,7 +110,7 @@ export default function PlantControlScreen() {
 
     socket.on('plant_status_updated', invalidatePlantData);
     return () => socket.off('plant_status_updated', invalidatePlantData);
-  }, [queryClient]);
+  }, [invalidatePlantData]);
 
   const current = statusQuery.data?.data || {};
   const currentStatus = current.status || 'running';
