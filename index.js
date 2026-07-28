@@ -2,16 +2,13 @@
  * @format
  */
 
-import { AppRegistry } from 'react-native';
-import App from './App';
-import { name as appName } from './app.json';
+import { registerRootComponent } from 'expo';
 import messaging from '@react-native-firebase/messaging';
+import App from './App';
 
-export default function Main() {
-  // Register background handler
-  messaging().setBackgroundMessageHandler(async remoteMessage => {});
+// Keep this outside all React components
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('Background notification:', remoteMessage);
+});
 
-  return <App />;
-}
-
-AppRegistry.registerComponent(appName, () => Main);
+registerRootComponent(App);

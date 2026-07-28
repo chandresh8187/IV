@@ -1,4 +1,16 @@
 {
   "name": "IV",
-  "displayName": "IV"
+  "displayName": "IV",
+  "extra": {
+    "eas": {
+      "projectId": "fbac882c-cd9f-4890-80a8-690688aaddb5"
+    }
+  },
+  "owner": "chandresh09",
+  "runtimeVersion": "1.0.0",
+  "updates": {
+    "url": "https://u.expo.dev/fbac882c-cd9f-4890-80a8-690688aaddb5"
+  },
+  "android": {},
+  "ios": {}
 }

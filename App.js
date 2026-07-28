@@ -10,9 +10,29 @@ const queryClient = new QueryClient();
 import BootSplash from 'react-native-bootsplash';
 import { Buffer } from 'buffer';
 import { PAPER_THEME } from './src/assets/Colors';
+import * as Updates from 'expo-updates';
+
 global.Buffer = Buffer;
 export default function App() {
+  const checkForOTAUpdate = async () => {
+    try {
+      if (!Updates.isEnabled) {
+        return;
+      }
+
+      const update = await Updates.checkForUpdateAsync();
+
+      if (update.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        await Updates.reloadAsync();
+      }
+    } catch (error) {
+      console.log('Automatic OTA update failed:', error);
+    }
+  };
+
   useEffect(() => {
+    checkForOTAUpdate();
     const init = async () => {
       // …do multiple sync or async tasks
     };
