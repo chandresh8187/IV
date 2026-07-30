@@ -28,13 +28,14 @@ export default function App() {
       }
     } catch (error) {
       console.log('Automatic OTA update failed:', error);
+      return;
     }
   };
 
   useEffect(() => {
-    checkForOTAUpdate();
     const init = async () => {
       // …do multiple sync or async tasks
+      checkForOTAUpdate();
     };
 
     init().finally(async () => {

@@ -1,0 +1,67 @@
+name: Deploy Production OTA Update
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-ota
+  cancel-in-progress: true
+
+jobs:
+  publish-update:
+    name: Publish Android OTA update
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Block native changes
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          changed_files="$(git diff --name-only HEAD^ HEAD)"
+          printf '%s\n' "$changed_files"
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^(android/|ios/|package\.json$|package-lock\.json$|app\.json$|app\.config\.(js|ts)$|eas\.json$)'; then
+            echo "::error::Native or runtime-related files changed. Build and distribute a new APK instead of publishing this commit as an OTA update."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Verify Expo authentication
+        run: eas whoami
+
+      - name: Publish production OTA update
+        shell: bash
+        run: |
+          eas update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "GitHub commit ${GITHUB_SHA::7}" \
+            --non-interactive
