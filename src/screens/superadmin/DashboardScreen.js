@@ -115,7 +115,7 @@ export default function DashboardScreen() {
         <View style={styles.pageIntro}>
           <View style={styles.introCopy}>
             <Text style={styles.eyebrow}>PLANT OPERATIONS</Text>
-            <Text style={styles.title}>Operations overview</Text>
+            <Text style={styles.title}>Operations overview 500</Text>
             <Text style={styles.subTitle}>
               Live production and plant performance at a glance
             </Text>
