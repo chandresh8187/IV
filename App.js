@@ -35,7 +35,7 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       // …do multiple sync or async tasks
-      checkForOTAUpdate();
+      await checkForOTAUpdate();
     };
 
     init().finally(async () => {
