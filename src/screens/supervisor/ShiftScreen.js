@@ -101,22 +101,6 @@ export default function ShiftScreen() {
             label="Shift Date"
             value={moment(shiftDate).format('DD MMM YYYY')}
           />
-          <InfoLine
-            label="Start Time"
-            value={
-              moment(activeShift.start_time || payload.shift_start).format(
-                'hh:mm A',
-              ) || '-'
-            }
-          />
-          <InfoLine
-            label="End Time"
-            value={
-              moment(payload.shift_end || activeShift.end_time).format(
-                'hh:mm A',
-              ) || '-'
-            }
-          />
         </View>
       </View>
 
