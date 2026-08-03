@@ -134,6 +134,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   const [materialDescription, setMaterialDescription] = useState(
     initialPlanning?.material_description || '',
   );
+  const [neededCoating, setNeededCoating] = useState('');
 
   const [checklist, setChecklist] = useState(CHECKLIST_DEFAULTS);
   const [remarks, setRemarks] = useState(
@@ -210,14 +211,23 @@ export default function GenerateCertificateScreen({ route, navigation }) {
     const rows = readingsData?.data?.table_data || readingsData?.data || [];
     if (!Array.isArray(rows)) return [];
 
-    const withReadings = rows.filter(row =>
-      [row.c1, row.c2, row.c3, row.c4, row.c5].some(
+    const minimum = neededCoating === '' ? null : Number(neededCoating);
+    const withReadings = rows.filter(row => {
+      const readings = [row.c1, row.c2, row.c3, row.c4, row.c5];
+      const hasReadings = readings.some(
         value => value !== null && value !== undefined && value !== '',
-      ),
-    );
+      );
+      const valid = readings.map(Number).filter(Number.isFinite);
+      const average = Number.isFinite(Number(row.avg_coating))
+        ? Number(row.avg_coating)
+        : valid.length
+        ? valid.reduce((sum, value) => sum + value, 0) / valid.length
+        : 0;
+      return hasReadings && (minimum == null || average >= minimum);
+    });
 
-    return withReadings.slice(0, MAX_READING_ROWS);
-  }, [readingsData]);
+    return withReadings.slice(0, minimum == null ? MAX_READING_ROWS : 5);
+  }, [readingsData, neededCoating]);
 
   /* ------------------------------ checklist ------------------------------ */
   const updateChecklistField = (key, field, value) => {
@@ -320,6 +330,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         quantity: FIXED_QUANTITY,
         inspection_date: inspectionDate,
         reference_standard: DEFAULT_REFERENCE_STANDARD,
+        needed_coating: neededCoating || null,
+        coating_readings: readings,
         remarks,
         ...checklistPayload,
       });
@@ -345,6 +357,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         quantity: FIXED_QUANTITY,
         inspection_date: inspectionDate,
         reference_standard: DEFAULT_REFERENCE_STANDARD,
+        needed_coating: neededCoating || null,
         remarks,
         ...checklistPayload,
       };
@@ -457,6 +470,12 @@ export default function GenerateCertificateScreen({ route, navigation }) {
             multiline
             numberOfLines={2}
           />
+          <AppInput
+            label="Needed Coating (optional)"
+            value={neededCoating}
+            onChangeText={setNeededCoating}
+            keyboardType="decimal-pad"
+          />
         </View>
 
         {/* ------------------------ certificate info ---------------------- */}
@@ -531,7 +550,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
               <Text style={styles.readingsText}>
                 {autoReadings.length} production entr
                 {autoReadings.length === 1 ? 'y' : 'ies'} (max{' '}
-                {MAX_READING_ROWS}) will be included with their 5 coating
+                {neededCoating === '' ? MAX_READING_ROWS : 5}) will be included
+                {neededCoating !== '' ? ` with average coating ${neededCoating}+` : ''} with their 5 coating
                 readings each.
               </Text>
             )}

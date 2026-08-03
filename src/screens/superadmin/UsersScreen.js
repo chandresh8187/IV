@@ -29,6 +29,8 @@ import {
   getActiveSupervisorsApi,
   getUsersApi,
   registerUserApi,
+  setUserStatusApi,
+  updateUserApi,
 } from '../../api/userApi';
 import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
@@ -53,6 +55,7 @@ export default function UsersScreen() {
       .trim() === 'superadmin';
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
   const {
@@ -71,7 +74,8 @@ export default function UsersScreen() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: registerUserApi,
+    mutationFn: body =>
+      editingId ? updateUserApi({ id: editingId, body }) : registerUserApi(body),
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'User registered successfully');
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -84,6 +88,20 @@ export default function UsersScreen() {
         error?.response?.data?.message || 'Something went wrong',
       );
     },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: setUserStatusApi,
+    onSuccess: res => {
+      Alert.alert('Success', res?.message || 'User status updated');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['active-supervisors'] });
+    },
+    onError: error =>
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'Could not update user status',
+      ),
   });
 
   useEffect(() => {
@@ -114,7 +132,20 @@ export default function UsersScreen() {
 
   const closeModal = () => {
     setModalVisible(false);
+    setEditingId(null);
     setForm(emptyForm);
+  };
+
+  const openEdit = item => {
+    setEditingId(item.id);
+    setForm({
+      name: item.name || '',
+      email: item.email || '',
+      password: '',
+      role: item.role || 'supervisor',
+      assigned_shift: item.assigned_shift || 'day',
+    });
+    setModalVisible(true);
   };
 
   const updateForm = (key, value) => {
@@ -122,7 +153,7 @@ export default function UsersScreen() {
   };
 
   const handleRegister = () => {
-    if (!form.name || !form.email || !form.password || !form.role) {
+    if (!form.name || !form.email || (!editingId && !form.password) || !form.role) {
       Alert.alert('Required', 'Please fill all required fields');
       return;
     }
@@ -130,9 +161,10 @@ export default function UsersScreen() {
     const body = {
       name: form.name.trim(),
       email: form.email.trim().toLowerCase(),
-      password: form.password.trim(),
       role: form.role,
     };
+
+    if (!editingId) body.password = form.password.trim();
 
     if (form.role === 'supervisor') {
       body.assigned_shift = form.assigned_shift;
@@ -214,7 +246,18 @@ export default function UsersScreen() {
               <Empty text="No plant managers found" />
             ) : (
               plantManagers.map(item => (
-                <UserCard key={item.id} item={item} type="plant_manager" />
+                <UserCard
+                  key={item.id}
+                  item={item}
+                  type="plant_manager"
+                  onEdit={() => openEdit(item)}
+                  onStatus={() =>
+                    statusMutation.mutate({
+                      id: item.id,
+                      status: item.status === 'inactive' ? 'active' : 'inactive',
+                    })
+                  }
+                />
               ))
             )}
           </>
@@ -230,7 +273,18 @@ export default function UsersScreen() {
               <Empty text="No admin users found" />
             ) : (
               admins.map(item => (
-                <UserCard key={item.id} item={item} type="admin" />
+                <UserCard
+                  key={item.id}
+                  item={item}
+                  type="admin"
+                  onEdit={() => openEdit(item)}
+                  onStatus={() =>
+                    statusMutation.mutate({
+                      id: item.id,
+                      status: item.status === 'inactive' ? 'active' : 'inactive',
+                    })
+                  }
+                />
               ))
             )}
           </>
@@ -244,7 +298,22 @@ export default function UsersScreen() {
           <Empty text="No supervisors found" />
         ) : (
           supervisors.map(item => (
-            <UserCard key={item.id} item={item} type="supervisor" />
+            <UserCard
+              key={item.id}
+              item={item}
+              type="supervisor"
+              onEdit={isSuperAdmin ? () => openEdit(item) : null}
+              onStatus={
+                isSuperAdmin
+                  ? () =>
+                      statusMutation.mutate({
+                        id: item.id,
+                        status:
+                          item.status === 'inactive' ? 'active' : 'inactive',
+                      })
+                  : null
+              }
+            />
           ))
         )}
       </ScrollView>
@@ -252,6 +321,7 @@ export default function UsersScreen() {
       {isSuperAdmin && (
         <RegisterModal
           visible={modalVisible}
+          editingId={editingId}
           onClose={closeModal}
           form={form}
           updateForm={updateForm}
@@ -263,7 +333,7 @@ export default function UsersScreen() {
   );
 }
 
-function UserCard({ item, type }) {
+function UserCard({ item, type, onEdit, onStatus }) {
   const isAdmin = type === 'admin';
   const isPlantManager = type === 'plant_manager';
 
@@ -303,12 +373,25 @@ function UserCard({ item, type }) {
           </>
         )}
       </View>
+      {onEdit && (
+        <View style={styles.userActions}>
+          <TouchableOpacity style={styles.userEditBtn} onPress={onEdit}>
+            <Text style={styles.userEditText}>EDIT</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.userStatusBtn} onPress={onStatus}>
+            <Text style={styles.userStatusText}>
+              {item.status === 'inactive' ? 'ACTIVATE' : 'DEACTIVATE'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
 function RegisterModal({
   visible,
+  editingId,
   onClose,
   form,
   updateForm,
@@ -343,7 +426,9 @@ function RegisterModal({
               </View>
 
               <View style={styles.modalTitleText}>
-                <Text style={styles.modalTitle}>Register User</Text>
+                <Text style={styles.modalTitle}>
+                  {editingId ? 'Edit User' : 'Register User'}
+                </Text>
                 <Text style={styles.modalDesc}>
                   Create plant manager, admin or supervisor
                 </Text>
@@ -395,8 +480,9 @@ function RegisterModal({
               />
 
               <TextInput
-                label="Password"
+                label={editingId ? 'Password (unchanged)' : 'Password'}
                 value={form.password}
+                editable={!editingId}
                 onChangeText={v => updateForm('password', v)}
                 mode="outlined"
                 secureTextEntry={!showPassword}
@@ -490,7 +576,9 @@ function RegisterModal({
                 ) : (
                   <>
                     <UserPlus size={20} color={COLORS.white} />
-                    <Text style={styles.saveText}>REGISTER USER</Text>
+                    <Text style={styles.saveText}>
+                      {editingId ? 'UPDATE USER' : 'REGISTER USER'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -782,4 +870,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
   },
+  userActions: { alignItems: 'stretch', gap: 6, marginLeft: 8 },
+  userEditBtn: {
+    minWidth: 72,
+    minHeight: 34,
+    borderRadius: 9,
+    backgroundColor: COLORS.lightBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userEditText: { color: COLORS.primary, fontSize: 10, fontWeight: '800' },
+  userStatusBtn: {
+    minWidth: 72,
+    minHeight: 34,
+    borderRadius: 9,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  userStatusText: { color: COLORS.danger, fontSize: 8.5, fontWeight: '800' },
 });

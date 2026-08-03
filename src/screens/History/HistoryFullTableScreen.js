@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSelector } from 'react-redux';
 
 import { COLORS } from '../../assets/Colors';
 import {
@@ -9,8 +10,9 @@ import {
   formatWeight,
 } from '../../utils/format';
 
-export default function HistoryFullTableScreen({ route }) {
-  const { tableData = [] } = route.params;
+export default function HistoryFullTableScreen({ route, navigation }) {
+  const { tableData = [], date, shift_name } = route.params;
+  const role = String(useSelector(state => state.auth.user?.role) || '').toLowerCase();
 
   return (
     <ScrollView style={[styles.container, styles.safe]}>
@@ -65,6 +67,7 @@ export default function HistoryFullTableScreen({ route }) {
             <Cell width={90} header>
               Avg
             </Cell>
+            {role === 'superadmin' && <Cell width={90} header>Action</Cell>}
           </View>
 
           {tableData.length === 0 ? (
@@ -112,6 +115,16 @@ export default function HistoryFullTableScreen({ route }) {
                 <Cell width={70}>{formatNumber(item.c4)}</Cell>
                 <Cell width={70}>{formatNumber(item.c5)}</Cell>
                 <Cell width={90}>{formatNumber(item.avg_coating)}</Cell>
+                {role === 'superadmin' && (
+                  <View style={[styles.cell, { width: 90 }]}> 
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => navigation.navigate('HistoricalProductionEdit', { item, date, shift_name })}
+                    >
+                      <Text style={styles.editBtnText}>EDIT</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))
           )}
@@ -198,4 +211,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontWeight: '800',
   },
+  editBtn: { height: 32, borderRadius: 9, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  editBtnText: { color: COLORS.white, fontSize: 10, fontWeight: '800' },
 });

@@ -1,12 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
+import { useSelector } from 'react-redux';
+import { FileDown } from 'lucide-react-native';
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
 import {
@@ -17,11 +21,14 @@ import {
 
 import { COLORS } from '../../assets/Colors';
 import { formatQuantity, formatWeight } from '../../utils/format';
+import { downloadAndOpenProductionReport } from '../../utils/serverProductionReport';
 
 export default function HistoryPlanningSummaryScreen({ route }) {
   const { date } = route.params;
   const { isTablet, contentMaxWidth } = useResponsive();
   const infoBoxWidth = gridItemWidth(2, 4, isTablet);
+  const role = String(useSelector(state => state.auth.user?.role) || '').toLowerCase();
+  const [downloading, setDownloading] = useState(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['history-planning-summary', date],
@@ -111,6 +118,31 @@ export default function HistoryPlanningSummaryScreen({ route }) {
                 width={infoBoxWidth}
               />
             </View>
+            {role === 'superadmin' && (
+              <TouchableOpacity
+                style={styles.reportBtn}
+                disabled={downloading === item.id}
+                onPress={async () => {
+                  setDownloading(item.id);
+                  try {
+                    await downloadAndOpenProductionReport({
+                      type: 'challan',
+                      value: item.challan_no,
+                      date,
+                    });
+                  } catch (error) {
+                    Alert.alert('Error', error?.response?.data?.message || error.message || 'Could not create report');
+                  } finally {
+                    setDownloading(null);
+                  }
+                }}
+              >
+                <FileDown size={17} color={COLORS.white} />
+                <Text style={styles.reportBtnText}>
+                  {downloading === item.id ? 'GENERATING...' : 'CHALLAN REPORT'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))
       )}
@@ -241,4 +273,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 4,
   },
+  reportBtn: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 14,
+  },
+  reportBtnText: { color: COLORS.white, fontSize: 12, fontWeight: '800' },
 });

@@ -7,8 +7,9 @@ import messaging from '@react-native-firebase/messaging';
 import App from './App';
 import { StatusBar } from 'react-native';
 
-// Keep this outside all React components
 StatusBar.setBarStyle('light-content');
+
+// This must be registered outside React components.
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('Background notification:', remoteMessage);
 });

@@ -11,6 +11,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.ivsquare.production.ShareIntentPackage
 import com.ivsquare.production.PdfOpenerPackage
+import com.ivsquare.production.updater.NativeAppUpdaterPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -23,6 +24,7 @@ class MainApplication : Application(), ReactApplication {
           // add(MyReactNativePackage())
           add(ShareIntentPackage())
           add(PdfOpenerPackage())
+          add(NativeAppUpdaterPackage())
         },
     )
   }

@@ -7,6 +7,7 @@ import HistoryShiftTableScreen from '../../screens/History/HistoryShiftTableScre
 import AppHeader from '../../components/AppHeader';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HistoryFullTableScreen from './../../screens/History/HistoryFullTableScreen';
+import HistoricalProductionEditScreen from '../../screens/History/HistoricalProductionEditScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +47,11 @@ const HistoryStack = () => {
         name="HistoryFullTable"
         options={{ title: 'Production Table' }}
         component={HistoryFullTableScreen}
+      />
+      <Stack.Screen
+        name="HistoricalProductionEdit"
+        options={{ title: 'Edit Production' }}
+        component={HistoricalProductionEditScreen}
       />
     </Stack.Navigator>
   );

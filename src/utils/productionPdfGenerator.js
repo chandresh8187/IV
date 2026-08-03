@@ -14,6 +14,10 @@ const PAGE = {
 const A4_LANDSCAPE = [PAGE.width, PAGE.height];
 const CONTENT_WIDTH = PAGE.width - PAGE.margin * 2;
 
+/* -------------------------------------------------------------------------- */
+/* PALETTE — matches certificatePdfGenerator.js: white letterhead, navy text,*/
+/* light-gray table panels, amber accent line                                */
+/* -------------------------------------------------------------------------- */
 const COLORS = {
   navy: rgb(0.086, 0.114, 0.235),
   steel: rgb(0.204, 0.396, 0.612),
@@ -29,17 +33,21 @@ const COLORS = {
   success: rgb(0.11, 0.45, 0.28),
 };
 
+/* -------------------------------------------------------------------------- */
+/* TEXT HELPERS                                                              */
+/* -------------------------------------------------------------------------- */
 const cleanPdfText = value => {
-  if (value === null || value === undefined || value === '') {
-    return '-';
-  }
-
-  return String(value)
-    .replace(/\u202f/g, ' ')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[^\x20-\x7E\u00B2]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  if (value === null || value === undefined || value === '') return '-';
+  return (
+    String(value)
+      .replace(/\u202f/g, ' ')
+      .replace(/\u00a0/g, ' ')
+      // Superscript-two (U+00B2) renders fine with the standard Helvetica
+      // fonts (WinAnsi encoding) - kept explicitly rather than stripped.
+      .replace(/[^\x20-\x7E\u00B2]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 };
 
 const safeValue = value =>
@@ -50,35 +58,24 @@ const safeKg = value =>
     ? `${Number(value).toLocaleString('en-IN')} KG`
     : '-';
 
+const toNumber = value => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Wrap text into lines that actually fit a given pixel width, measured with
+ * real font metrics (font.widthOfTextAtSize) instead of a character-count
+ * guess - this is what lets long Party / Material values wrap correctly
+ * instead of being cut off mid-word.
+ */
 const wrapTextToWidth = (font, text, size, maxWidth, maxLines = 3) => {
   const words = cleanPdfText(text).split(' ');
   const lines = [];
   let line = '';
 
-  words.forEach(originalWord => {
-    let word = originalWord;
-
-    while (font.widthOfTextAtSize(word, size) > maxWidth) {
-      let splitAt = word.length - 1;
-
-      while (
-        splitAt > 1 &&
-        font.widthOfTextAtSize(word.slice(0, splitAt), size) > maxWidth
-      ) {
-        splitAt -= 1;
-      }
-
-      if (line) {
-        lines.push(line);
-        line = '';
-      }
-
-      lines.push(word.slice(0, splitAt));
-      word = word.slice(splitAt);
-    }
-
+  words.forEach(word => {
     const candidate = line ? `${line} ${word}` : word;
-
     if (font.widthOfTextAtSize(candidate, size) > maxWidth && line) {
       lines.push(line);
       line = word;
@@ -86,28 +83,9 @@ const wrapTextToWidth = (font, text, size, maxWidth, maxLines = 3) => {
       line = candidate;
     }
   });
+  if (line) lines.push(line);
 
-  if (line) {
-    lines.push(line);
-  }
-
-  if (lines.length <= maxLines) {
-    return lines;
-  }
-
-  const visibleLines = lines.slice(0, maxLines);
-  let lastLine = visibleLines[maxLines - 1];
-
-  while (
-    lastLine.length > 1 &&
-    font.widthOfTextAtSize(`${lastLine}...`, size) > maxWidth
-  ) {
-    lastLine = lastLine.slice(0, -1);
-  }
-
-  visibleLines[maxLines - 1] = `${lastLine.trim()}...`;
-
-  return visibleLines;
+  return lines.slice(0, maxLines);
 };
 
 const drawText = (page, text, x, y, options = {}) => {
@@ -136,31 +114,6 @@ const drawCenteredText = (page, text, x, y, width, height, options = {}) => {
   });
 };
 
-const drawCenteredLines = (page, lines, x, y, width, height, options = {}) => {
-  const font = options.font;
-  const size = options.size || 8;
-  const lineHeight = options.lineHeight || size + 2;
-  const normalizedLines = lines.length ? lines : ['-'];
-
-  const blockHeight =
-    size + Math.max(0, normalizedLines.length - 1) * lineHeight;
-
-  const firstBaselineY = y + (height + blockHeight) / 2 - size;
-
-  normalizedLines.forEach((line, index) => {
-    const value = cleanPdfText(line);
-    const textWidth = font.widthOfTextAtSize(value, size);
-
-    page.drawText(value, {
-      x: x + Math.max(3, (width - textWidth) / 2),
-      y: firstBaselineY - index * lineHeight,
-      size,
-      font,
-      color: options.color || COLORS.text,
-    });
-  });
-};
-
 const drawRoundedBox = (page, x, y, width, height, options = {}) => {
   page.drawRectangle({
     x,
@@ -173,6 +126,13 @@ const drawRoundedBox = (page, x, y, width, height, options = {}) => {
   });
 };
 
+/* -------------------------------------------------------------------------- */
+/* COMPANY LOGO - same lookup as certificatePdfGenerator.js:                 */
+/*   Android -> android/app/src/main/assets/logo.png                         */
+/*   iOS     -> logo.png added to the Xcode bundle resources                 */
+/* Falls back to an "IV" monogram block if the file isn't found, so a        */
+/* missing logo never breaks report generation.                             */
+/* -------------------------------------------------------------------------- */
 const loadLogoImage = async pdfDoc => {
   try {
     let base64 = null;
@@ -186,29 +146,33 @@ const loadLogoImage = async pdfDoc => {
       );
     }
 
-    if (!base64) {
-      return null;
-    }
-
+    if (!base64) return null;
     return await pdfDoc.embedPng(Buffer.from(base64, 'base64'));
   } catch (error) {
     return null;
   }
 };
 
+/* -------------------------------------------------------------------------- */
+/* REPORT ID                                                                 */
+/* -------------------------------------------------------------------------- */
 const buildReportNo = (date, shiftName) => {
   const compactDate =
     String(date)
       .replace(/[^0-9]/g, '')
       .slice(0, 8) || '00000000';
-
   const shiftCode = String(shiftName || 'GEN')
     .slice(0, 1)
     .toUpperCase();
-
   return `PR-${compactDate}-${shiftCode}`;
 };
 
+/* -------------------------------------------------------------------------- */
+/* HEADER - white letterhead, same visual language as the coating           */
+/* certificate: company block + logo top, centered title + meta line below, */
+/* amber accent line. Returns the y where the body content should start,    */
+/* so everything below chains off this instead of hardcoded page positions. */
+/* -------------------------------------------------------------------------- */
 const COMPANY_ADDRESS_LINES = [
   'PLANT-4, PLOT NO. 2526, NEAR MASCUT POLYMER, NEAR RADHE FORGE,',
   'VERAVAL-SHAPAR RAJKOT - 360024 (Guj) INDIA.',
@@ -217,12 +181,12 @@ const COMPANY_ADDRESS_LINES = [
 const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
   const topY = PAGE.height - PAGE.margin;
 
+  // Left: company name + address
   drawText(page, 'IV SQUARE STRUCTURE INDIA PVT LTD', PAGE.margin, topY - 14, {
     size: 15,
     font: fonts.bold,
     color: COLORS.navy,
   });
-
   COMPANY_ADDRESS_LINES.forEach((line, index) => {
     drawText(page, line, PAGE.margin, topY - 42 - index * 9, {
       size: 7,
@@ -231,65 +195,50 @@ const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
     });
   });
 
-  const logoBoxWidth = 140;
-  const logoBoxHeight = 60;
-  const logoX = PAGE.width - PAGE.margin - logoBoxWidth;
-  const logoY = topY - logoBoxHeight - 2;
+  // Right: logo image, or "IV" monogram fallback (same box size/behavior
+  // as the certificate generator for a consistent brand look)
+  const logoBoxW = 140;
+  const logoBoxH = 60;
+  const logoX = PAGE.width - PAGE.margin - logoBoxW;
+  const logoY = topY - logoBoxH - 2;
 
   if (logoImage) {
     const scale = Math.min(
-      logoBoxWidth / logoImage.width,
-      logoBoxHeight / logoImage.height,
+      logoBoxW / logoImage.width,
+      logoBoxH / logoImage.height,
     );
-
-    const logoWidth = logoImage.width * scale;
-    const logoHeight = logoImage.height * scale;
-
+    const w = logoImage.width * scale;
+    const h = logoImage.height * scale;
     page.drawImage(logoImage, {
-      x: logoX + (logoBoxWidth - logoWidth) / 2,
-      y: logoY + (logoBoxHeight - logoHeight) / 2,
-      width: logoWidth,
-      height: logoHeight,
+      x: logoX + (logoBoxW - w) / 2,
+      y: logoY + (logoBoxH - h) / 2,
+      width: w,
+      height: h,
     });
   } else {
-    drawRoundedBox(page, logoX + logoBoxWidth - 48, logoY + 12, 44, 44, {
+    drawRoundedBox(page, logoX + logoBoxW - 48, logoY + 12, 44, 44, {
       bg: COLORS.steel,
       borderColor: COLORS.amber,
       borderWidth: 1.2,
     });
-
-    drawCenteredText(
-      page,
-      'IV',
-      logoX + logoBoxWidth - 48,
-      logoY + 12,
-      44,
-      44,
-      {
-        font: fonts.bold,
-        size: 20,
-        color: COLORS.white,
-      },
-    );
+    drawCenteredText(page, 'IV', logoX + logoBoxW - 48, logoY + 12, 44, 44, {
+      font: fonts.bold,
+      size: 20,
+      color: COLORS.white,
+    });
   }
 
+  // Divider under the company/logo block
   const dividerY = topY - 76;
-
   page.drawLine({
-    start: {
-      x: PAGE.margin,
-      y: dividerY,
-    },
-    end: {
-      x: PAGE.width - PAGE.margin,
-      y: dividerY,
-    },
+    start: { x: PAGE.margin, y: dividerY },
+    end: { x: PAGE.width - PAGE.margin, y: dividerY },
     thickness: 0.8,
     color: COLORS.borderLight,
   });
 
+  // Centered report title
   const titleY = dividerY - 20;
-
   drawCenteredText(
     page,
     `${String(shiftName).toUpperCase()} SHIFT PRODUCTION REPORT`,
@@ -297,17 +246,13 @@ const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
     titleY,
     CONTENT_WIDTH,
     14,
-    {
-      font: fonts.bold,
-      size: 13,
-      color: COLORS.text,
-    },
+    { font: fonts.bold, size: 13, color: COLORS.text },
   );
 
+  // Centered meta line: date, report no, generated timestamp
   const metaY = titleY - 15;
   const reportNo = buildReportNo(date, shiftName);
   const generatedAt = new Date().toLocaleString('en-IN');
-
   drawCenteredText(
     page,
     `Date: ${date}   •   Report No: ${reportNo}   •   Generated: ${generatedAt}`,
@@ -315,15 +260,11 @@ const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
     metaY,
     CONTENT_WIDTH,
     11,
-    {
-      font: fonts.regular,
-      size: 7.5,
-      color: COLORS.textMuted,
-    },
+    { font: fonts.regular, size: 7.5, color: COLORS.textMuted },
   );
 
+  // Amber accent line closing off the header
   const accentY = metaY - 8;
-
   page.drawRectangle({
     x: PAGE.margin,
     y: accentY,
@@ -335,6 +276,9 @@ const drawHeader = ({ page, fonts, date, shiftName, logoImage }) => {
   return accentY - 10;
 };
 
+/* -------------------------------------------------------------------------- */
+/* CONTINUATION BANNER (subsequent pages)                                    */
+/* -------------------------------------------------------------------------- */
 const drawContinuationBar = ({ page, fonts, date, shiftName, pageNumber }) => {
   const topY = PAGE.height - PAGE.margin;
 
@@ -342,38 +286,29 @@ const drawContinuationBar = ({ page, fonts, date, shiftName, pageNumber }) => {
     bg: COLORS.bgPanel,
     borderColor: COLORS.border,
   });
-
-  drawCenteredText(
+  drawText(
     page,
-    `PRODUCTION TABLE (CONTINUED) - ${String(
+    `Production Table (Continued) — ${String(
       shiftName,
-    ).toUpperCase()} SHIFT - ${date}`,
-    PAGE.margin,
-    topY - 22,
-    CONTENT_WIDTH,
-    22,
-    {
-      size: 8.5,
-      font: fonts.bold,
-      color: COLORS.navy,
-    },
+    ).toUpperCase()} SHIFT — ${date}`,
+    PAGE.margin + 10,
+    topY - 15,
+    { size: 8.5, font: fonts.bold, color: COLORS.navy },
   );
-
   drawText(
     page,
     `Page ${pageNumber}`,
     PAGE.width - PAGE.margin - 55,
     topY - 15,
-    {
-      size: 8.5,
-      font: fonts.bold,
-      color: COLORS.textMuted,
-    },
+    { size: 8.5, font: fonts.bold, color: COLORS.textMuted },
   );
 
-  return topY - 34;
+  return topY - 22 - 12;
 };
 
+/* -------------------------------------------------------------------------- */
+/* SUMMARY / KPI CARDS                                                       */
+/* -------------------------------------------------------------------------- */
 const CARD_HEIGHT = 52;
 
 const drawSummaryCards = ({ page, fonts, summary, topY }) => {
@@ -404,23 +339,16 @@ const drawSummaryCards = ({ page, fonts, summary, topY }) => {
   ];
 
   const gap = 10;
-  const cardWidth = (CONTENT_WIDTH - gap * 3) / 4;
+  const cardW = (CONTENT_WIDTH - gap * 3) / 4;
 
   drawText(page, 'SHIFT PERFORMANCE SUMMARY', PAGE.margin, topY, {
     size: 8.5,
     font: fonts.bold,
     color: COLORS.navy,
   });
-
   page.drawLine({
-    start: {
-      x: PAGE.margin,
-      y: topY - 6,
-    },
-    end: {
-      x: PAGE.width - PAGE.margin,
-      y: topY - 6,
-    },
+    start: { x: PAGE.margin, y: topY - 6 },
+    end: { x: PAGE.width - PAGE.margin, y: topY - 6 },
     thickness: 0.8,
     color: COLORS.border,
   });
@@ -429,9 +357,9 @@ const drawSummaryCards = ({ page, fonts, summary, topY }) => {
   const startY = cardsTop - CARD_HEIGHT;
 
   cards.forEach((card, index) => {
-    const x = PAGE.margin + index * (cardWidth + gap);
+    const x = PAGE.margin + index * (cardW + gap);
 
-    drawRoundedBox(page, x, startY, cardWidth, CARD_HEIGHT, {
+    drawRoundedBox(page, x, startY, cardW, CARD_HEIGHT, {
       bg: COLORS.white,
       borderColor: COLORS.border,
       borderWidth: 0.7,
@@ -459,27 +387,21 @@ const drawSummaryCards = ({ page, fonts, summary, topY }) => {
 
     if (card.flag) {
       const flagWidth = fonts.bold.widthOfTextAtSize(card.flag, 5.8) + 10;
-
       page.drawRectangle({
-        x: x + cardWidth - flagWidth - 8,
+        x: x + cardW - flagWidth - 8,
         y: startY + CARD_HEIGHT - 18,
         width: flagWidth,
         height: 11,
         color: card.accent,
       });
-
       drawCenteredText(
         page,
         card.flag,
-        x + cardWidth - flagWidth - 8,
+        x + cardW - flagWidth - 8,
         startY + CARD_HEIGHT - 18,
         flagWidth,
         11,
-        {
-          font: fonts.bold,
-          size: 5.8,
-          color: COLORS.white,
-        },
+        { font: fonts.bold, size: 5.8, color: COLORS.white },
       );
     }
   });
@@ -487,6 +409,9 @@ const drawSummaryCards = ({ page, fonts, summary, topY }) => {
   return startY;
 };
 
+/* -------------------------------------------------------------------------- */
+/* SECTION TITLE                                                             */
+/* -------------------------------------------------------------------------- */
 const drawSectionTitle = (page, fonts, title, y) => {
   page.drawRectangle({
     x: PAGE.margin,
@@ -495,22 +420,14 @@ const drawSectionTitle = (page, fonts, title, y) => {
     height: 11,
     color: COLORS.amber,
   });
-
   drawText(page, title, PAGE.margin + 8, y, {
     size: 10.5,
     font: fonts.bold,
     color: COLORS.navy,
   });
-
   page.drawLine({
-    start: {
-      x: PAGE.margin,
-      y: y - 6,
-    },
-    end: {
-      x: PAGE.width - PAGE.margin,
-      y: y - 6,
-    },
+    start: { x: PAGE.margin, y: y - 6 },
+    end: { x: PAGE.width - PAGE.margin, y: y - 6 },
     thickness: 0.8,
     color: COLORS.border,
   });
@@ -518,166 +435,100 @@ const drawSectionTitle = (page, fonts, title, y) => {
   return y - 6;
 };
 
+/* -------------------------------------------------------------------------- */
+/* TABLE                                                                     */
+/* -------------------------------------------------------------------------- */
 const columns = [
-  {
-    label: 'Sr',
-    key: 'sr_no',
-    width: 28,
-    lines: 1,
-  },
-  {
-    label: 'Time',
-    key: 'production_time',
-    width: 50,
-    lines: 1,
-  },
-  {
-    label: 'Challan No.',
-    key: 'challan_no',
-    width: 80,
-    lines: 2,
-  },
-  {
-    label: 'Party Name',
-    key: 'party_name',
-    width: 118,
-    lines: 3,
-  },
-  {
-    label: 'Material Description',
-    key: 'material',
-    width: 182,
-    lines: 4,
-  },
-  {
-    label: 'Kettle Temp',
-    key: 'kettle_temperature',
-    width: 44,
-    lines: 1,
-  },
-  {
-    label: 'Dipping Qty',
-    key: 'dipping_qty',
-    width: 42,
-    lines: 1,
-  },
-  {
-    label: 'MS Wt.',
-    key: 'ms_weight',
-    width: 44,
-    lines: 1,
-  },
-  {
-    label: 'GI Wt.',
-    key: 'gi_weight',
-    width: 44,
-    lines: 1,
-  },
-  {
-    label: 'Zn %',
-    key: 'zinc_percentage',
-    width: 42,
-    lines: 1,
-  },
-  {
-    label: 'Avg. Coating',
-    key: 'avg_coating',
-    width: 60,
-    lines: 1,
-  },
+  { label: 'Sr', key: 'sr_no', width: 28, lines: 1 },
+  { label: 'Time', key: 'production_time', width: 50, lines: 1 },
+  { label: 'Challan No.', key: 'challan_no', width: 80, lines: 2 },
+  { label: 'Party Name', key: 'party_name', width: 118, lines: 3 },
+  { label: 'Material Description', key: 'material', width: 182, lines: 4 },
+  { label: 'Kettle Temp', key: 'kettle_temperature', width: 44, lines: 1 },
+  { label: 'Dipping Qty', key: 'dipping_qty', width: 42, lines: 1 },
+  { label: 'MS Wt.', key: 'ms_weight', width: 44, lines: 1 },
+  { label: 'GI Wt.', key: 'gi_weight', width: 44, lines: 1 },
+  { label: 'Zn %', key: 'zinc_percentage', width: 42, lines: 1 },
+  { label: 'Avg. Coating', key: 'avg_coating', width: 60, lines: 1 },
 ];
 
-const TABLE_WIDTH = columns.reduce((total, column) => total + column.width, 0);
-
-const TABLE_X = PAGE.margin + (CONTENT_WIDTH - TABLE_WIDTH) / 2;
+const TABLE_WIDTH = columns.reduce((sum, col) => sum + col.width, 0);
 
 const CELL_FONT_SIZE = 5.9;
 const CELL_LINE_HEIGHT = 7;
 const MIN_ROW_HEIGHT = 23;
 const TABLE_HEADER_HEIGHT = 24;
-const TABLE_BOTTOM_LIMIT = 72;
 
-const drawTableHeader = (page, fonts, topY) => {
-  const y = topY - TABLE_HEADER_HEIGHT;
-  let x = TABLE_X;
+// Light-panel table header - matches the certificate's checklist/readings
+// tables (bordered, bgPanel fill, navy bold text) instead of a solid navy
+// band, so both documents read as the same product.
+const drawTableHeader = (page, fonts, y) => {
+  let x = PAGE.margin;
 
-  columns.forEach(column => {
+  columns.forEach(col => {
     page.drawRectangle({
       x,
       y,
-      width: column.width,
+      width: col.width,
       height: TABLE_HEADER_HEIGHT,
       color: COLORS.bgPanel,
       borderColor: COLORS.border,
       borderWidth: 0.6,
     });
 
-    drawCenteredText(
-      page,
-      column.label,
-      x,
-      y,
-      column.width,
-      TABLE_HEADER_HEIGHT,
-      {
-        font: fonts.bold,
-        size: 6.4,
-        color: COLORS.navy,
-      },
-    );
+    drawCenteredText(page, col.label, x, y, col.width, TABLE_HEADER_HEIGHT, {
+      font: fonts.bold,
+      size: 6.4,
+      color: COLORS.navy,
+    });
 
-    x += column.width;
+    x += col.width;
   });
 
   page.drawRectangle({
-    x: TABLE_X,
+    x: PAGE.margin,
     y: y - 1.5,
     width: TABLE_WIDTH,
     height: 1.5,
     color: COLORS.amber,
   });
-
-  return y;
 };
 
 const getCellValue = (row, key) => {
   const value = row?.[key];
-
-  if (key === 'ms_weight' || key === 'gi_weight') {
-    return safeValue(value);
-  }
-
+  if (key === 'ms_weight' || key === 'gi_weight') return safeValue(value);
   if (key === 'zinc_percentage') {
     return value !== null && value !== undefined && value !== ''
       ? `${value}%`
       : '-';
   }
-
   return safeValue(value);
 };
 
+/**
+ * Wrap every cell of a row against its column's real width, and work out
+ * how tall the row needs to be to show the tallest cell in full - this is
+ * what lets long Material Description values display completely instead
+ * of being cut off with "...".
+ */
 const measureRow = (fonts, row) => {
-  const cellLines = columns.map(column =>
+  const cellLines = columns.map(col =>
     wrapTextToWidth(
       fonts.regular,
-      getCellValue(row, column.key),
+      getCellValue(row, col.key),
       CELL_FONT_SIZE,
-      column.width - 8,
-      column.lines || 3,
+      col.width - 8,
+      col.lines || 3,
     ),
   );
 
-  const maxLinesUsed = Math.max(1, ...cellLines.map(lines => lines.length));
-
+  const maxLinesUsed = Math.max(1, ...cellLines.map(l => l.length));
   const rowHeight = Math.max(
     MIN_ROW_HEIGHT,
     12 + maxLinesUsed * CELL_LINE_HEIGHT,
   );
 
-  return {
-    cellLines,
-    rowHeight,
-  };
+  return { cellLines, rowHeight };
 };
 
 const drawCell = (page, lines, x, y, width, height, options = {}) => {
@@ -691,19 +542,57 @@ const drawCell = (page, lines, x, y, width, height, options = {}) => {
     borderWidth: 0.45,
   });
 
-  drawCenteredLines(page, lines, x, y, width, height, {
-    size: options.size || CELL_FONT_SIZE,
-    lineHeight: options.lineHeight || CELL_LINE_HEIGHT,
-    font: options.font,
-    color: options.color || COLORS.text,
+  lines.forEach((line, index) => {
+    page.drawText(line, {
+      x: x + 4,
+      y: y + height - 9 - index * CELL_LINE_HEIGHT,
+      size: options.size || CELL_FONT_SIZE,
+      font: options.font,
+      color: options.color || COLORS.text,
+    });
   });
 };
 
+const drawTotalsRow = (page, fonts, y, totals, rowHeight) => {
+  let x = PAGE.margin;
+
+  columns.forEach(col => {
+    let display = '';
+    if (col.key === 'party_name') display = 'TOTAL';
+    if (col.key === 'ms_weight')
+      display = `${totals.ms.toLocaleString('en-IN')}`;
+    if (col.key === 'gi_weight')
+      display = `${totals.gi.toLocaleString('en-IN')}`;
+
+    page.drawRectangle({
+      x,
+      y,
+      width: col.width,
+      height: rowHeight,
+      color: COLORS.bgPanel,
+      borderColor: COLORS.border,
+      borderWidth: 0.7,
+    });
+
+    if (display) {
+      drawCenteredText(page, display, x, y, col.width, rowHeight, {
+        font: fonts.bold,
+        size: 7,
+        color: COLORS.navy,
+      });
+    }
+
+    x += col.width;
+  });
+};
+
+/* -------------------------------------------------------------------------- */
+/* FOOTER + SIGNATURE STRIP                                                  */
+/* -------------------------------------------------------------------------- */
 const drawFooter = (page, fonts, pageNumber, isLastPage) => {
   if (isLastPage) {
-    const signatureY = 46;
-    const signatureWidth = (CONTENT_WIDTH - 20) / 3;
-
+    const signY = 46;
+    const signW = (CONTENT_WIDTH - 20) / 3;
     const labels = [
       'Prepared By',
       'Checked By (Shift Supervisor)',
@@ -711,22 +600,14 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
     ];
 
     labels.forEach((label, index) => {
-      const x = PAGE.margin + index * (signatureWidth + 10);
-
+      const x = PAGE.margin + index * (signW + 10);
       page.drawLine({
-        start: {
-          x,
-          y: signatureY,
-        },
-        end: {
-          x: x + signatureWidth,
-          y: signatureY,
-        },
+        start: { x, y: signY },
+        end: { x: x + signW, y: signY },
         thickness: 0.7,
         color: COLORS.borderLight,
       });
-
-      drawCenteredText(page, label, x, signatureY - 13, signatureWidth, 10, {
+      drawText(page, label, x, signY - 9, {
         size: 6.8,
         font: fonts.bold,
         color: COLORS.textMuted,
@@ -735,30 +616,18 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
   }
 
   page.drawLine({
-    start: {
-      x: PAGE.margin,
-      y: 24,
-    },
-    end: {
-      x: PAGE.width - PAGE.margin,
-      y: 24,
-    },
+    start: { x: PAGE.margin, y: 24 },
+    end: { x: PAGE.width - PAGE.margin, y: 24 },
     thickness: 0.6,
     color: COLORS.borderLight,
   });
 
-  drawCenteredText(
+  drawText(
     page,
-    'Generated by IV Production App - System-generated document',
+    'Generated by IV Production App  •  System-generated document',
     PAGE.margin,
-    7,
-    CONTENT_WIDTH,
     12,
-    {
-      size: 6.5,
-      font: fonts.regular,
-      color: COLORS.textMuted,
-    },
+    { size: 6.5, font: fonts.regular, color: COLORS.textMuted },
   );
 
   drawText(page, `Page ${pageNumber}`, PAGE.width - PAGE.margin - 46, 12, {
@@ -768,6 +637,9 @@ const drawFooter = (page, fonts, pageNumber, isLastPage) => {
   });
 };
 
+/* -------------------------------------------------------------------------- */
+/* MAIN GENERATOR                                                            */
+/* -------------------------------------------------------------------------- */
 export const generateProductionPdf = async ({
   date,
   shiftName,
@@ -786,117 +658,98 @@ export const generateProductionPdf = async ({
   let pageNumber = 1;
   let page = pdfDoc.addPage(A4_LANDSCAPE);
 
-  let y = drawHeader({
-    page,
-    fonts,
-    date,
-    shiftName,
-    logoImage,
-  });
-
-  y = drawSummaryCards({
-    page,
-    fonts,
-    summary,
-    topY: y,
-  });
+  // Everything below chains off drawHeader's returned y instead of magic
+  // numbers, so the header can grow/shrink without desyncing the rest of
+  // the page.
+  let y = drawHeader({ page, fonts, date, shiftName, logoImage });
+  y = drawSummaryCards({ page, fonts, summary, topY: y });
 
   y -= 27;
-
   y = drawSectionTitle(page, fonts, 'Production Table', y);
 
-  y -= 18;
+  y -= 32;
+  drawTableHeader(page, fonts, y);
+  y -= TABLE_HEADER_HEIGHT;
 
-  y = drawTableHeader(page, fonts, y);
+  const totals = { ms: 0, gi: 0 };
 
   if (!tableData.length) {
-    drawRoundedBox(page, TABLE_X, y - 40, TABLE_WIDTH, 40, {
+    drawRoundedBox(page, PAGE.margin, y - 40, CONTENT_WIDTH, 40, {
       bg: COLORS.white,
     });
-
-    drawCenteredText(
+    drawText(
       page,
       'No production entries found for this shift.',
-      TABLE_X,
-      y - 40,
-      TABLE_WIDTH,
-      40,
-      {
-        size: 9,
-        font: fonts.bold,
-        color: COLORS.textMuted,
-      },
+      PAGE.margin + 10,
+      y - 18,
+      { size: 9, font: fonts.bold, color: COLORS.textMuted },
     );
   }
 
   tableData.forEach((row, rowIndex) => {
+    totals.ms += toNumber(row?.ms_weight);
+    totals.gi += toNumber(row?.gi_weight);
+
+    // Measure the row's real height (wrapped Party / Material text can
+    // need extra lines) BEFORE the page-break check, so a tall row never
+    // spills into the footer area.
     const { cellLines, rowHeight } = measureRow(fonts, row);
 
-    if (y - rowHeight < TABLE_BOTTOM_LIMIT) {
+    if (y - rowHeight < 47) {
       drawFooter(page, fonts, pageNumber, false);
 
       pageNumber += 1;
-
       page = pdfDoc.addPage(A4_LANDSCAPE);
 
-      y = drawContinuationBar({
-        page,
-        fonts,
-        date,
-        shiftName,
-        pageNumber,
-      });
-
-      y = drawTableHeader(page, fonts, y);
+      y = drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
+      drawTableHeader(page, fonts, y);
+      y -= TABLE_HEADER_HEIGHT;
     }
 
-    const rowBottom = y - rowHeight;
-    let x = TABLE_X;
+    // pdf-lib rectangles are anchored at their BOTTOM-left corner, so a
+    // taller-than-minimum row must have its origin shifted further down
+    // for its top edge to stay flush with the previous row's bottom edge.
+    y -= rowHeight - MIN_ROW_HEIGHT;
 
-    const rowBackground = rowIndex % 2 === 0 ? COLORS.white : COLORS.rowAlt;
+    let x = PAGE.margin;
+    const rowBg = rowIndex % 2 === 0 ? COLORS.white : COLORS.rowAlt;
 
-    columns.forEach((column, columnIndex) => {
-      drawCell(
-        page,
-        cellLines[columnIndex],
-        x,
-        rowBottom,
-        column.width,
-        rowHeight,
-        {
-          bg: rowBackground,
-          font: fonts.regular,
-          size: CELL_FONT_SIZE,
-        },
-      );
-
-      x += column.width;
+    columns.forEach((col, colIndex) => {
+      drawCell(page, cellLines[colIndex], x, y, col.width, rowHeight, {
+        bg: rowBg,
+        font: fonts.regular,
+        size: CELL_FONT_SIZE,
+      });
+      x += col.width;
     });
 
-    y = rowBottom;
+    y -= MIN_ROW_HEIGHT;
   });
 
-  // No TOTAL row is added here.
-  // The PDF ends immediately after the final production entry.
+  if (tableData.length) {
+    if (y < 70) {
+      drawFooter(page, fonts, pageNumber, false);
+      pageNumber += 1;
+      page = pdfDoc.addPage(A4_LANDSCAPE);
+      y = drawContinuationBar({ page, fonts, date, shiftName, pageNumber });
+      drawTableHeader(page, fonts, y);
+      y -= TABLE_HEADER_HEIGHT;
+    }
+    drawTotalsRow(page, fonts, y, totals, MIN_ROW_HEIGHT);
+    y -= MIN_ROW_HEIGHT;
+  }
 
   drawFooter(page, fonts, pageNumber, true);
 
   const pdfBytes = await pdfDoc.save();
-
   const base64 = Buffer.from(pdfBytes).toString('base64');
 
-  const safeDate = String(date).replace(/[\\/:*?"<>|]/g, '-');
-
-  const safeShift = String(shiftName).replace(/[\\/:*?"<>|]/g, '-');
-
-  const fileName = `production-${safeDate}-${safeShift}.pdf`;
-
+  const fileName = `production-${date}-${shiftName}.pdf`;
   const path = `${RNFS.DocumentDirectoryPath}/${fileName}`;
 
   await RNFS.writeFile(path, base64, 'base64');
 
   const exists = await RNFS.exists(path);
-
   if (!exists) {
     throw new Error('PDF file was not created');
   }

@@ -16,7 +16,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList,
   Edit3,
-  FileCheck2,
   Plus,
   Trash2,
   X,
@@ -34,13 +33,13 @@ import { centeredContent, useResponsive } from '../../utils/responsive';
 import { pick } from '@react-native-documents/picker';
 import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { formatQuantity } from '../../utils/format';
 const emptyForm = {
   challan_no: '',
   party_name: '',
   material_description: '',
   planned_qty: '',
   third_party_name: '',
+  target_zinc_percentage: '',
   status: 'pending',
 };
 
@@ -75,6 +74,7 @@ export default function ProductionPlanningScreen() {
         material_description: extracted.material_description || '',
         planned_qty: extracted.planned_qty || '',
         third_party_name: extracted.third_party_name || '',
+        target_zinc_percentage: extracted.target_zinc_percentage || '',
         status: 'pending',
       }));
 
@@ -198,6 +198,10 @@ export default function ProductionPlanningScreen() {
       material_description: item.material_description || '',
       planned_qty: String(item.planned_qty || ''),
       third_party_name: item.third_party_name || '',
+      target_zinc_percentage:
+        item.target_zinc_percentage == null
+          ? ''
+          : String(item.target_zinc_percentage),
       status: 'pending',
     });
 
@@ -227,18 +231,19 @@ export default function ProductionPlanningScreen() {
       material_description: form.material_description.trim(),
       planned_qty: form.planned_qty,
       third_party_name: form.third_party_name.trim(),
+      target_zinc_percentage: form.target_zinc_percentage || null,
       status: form.status,
     });
   };
 
   const handleDelete = item => {
     Alert.alert(
-      'Cancel Planning',
-      `Are you sure you want to cancel challan ${item.challan_no}?`,
+      'Delete Planning',
+      `Delete challan ${item.challan_no}? It will be removed from planning lists, while existing production history remains safe.`,
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: 'Yes, Delete',
           style: 'destructive',
           onPress: () => deleteMutation.mutate(item.id),
         },
@@ -321,8 +326,6 @@ function PlanningCard({ item, onEdit, onDelete }) {
     ? `${item.party_name} (${item.third_party_name})`
     : item.party_name;
 
-  const isCompleted = item.status === 'completed';
-
   return (
     <View style={styles.planCard}>
       <View style={styles.planTop}>
@@ -336,20 +339,11 @@ function PlanningCard({ item, onEdit, onDelete }) {
 
       <Text style={styles.materialDesc}>{item.material_description}</Text>
 
-      <View style={styles.qtyRow}>
-        <InfoBox
-          label="Planned"
-          value={`${formatQuantity(item.planned_qty)} NOS`}
-        />
-        <InfoBox
-          label="Completed"
-          value={`${formatQuantity(item.completed_qty)} NOS`}
-        />
-        <InfoBox
-          label="Remaining"
-          value={`${formatQuantity(item.remaining_qty)} NOS`}
-        />
-      </View>
+      {item.target_zinc_percentage != null && (
+        <Text style={styles.targetText}>
+          Zinc alert target: {item.target_zinc_percentage}%
+        </Text>
+      )}
 
       <View style={styles.actionRow}>
         <TouchableOpacity
@@ -367,7 +361,7 @@ function PlanningCard({ item, onEdit, onDelete }) {
           onPress={onDelete}
         >
           <Trash2 size={16} color={COLORS.danger} />
-          <Text style={styles.deleteText}>CANCEL</Text>
+          <Text style={styles.deleteText}>DELETE</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -387,15 +381,6 @@ function StatusBadge({ status }) {
     >
       {lower.toUpperCase()}
     </Text>
-  );
-}
-
-function InfoBox({ label, value }) {
-  return (
-    <View style={styles.infoBox}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
   );
 }
 
@@ -493,6 +478,13 @@ function PlanningModal({
               label="Third Party Name"
               value={form.third_party_name}
               onChangeText={v => onChange('third_party_name', v)}
+            />
+
+            <AppInput
+              label="Target Zinc Percentage (optional)"
+              value={form.target_zinc_percentage}
+              keyboardType="decimal-pad"
+              onChangeText={v => onChange('target_zinc_percentage', v)}
             />
           </View>
 
@@ -663,6 +655,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 12,
     lineHeight: 20,
+  },
+
+  targetText: {
+    color: '#9A3412',
+    backgroundColor: '#FFF7ED',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 12,
   },
 
   qtyRow: {

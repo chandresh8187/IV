@@ -10,32 +10,12 @@ const queryClient = new QueryClient();
 import BootSplash from 'react-native-bootsplash';
 import { Buffer } from 'buffer';
 import { PAPER_THEME } from './src/assets/Colors';
-import * as Updates from 'expo-updates';
-
+import AppUpdateManager from './src/components/AppUpdateManager';
 global.Buffer = Buffer;
 export default function App() {
-  const checkForOTAUpdate = async () => {
-    try {
-      if (!Updates.isEnabled) {
-        return;
-      }
-
-      const update = await Updates.checkForUpdateAsync();
-
-      if (update.isAvailable) {
-        await Updates.fetchUpdateAsync();
-        await Updates.reloadAsync();
-      }
-    } catch (error) {
-      console.log('Automatic OTA update failed:', error);
-      return;
-    }
-  };
-
   useEffect(() => {
     const init = async () => {
       // …do multiple sync or async tasks
-      await checkForOTAUpdate();
     };
 
     init().finally(async () => {
@@ -50,6 +30,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <PaperProvider theme={PAPER_THEME}>
           <RootNavigator />
+          <AppUpdateManager />
         </PaperProvider>
       </QueryClientProvider>
     </Provider>

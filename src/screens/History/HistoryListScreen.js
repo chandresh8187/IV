@@ -11,6 +11,8 @@ import {
 import { TextInput } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Search } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import moment from 'moment';
 
 import { getHistoryDatesApi } from '../../api/historyApi';
 import { centeredContent, useResponsive } from '../../utils/responsive';
@@ -28,11 +30,13 @@ const PAPER_THEME = {
 
 export default function HistoryListScreen({ navigation }) {
   const [search, setSearch] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(moment().format('YYYY-MM'));
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const { contentMaxWidth } = useResponsive();
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['history-dates'],
-    queryFn: getHistoryDatesApi,
+    queryKey: ['history-dates', selectedMonth],
+    queryFn: () => getHistoryDatesApi(selectedMonth),
   });
 
   const historyDates = data?.data || [];
@@ -52,6 +56,18 @@ export default function HistoryListScreen({ navigation }) {
           centeredContent(contentMaxWidth),
         ]}
       >
+        <TouchableOpacity
+          style={styles.monthButton}
+          onPress={() => setShowMonthPicker(true)}
+        >
+          <CalendarDays size={19} color={COLORS.primary} />
+          <View>
+            <Text style={styles.monthLabel}>PRODUCTION MONTH</Text>
+            <Text style={styles.monthValue}>
+              {moment(`${selectedMonth}-01`).format('MMMM YYYY')}
+            </Text>
+          </View>
+        </TouchableOpacity>
         <View style={styles.searchCard}>
           <Search size={20} color={COLORS.gray} />
 
@@ -135,6 +151,19 @@ export default function HistoryListScreen({ navigation }) {
           )}
         </ScrollView>
       )}
+      {showMonthPicker && (
+        <DateTimePicker
+          value={moment(`${selectedMonth}-01`).toDate()}
+          mode="date"
+          display="spinner"
+          onChange={(event, date) => {
+            setShowMonthPicker(false);
+            if (event?.type !== 'dismissed' && date) {
+              setSelectedMonth(moment(date).format('YYYY-MM'));
+            }
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -168,6 +197,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  monthButton: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  monthLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
+  monthValue: { color: COLORS.primary, fontSize: 16, fontWeight: '800', marginTop: 2 },
 
   searchInput: {
     flex: 1,

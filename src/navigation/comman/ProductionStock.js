@@ -7,6 +7,7 @@ import ProductionMenuScreen from './../../screens/common/ProductionMenuScreen';
 import ProductionPlanningScreen from './../../screens/common/ProductionPlanningScreen';
 import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';
 import HistoryStack from './HistoryStack';
+import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
 const Stack = createNativeStackNavigator();
 
 export default function ProductionStack() {
@@ -51,6 +52,11 @@ export default function ProductionStack() {
         name="GenerateCertificate"
         component={GenerateCertificateScreen}
         options={{ title: 'Generate Certificate' }}
+      />
+      <Stack.Screen
+        name="ControlPanel"
+        component={ControlPanelScreen}
+        options={{ title: 'Control Panel' }}
       />
     </Stack.Navigator>
   );

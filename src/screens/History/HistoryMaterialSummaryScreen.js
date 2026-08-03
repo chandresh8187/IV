@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
+import { useSelector } from 'react-redux';
+import { FileDown } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 
 import { getHistoryMaterialSummaryApi } from '../../api/historyApi';
@@ -17,11 +21,14 @@ import {
 import { formatQuantity, formatWeight } from '../../utils/format';
 
 import { COLORS } from '../../assets/Colors';
+import { downloadAndOpenProductionReport } from '../../utils/serverProductionReport';
 
 export default function HistoryMaterialSummaryScreen({ route }) {
   const { date } = route.params;
   const { isTablet, contentMaxWidth } = useResponsive();
   const infoBoxWidth = gridItemWidth(2, 3, isTablet);
+  const role = String(useSelector(state => state.auth.user?.role) || '').toLowerCase();
+  const [downloading, setDownloading] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['history-material-summary', date],
@@ -93,6 +100,27 @@ export default function HistoryMaterialSummaryScreen({ route }) {
                 width={infoBoxWidth}
               />
             </View>
+            {role === 'superadmin' && (
+              <TouchableOpacity
+                style={styles.reportBtn}
+                disabled={downloading === item.material}
+                onPress={async () => {
+                  setDownloading(item.material);
+                  try {
+                    await downloadAndOpenProductionReport({ type: 'material', value: item.material, date });
+                  } catch (error) {
+                    Alert.alert('Error', error?.response?.data?.message || error.message || 'Could not create report');
+                  } finally {
+                    setDownloading(null);
+                  }
+                }}
+              >
+                <FileDown size={17} color={COLORS.white} />
+                <Text style={styles.reportBtnText}>
+                  {downloading === item.material ? 'GENERATING...' : 'MATERIAL REPORT'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))
       )}
@@ -179,4 +207,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 4,
   },
+  reportBtn: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 14,
+  },
+  reportBtnText: { color: COLORS.white, fontSize: 12, fontWeight: '800' },
 });

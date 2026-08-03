@@ -97,6 +97,9 @@ export default function DashboardScreen() {
   const nightShift = todaySummary?.night_shift || {};
   const activeShift = dashboard?.active_shift_summary || {};
   const monthlySummary = dashboard?.current_month || {};
+  const monthlyRows = Array.isArray(monthlySummary.daily_summary)
+    ? monthlySummary.daily_summary
+    : [];
   const plantStatusData = dashboard?.plant_status || {};
   const plantStatus = plantStatusData?.status || 'running';
   const productionAllowed = plantStatusData?.production_allowed !== false;
@@ -126,7 +129,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {plantStatusData?.production_allowed && (
+        {productionAllowed && (
           <View style={styles.activeShiftCard}>
             <View style={styles.cardHeaderRow}>
               <View style={styles.iconBox}>
@@ -213,6 +216,49 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        <View style={styles.monthlyProductionCard}>
+          <View style={styles.monthHeader}>
+            <Text style={styles.monthTitle}>Monthly Production Summary</Text>
+            <Text style={styles.monthSubTitle}>Day-by-day production</Text>
+          </View>
+          {monthlyRows.length ? (
+            monthlyRows.map(row => (
+              <View key={row.production_date} style={styles.monthlyRow}>
+                <View style={styles.monthlyDateBox}>
+                  <Text style={styles.monthlyDateDay}>
+                    {moment(row.production_date).format('DD')}
+                  </Text>
+                  <Text style={styles.monthlyDateMonth}>
+                    {moment(row.production_date).format('MMM')}
+                  </Text>
+                </View>
+                <View style={styles.monthlyMetric}>
+                  <Text style={styles.monthlyMetricLabel}>Qty</Text>
+                  <Text style={styles.monthlyMetricValue}>
+                    {row.total_dipping_qty || 0}
+                  </Text>
+                </View>
+                <View style={styles.monthlyMetric}>
+                  <Text style={styles.monthlyMetricLabel}>MS</Text>
+                  <Text style={styles.monthlyMetricValue}>{row.total_ms || 0}</Text>
+                </View>
+                <View style={styles.monthlyMetric}>
+                  <Text style={styles.monthlyMetricLabel}>GI</Text>
+                  <Text style={styles.monthlyMetricValue}>{row.total_gi || 0}</Text>
+                </View>
+                <View style={styles.monthlyMetric}>
+                  <Text style={styles.monthlyMetricLabel}>Zinc</Text>
+                  <Text style={styles.monthlyMetricValue}>
+                    {row.zinc_consumption || 0}%
+                  </Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No monthly production available.</Text>
+          )}
+        </View>
+
         <View style={styles.grid}>
           <SummaryCard
             title={
@@ -249,11 +295,11 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {plantStatusData?.production_allowed && (
+        {productionAllowed && (
           <SectionTitle title="Today Shift Summary" />
         )}
 
-        {plantStatusData?.production_allowed && (
+        {productionAllowed && (
           <View style={[styles.shiftGrid, isTablet && styles.shiftGridTablet]}>
             <ShiftSummaryCard
               title="Day Shift"
@@ -271,7 +317,7 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
-      {!plantStatusData?.production_allowed && (
+      {!productionAllowed && (
         <PlantStatusBanner config={plantStatusConfig} data={plantStatusData} />
       )}
     </>
@@ -871,4 +917,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 8,
   },
+  monthlyProductionCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    marginBottom: 16,
+  },
+  monthlyRow: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingVertical: 9,
+    gap: 8,
+  },
+  monthlyDateBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: COLORS.lightBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthlyDateDay: { color: COLORS.primary, fontSize: 16, fontWeight: '900' },
+  monthlyDateMonth: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
+  monthlyMetric: { flex: 1, minWidth: 0 },
+  monthlyMetricLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
+  monthlyMetricValue: { color: COLORS.text, fontSize: 11, fontWeight: '800', marginTop: 2 },
 });

@@ -12,6 +12,7 @@ import {
   FileCheck2,
   History,
   Settings2,
+  SlidersHorizontal,
 } from 'lucide-react-native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { COLORS, UI } from '../../assets/Colors';
@@ -24,7 +25,7 @@ export default function ProductionMenuScreen({ navigation }) {
     .toLowerCase()
     .trim();
 
-  const menus =
+  let menus =
     role === 'admin'
       ? [
           {
@@ -77,7 +78,19 @@ export default function ProductionMenuScreen({ navigation }) {
             icon: FileCheck2,
             screen: 'GenerateCertificate',
           },
-        ];
+      ];
+
+  if (role === 'superadmin') {
+    menus = [
+      ...menus,
+      {
+        title: 'Control Panel',
+        desc: 'Monthly alerts, shift settings and audit log',
+        icon: SlidersHorizontal,
+        screen: 'ControlPanel',
+      },
+    ];
+  }
 
   return (
     <ScrollView

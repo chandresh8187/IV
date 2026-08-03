@@ -7,6 +7,9 @@ import {
   ClipboardList,
   Clock3,
   Plus,
+  Edit3,
+  LockKeyhole,
+  Star,
   X,
 } from 'lucide-react-native';
 import moment from 'moment';
@@ -26,7 +29,15 @@ import {
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
-import { getProductionsApi, saveProductionApi } from '../../api/productionApi';
+import NetInfo from '@react-native-community/netinfo';
+import {
+  getDefaultChallanApi,
+  getProductionsApi,
+  grantProductionEditApi,
+  saveProductionApi,
+  setDefaultChallanApi,
+} from '../../api/productionApi';
+import { getUsersApi } from '../../api/userApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
 import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import { socket } from '../../socket/socket';
@@ -40,6 +51,12 @@ import {
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
+import {
+  createClientRequestId,
+  enqueueOfflineProduction,
+  flushOfflineProductions,
+  getOfflineProductionCount,
+} from '../../utils/offlineProductionQueue';
 
 const PAPER_THEME = {
   colors: {
@@ -103,7 +120,16 @@ export default function ProductionScreen() {
 
   const [fullForm, setFullForm] = useState(emptyFullForm);
   const [modalType, setModalType] = useState(null);
+  const [grantRow, setGrantRow] = useState(null);
+  const [selectedGrantUserId, setSelectedGrantUserId] = useState(null);
+  const [grantUserOpen, setGrantUserOpen] = useState(false);
+  const [offlineCount, setOfflineCount] = useState(0);
   const loggedUser = useSelector(state => state.auth.user);
+  const role = String(loggedUser?.role || '')
+    .toLowerCase()
+    .trim();
+  const isSuperAdmin = role === 'superadmin';
+  const isPlantManager = role === 'plant_manager';
   const [planningOpen, setPlanningOpen] = useState(false);
   const [showProductionTimePicker, setShowProductionTimePicker] =
     useState(false);
@@ -114,6 +140,18 @@ export default function ProductionScreen() {
   const { data: availablePlanningData } = useQuery({
     queryKey: ['available-production-planning'],
     queryFn: getAvailablePlanningApi,
+  });
+
+  const { data: defaultChallanData } = useQuery({
+    queryKey: ['default-production-challan'],
+    queryFn: getDefaultChallanApi,
+    enabled: role === 'supervisor',
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ['active-users-for-production-grant'],
+    queryFn: () => getUsersApi(),
+    enabled: isSuperAdmin,
   });
 
   const {
@@ -134,12 +172,6 @@ export default function ProductionScreen() {
   const plantStatus = shiftStatusData?.data?.plant_status || 'running';
   // Normalized so a role stored as "Supervisor" / " superadmin " on the
   // server still unlocks the entry button.
-  const role = String(loggedUser?.role || '')
-    .toLowerCase()
-    .trim();
-  const isSuperAdmin = role === 'superadmin';
-  const isPlantManager = role === 'plant_manager';
-
   const canManageProduction =
     (isSuperAdmin || isPlantManager || role === 'supervisor') &&
     isShiftActive &&
@@ -162,7 +194,14 @@ export default function ProductionScreen() {
   );
 
   const saveMutation = useMutation({
-    mutationFn: saveProductionApi,
+    mutationFn: async payload => {
+      try {
+        return await saveProductionApi(payload);
+      } catch (error) {
+        error.ivProductionPayload = payload;
+        throw error;
+      }
+    },
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'Saved successfully');
 
@@ -174,12 +213,67 @@ export default function ProductionScreen() {
       });
       closeModal();
     },
-    onError: error => {
+    onError: async error => {
+      const isNetworkError = !error?.response;
+      const attemptedExistingRow = rows.some(
+        item =>
+          String(item.sr_no) === String(error.ivProductionPayload?.sr_no || ''),
+      );
+      if (isNetworkError && !attemptedExistingRow && activeShiftId) {
+        const queued = await enqueueOfflineProduction({
+          ...error.ivProductionPayload,
+          offline_shift_id: activeShiftId,
+        });
+        if (queued?.client_request_id) {
+          setOfflineCount(await getOfflineProductionCount());
+          Alert.alert(
+            'Saved Offline',
+            'This production entry will upload automatically when internet is available.',
+          );
+          closeModal();
+          return;
+        }
+      }
       Alert.alert(
         'Error',
         error?.response?.data?.message || 'Something went wrong',
       );
     },
+  });
+
+  const grantMutation = useMutation({
+    mutationFn: grantProductionEditApi,
+    onSuccess: res => {
+      Alert.alert('Unlocked', res?.message || 'Row edit access granted');
+      setGrantRow(null);
+      setSelectedGrantUserId(null);
+      queryClient.invalidateQueries({ queryKey: ['productions'] });
+    },
+    onError: error =>
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'Could not unlock this row',
+      ),
+  });
+
+  const defaultChallanMutation = useMutation({
+    mutationFn: setDefaultChallanApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['default-production-challan'],
+      });
+      Alert.alert(
+        'Saved',
+        fullForm.planning_id
+          ? 'This challan is now your default.'
+          : 'Default challan removed.',
+      );
+    },
+    onError: error =>
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'Could not save default challan',
+      ),
   });
 
   useEffect(() => {
@@ -217,6 +311,25 @@ export default function ProductionScreen() {
     };
   }, [queryClient]);
 
+  useEffect(() => {
+    getOfflineProductionCount().then(setOfflineCount);
+    const syncQueue = async state => {
+      if (!state.isConnected) return;
+      const result = await flushOfflineProductions(saveProductionApi);
+      setOfflineCount(result.remaining);
+      if (result.synced) {
+        queryClient.invalidateQueries({ queryKey: ['productions'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({
+          queryKey: ['available-production-planning'],
+        });
+      }
+    };
+    const unsubscribe = NetInfo.addEventListener(syncQueue);
+    NetInfo.fetch().then(syncQueue);
+    return unsubscribe;
+  }, [queryClient]);
+
   const rows = useMemo(
     () => (activeShiftId ? data?.data?.table_data || data?.data || [] : []),
     [activeShiftId, data],
@@ -232,11 +345,24 @@ export default function ProductionScreen() {
   );
 
   const openEntryModal = () => {
-    setFullForm(
-      isSuperAdmin
-        ? emptyFullForm
-        : { ...emptyFullForm, sr_no: String(nextSrNo) },
+    const preferred = defaultChallanData?.data;
+    const defaultPlan = availablePlanning.find(
+      item => String(item.id) === String(preferred?.default_planning_id),
     );
+    setFullForm({
+      ...emptyFullForm,
+      sr_no: isSuperAdmin ? '' : String(nextSrNo),
+      planning_id: defaultPlan ? String(defaultPlan.id) : '',
+      challan_no: defaultPlan?.challan_no || '',
+      party_name: defaultPlan?.party_name || '',
+      material: defaultPlan?.material_description || '',
+      material_description: defaultPlan?.material_description || '',
+    });
+    setModalType('Full');
+  };
+
+  const openEditModal = item => {
+    fillFromSrNo(item.sr_no);
     setModalType('Full');
   };
 
@@ -451,8 +577,12 @@ export default function ProductionScreen() {
       return;
     }
 
-    saveMutation.mutate({
+    const payload = {
       entry_type: 'full',
+      // Use the same id for the first attempt and every offline retry. If the
+      // server committed but the response was lost, reconnecting replays the
+      // existing result instead of inserting a duplicate row.
+      ...(!existingEntry && { client_request_id: createClientRequestId() }),
       sr_no: fullForm.sr_no,
       planning_id: fullForm.planning_id || undefined,
       challan_no: fullForm.challan_no,
@@ -468,8 +598,26 @@ export default function ProductionScreen() {
       c3: fullForm.c3,
       c4: fullForm.c4,
       c5: fullForm.c5,
-    });
+    };
+    saveMutation.mutate(payload);
   };
+
+  const activeUsers = useMemo(
+    () =>
+      (usersData?.data?.users || []).filter(
+        user => String(user.status || 'active').toLowerCase() === 'active',
+      ),
+    [usersData],
+  );
+
+  const grantUserItems = useMemo(
+    () =>
+      activeUsers.map(user => ({
+        label: `${user.name} (${String(user.role || '').replace('_', ' ')})`,
+        value: user.id,
+      })),
+    [activeUsers],
+  );
 
   const previewZinc = (() => {
     const ms = Number(fullForm.ms_weight);
@@ -550,6 +698,14 @@ export default function ProductionScreen() {
             : 'Automatic shift is not available. Pull refresh and try again.'}
         </Text>
       </View>
+      {offlineCount > 0 && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>
+            {offlineCount} offline entr{offlineCount === 1 ? 'y' : 'ies'}{' '}
+            waiting to sync
+          </Text>
+        </View>
+      )}
       <View style={styles.tableCard}>
         {isLoading ? (
           <View style={styles.loaderBox}>
@@ -575,6 +731,7 @@ export default function ProductionScreen() {
                 <HeaderCell width={80}>C4</HeaderCell>
                 <HeaderCell width={80}>C5</HeaderCell>
                 <HeaderCell width={90}>Avg</HeaderCell>
+                <HeaderCell width={110}>Action</HeaderCell>
               </View>
 
               <ScrollView>
@@ -635,6 +792,30 @@ export default function ProductionScreen() {
                           ? formatNumber(item.avg_coating)
                           : '-'}
                       </Cell>
+                      <View style={[styles.actionCell, { width: 110 }]}>
+                        {isSuperAdmin && (
+                          <TouchableOpacity
+                            style={styles.rowIconBtn}
+                            onPress={() => {
+                              setGrantRow(item);
+                              setSelectedGrantUserId(
+                                item.editable_user_id || null,
+                              );
+                            }}
+                          >
+                            <LockKeyhole size={17} color={COLORS.primary} />
+                          </TouchableOpacity>
+                        )}
+                        {(isSuperAdmin || item.can_edit) && (
+                          <TouchableOpacity
+                            style={styles.rowEditBtn}
+                            onPress={() => openEditModal(item)}
+                          >
+                            <Edit3 size={15} color={COLORS.white} />
+                            <Text style={styles.rowEditText}>EDIT</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                   ))
                 )}
@@ -743,6 +924,27 @@ export default function ProductionScreen() {
                   </View>
                 </View>
               )}
+              {role === 'supervisor' && fullForm.planning_id ? (
+                <TouchableOpacity
+                  style={styles.defaultChallanBtn}
+                  onPress={() =>
+                    defaultChallanMutation.mutate(
+                      String(defaultChallanData?.data?.default_planning_id) ===
+                        String(fullForm.planning_id)
+                        ? null
+                        : fullForm.planning_id,
+                    )
+                  }
+                >
+                  <Star size={17} color={COLORS.primary} />
+                  <Text style={styles.defaultChallanText}>
+                    {String(defaultChallanData?.data?.default_planning_id) ===
+                    String(fullForm.planning_id)
+                      ? 'REMOVE DEFAULT CHALLAN'
+                      : 'MAKE DEFAULT CHALLAN'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               <FormInput
                 label="Party Name"
                 value={fullForm.party_name}
@@ -892,6 +1094,48 @@ export default function ProductionScreen() {
             />
           )}
         </SafeAreaView>
+      </Modal>
+
+      <Modal visible={!!grantRow} transparent animationType="fade">
+        <View style={styles.grantBackdrop}>
+          <View style={styles.grantCard}>
+            <Text style={styles.modalTitle}>Unlock SR {grantRow?.sr_no}</Text>
+            <Text style={styles.modalDesc}>
+              Select the active user who may edit this row once.
+            </Text>
+            <DropDownPicker
+              open={grantUserOpen}
+              setOpen={setGrantUserOpen}
+              value={selectedGrantUserId}
+              setValue={setSelectedGrantUserId}
+              items={grantUserItems}
+              listMode="MODAL"
+              searchable
+              placeholder="Select active user"
+              style={styles.dropdown}
+            />
+            <View style={styles.grantActions}>
+              <TouchableOpacity
+                style={styles.grantCancel}
+                onPress={() => setGrantRow(null)}
+              >
+                <Text style={styles.grantCancelText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.grantSave}
+                disabled={!selectedGrantUserId || grantMutation.isPending}
+                onPress={() =>
+                  grantMutation.mutate({
+                    id: grantRow.id,
+                    user_id: selectedGrantUserId,
+                  })
+                }
+              >
+                <Text style={styles.grantSaveText}>UNLOCK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1421,4 +1665,97 @@ const styles = StyleSheet.create({
     color: '#166534',
     fontWeight: '800',
   },
+  offlineBanner: {
+    marginTop: 10,
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+  },
+  offlineBannerText: {
+    color: '#9A3412',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  actionCell: {
+    minHeight: 48,
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
+  rowIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: COLORS.lightBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowEditBtn: {
+    minHeight: 34,
+    paddingHorizontal: 8,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowEditText: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
+  defaultChallanBtn: {
+    minHeight: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    backgroundColor: COLORS.lightBlue,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  defaultChallanText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  grantBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.58)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  grantCard: {
+    width: '100%',
+    maxWidth: 520,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+  },
+  grantActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  grantCancel: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grantCancelText: { color: COLORS.primary, fontWeight: '800' },
+  grantSave: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grantSaveText: { color: COLORS.white, fontWeight: '800' },
 });
