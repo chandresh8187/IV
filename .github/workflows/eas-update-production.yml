@@ -1,0 +1,189 @@
+name: Deploy Production OTA Update
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allows manual deployment from GitHub Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-ota-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-ota:
+    name: Check and deploy OTA
+    runs-on: ubuntu-latest
+
+    steps:
+      # fetch-depth: 0 is required so all commits in the push can be checked.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect changed files
+        id: changes
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Manual workflow runs are treated as explicitly approved OTA deployments.
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "deploy_ota=true" >> "$GITHUB_OUTPUT"
+            echo "native_changed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=manual" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          ZERO_SHA="0000000000000000000000000000000000000000"
+
+          # Find every file changed in this push, including multi-commit pushes.
+          if [[ -z "${BEFORE_SHA:-}" || "$BEFORE_SHA" == "$ZERO_SHA" ]]; then
+            changed_files="$(git diff-tree \
+              --no-commit-id \
+              --name-only \
+              -r \
+              --root \
+              "$CURRENT_SHA")"
+          else
+            changed_files="$(git diff \
+              --name-only \
+              "$BEFORE_SHA" \
+              "$CURRENT_SHA")"
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "$changed_files"
+
+          {
+            echo "### Changed files"
+            echo '```text'
+            printf '%s\n' "$changed_files"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # These files may change native code, dependencies, Expo runtime,
+          # bundling configuration, permissions, or Android/iOS configuration.
+          native_pattern='^(android/|ios/|patches/|package\.json$|package-lock\.json$|npm-shrinkwrap\.json$|yarn\.lock$|pnpm-lock\.yaml$|app\.json$|app\.config\.(js|ts|mjs|cjs)$|eas\.json$|babel\.config\.(js|mjs|cjs)$|metro\.config\.(js|mjs|cjs)$|react-native\.config\.js$)'
+
+          if printf '%s\n' "$changed_files" | grep -Eq "$native_pattern"; then
+            echo "deploy_ota=false" >> "$GITHUB_OUTPUT"
+            echo "native_changed=true" >> "$GITHUB_OUTPUT"
+            echo "reason=native" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Do not publish an OTA update when only workflow/documentation files changed.
+          application_files="$(
+            printf '%s\n' "$changed_files" |
+              grep -Ev '^(\.github/|docs/|README(\..*)?$|CHANGELOG(\..*)?$|LICENSE(\..*)?$|\.gitignore$|\.gitattributes$)' ||
+              true
+          )"
+
+          if [[ -z "$application_files" ]]; then
+            echo "deploy_ota=false" >> "$GITHUB_OUTPUT"
+            echo "native_changed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=no_application_changes" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_ota=true" >> "$GITHUB_OUTPUT"
+            echo "native_changed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=javascript" >> "$GITHUB_OUTPUT"
+          fi
+
+      # This step remains successful and explains why OTA was skipped.
+      - name: OTA deployment skipped
+        if: steps.changes.outputs.deploy_ota != 'true'
+        shell: bash
+        env:
+          SKIP_REASON: ${{ steps.changes.outputs.reason }}
+        run: |
+          if [[ "$SKIP_REASON" == "native" ]]; then
+            {
+              echo "## OTA deployment safely skipped"
+              echo ""
+              echo "Native, dependency, or runtime-related files changed."
+              echo "Build and distribute a new APK for this commit."
+              echo ""
+              echo "The workflow has not failed."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            echo "Native/dependency changes detected."
+            echo "OTA deployment was safely skipped."
+            echo "Build and distribute a new APK."
+          else
+            {
+              echo "## OTA deployment skipped"
+              echo ""
+              echo "Only workflow or documentation files changed."
+              echo "There is no application update to publish."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            echo "No application files changed. Nothing to publish."
+          fi
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.deploy_ota == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Verify Expo token
+        if: steps.changes.outputs.deploy_ota == 'true'
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [[ -z "${EXPO_TOKEN:-}" ]]; then
+            echo "::error::EXPO_TOKEN is missing. Add it under repository Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          echo "EXPO_TOKEN is configured."
+
+      - name: Install dependencies
+        if: steps.changes.outputs.deploy_ota == 'true'
+        run: npm ci
+
+      - name: Publish production OTA update
+        if: steps.changes.outputs.deploy_ota == 'true'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CI: '1'
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA:0:7}"
+
+          npx --yes eas-cli@latest update \
+            --channel production \
+            --platform android \
+            --environment production \
+            --message "GitHub ${short_sha}: ${GITHUB_ACTOR}" \
+            --non-interactive
+
+      - name: Deployment summary
+        if: steps.changes.outputs.deploy_ota == 'true'
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA:0:7}"
+
+          {
+            echo "## Production OTA published"
+            echo ""
+            echo "- Channel: production"
+            echo "- Platform: Android"
+            echo "- Environment: production"
+            echo "- Commit: \`${short_sha}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
