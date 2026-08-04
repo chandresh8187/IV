@@ -118,7 +118,7 @@ export default function DashboardScreen() {
         <View style={styles.pageIntro}>
           <View style={styles.introCopy}>
             <Text style={styles.eyebrow}>PLANT OPERATIONS</Text>
-            <Text style={styles.title}>Operations overview</Text>
+            <Text style={styles.title}>Operations overview IV</Text>
             <Text style={styles.subTitle}>
               Live production and plant performance at a glance
             </Text>
@@ -240,11 +240,15 @@ export default function DashboardScreen() {
                 </View>
                 <View style={styles.monthlyMetric}>
                   <Text style={styles.monthlyMetricLabel}>MS</Text>
-                  <Text style={styles.monthlyMetricValue}>{row.total_ms || 0}</Text>
+                  <Text style={styles.monthlyMetricValue}>
+                    {row.total_ms || 0}
+                  </Text>
                 </View>
                 <View style={styles.monthlyMetric}>
                   <Text style={styles.monthlyMetricLabel}>GI</Text>
-                  <Text style={styles.monthlyMetricValue}>{row.total_gi || 0}</Text>
+                  <Text style={styles.monthlyMetricValue}>
+                    {row.total_gi || 0}
+                  </Text>
                 </View>
                 <View style={styles.monthlyMetric}>
                   <Text style={styles.monthlyMetricLabel}>Zinc</Text>
@@ -255,7 +259,9 @@ export default function DashboardScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.emptyText}>No monthly production available.</Text>
+            <Text style={styles.emptyText}>
+              No monthly production available.
+            </Text>
           )}
         </View>
 
@@ -295,9 +301,7 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {productionAllowed && (
-          <SectionTitle title="Today Shift Summary" />
-        )}
+        {productionAllowed && <SectionTitle title="Today Shift Summary" />}
 
         {productionAllowed && (
           <View style={[styles.shiftGrid, isTablet && styles.shiftGridTablet]}>
@@ -945,5 +949,10 @@ const styles = StyleSheet.create({
   monthlyDateMonth: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
   monthlyMetric: { flex: 1, minWidth: 0 },
   monthlyMetricLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
-  monthlyMetricValue: { color: COLORS.text, fontSize: 11, fontWeight: '800', marginTop: 2 },
+  monthlyMetricValue: {
+    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
+  },
 });

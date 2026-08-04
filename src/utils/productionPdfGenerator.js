@@ -439,17 +439,22 @@ const drawSectionTitle = (page, fonts, title, y) => {
 /* TABLE                                                                     */
 /* -------------------------------------------------------------------------- */
 const columns = [
-  { label: 'Sr', key: 'sr_no', width: 28, lines: 1 },
-  { label: 'Time', key: 'production_time', width: 50, lines: 1 },
-  { label: 'Challan No.', key: 'challan_no', width: 80, lines: 2 },
-  { label: 'Party Name', key: 'party_name', width: 118, lines: 3 },
-  { label: 'Material Description', key: 'material', width: 182, lines: 4 },
-  { label: 'Kettle Temp', key: 'kettle_temperature', width: 44, lines: 1 },
-  { label: 'Dipping Qty', key: 'dipping_qty', width: 42, lines: 1 },
-  { label: 'MS Wt.', key: 'ms_weight', width: 44, lines: 1 },
-  { label: 'GI Wt.', key: 'gi_weight', width: 44, lines: 1 },
-  { label: 'Zn %', key: 'zinc_percentage', width: 42, lines: 1 },
-  { label: 'Avg. Coating', key: 'avg_coating', width: 60, lines: 1 },
+  { label: 'Sr', key: 'sr_no', width: 24, lines: 1 },
+  { label: 'Time', key: 'production_time', width: 40, lines: 1 },
+  { label: 'Challan No.', key: 'challan_no', width: 62, lines: 2 },
+  { label: 'Party Name', key: 'party_name', width: 95, lines: 3 },
+  { label: 'Material Description', key: 'material', width: 145, lines: 4 },
+  { label: 'Kettle Temp', key: 'kettle_temperature', width: 38, lines: 1 },
+  { label: 'Dipping Qty', key: 'dipping_qty', width: 36, lines: 1 },
+  { label: 'MS Wt.', key: 'ms_weight', width: 40, lines: 1 },
+  { label: 'GI Wt.', key: 'gi_weight', width: 40, lines: 1 },
+  { label: 'Zn %', key: 'zinc_percentage', width: 34, lines: 1 },
+  { label: 'C1', key: 'c1', width: 30, lines: 1 },
+  { label: 'C2', key: 'c2', width: 30, lines: 1 },
+  { label: 'C3', key: 'c3', width: 30, lines: 1 },
+  { label: 'C4', key: 'c4', width: 30, lines: 1 },
+  { label: 'C5', key: 'c5', width: 30, lines: 1 },
+  { label: 'Avg.', key: 'avg_coating', width: 44, lines: 1 },
 ];
 
 const TABLE_WIDTH = columns.reduce((sum, col) => sum + col.width, 0);

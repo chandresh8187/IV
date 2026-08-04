@@ -217,7 +217,8 @@ export default function ProductionScreen() {
       const isNetworkError = !error?.response;
       const attemptedExistingRow = rows.some(
         item =>
-          String(item.sr_no) === String(error.ivProductionPayload?.sr_no || ''),
+          String(item.sr_no) ===
+          String(error.ivProductionPayload?.sr_no || ''),
       );
       if (isNetworkError && !attemptedExistingRow && activeShiftId) {
         const queued = await enqueueOfflineProduction({
@@ -259,9 +260,7 @@ export default function ProductionScreen() {
   const defaultChallanMutation = useMutation({
     mutationFn: setDefaultChallanApi,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['default-production-challan'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['default-production-challan'] });
       Alert.alert(
         'Saved',
         fullForm.planning_id
@@ -270,10 +269,7 @@ export default function ProductionScreen() {
       );
     },
     onError: error =>
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Could not save default challan',
-      ),
+      Alert.alert('Error', error?.response?.data?.message || 'Could not save default challan'),
   });
 
   useEffect(() => {
@@ -320,9 +316,7 @@ export default function ProductionScreen() {
       if (result.synced) {
         queryClient.invalidateQueries({ queryKey: ['productions'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        queryClient.invalidateQueries({
-          queryKey: ['available-production-planning'],
-        });
+        queryClient.invalidateQueries({ queryKey: ['available-production-planning'] });
       }
     };
     const unsubscribe = NetInfo.addEventListener(syncQueue);
@@ -349,15 +343,17 @@ export default function ProductionScreen() {
     const defaultPlan = availablePlanning.find(
       item => String(item.id) === String(preferred?.default_planning_id),
     );
-    setFullForm({
-      ...emptyFullForm,
-      sr_no: isSuperAdmin ? '' : String(nextSrNo),
-      planning_id: defaultPlan ? String(defaultPlan.id) : '',
-      challan_no: defaultPlan?.challan_no || '',
-      party_name: defaultPlan?.party_name || '',
-      material: defaultPlan?.material_description || '',
-      material_description: defaultPlan?.material_description || '',
-    });
+    setFullForm(
+      {
+        ...emptyFullForm,
+        sr_no: isSuperAdmin ? '' : String(nextSrNo),
+        planning_id: defaultPlan ? String(defaultPlan.id) : '',
+        challan_no: defaultPlan?.challan_no || '',
+        party_name: defaultPlan?.party_name || '',
+        material: defaultPlan?.material_description || '',
+        material_description: defaultPlan?.material_description || '',
+      },
+    );
     setModalType('Full');
   };
 
@@ -701,8 +697,7 @@ export default function ProductionScreen() {
       {offlineCount > 0 && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineBannerText}>
-            {offlineCount} offline entr{offlineCount === 1 ? 'y' : 'ies'}{' '}
-            waiting to sync
+            {offlineCount} offline entr{offlineCount === 1 ? 'y' : 'ies'} waiting to sync
           </Text>
         </View>
       )}
@@ -792,15 +787,13 @@ export default function ProductionScreen() {
                           ? formatNumber(item.avg_coating)
                           : '-'}
                       </Cell>
-                      <View style={[styles.actionCell, { width: 110 }]}>
+                      <View style={[styles.actionCell, { width: 110 }]}> 
                         {isSuperAdmin && (
                           <TouchableOpacity
                             style={styles.rowIconBtn}
                             onPress={() => {
                               setGrantRow(item);
-                              setSelectedGrantUserId(
-                                item.editable_user_id || null,
-                              );
+                              setSelectedGrantUserId(item.editable_user_id || null);
                             }}
                           >
                             <LockKeyhole size={17} color={COLORS.primary} />
@@ -859,6 +852,9 @@ export default function ProductionScreen() {
           </View>
 
           <ScrollView
+            scrollEnabled={!planningOpen}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.modalBody,
               centeredContent(formMaxWidth),
@@ -1115,21 +1111,13 @@ export default function ProductionScreen() {
               style={styles.dropdown}
             />
             <View style={styles.grantActions}>
-              <TouchableOpacity
-                style={styles.grantCancel}
-                onPress={() => setGrantRow(null)}
-              >
+              <TouchableOpacity style={styles.grantCancel} onPress={() => setGrantRow(null)}>
                 <Text style={styles.grantCancelText}>CANCEL</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.grantSave}
                 disabled={!selectedGrantUserId || grantMutation.isPending}
-                onPress={() =>
-                  grantMutation.mutate({
-                    id: grantRow.id,
-                    user_id: selectedGrantUserId,
-                  })
-                }
+                onPress={() => grantMutation.mutate({ id: grantRow.id, user_id: selectedGrantUserId })}
               >
                 <Text style={styles.grantSaveText}>UNLOCK</Text>
               </TouchableOpacity>
@@ -1202,6 +1190,11 @@ function FormDropdown({
         placeholder={placeholder || label}
         disabled={disabled}
         listMode="SCROLLVIEW"
+        maxHeight={280}
+        scrollViewProps={{
+          nestedScrollEnabled: true,
+          keyboardShouldPersistTaps: 'handled',
+        }}
         searchable
         searchPlaceholder={`Search ${label}`}
         style={[styles.dropdown, disabled && styles.dropdownDisabled]}
@@ -1720,11 +1713,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  defaultChallanText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
+  defaultChallanText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
   grantBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.58)',
