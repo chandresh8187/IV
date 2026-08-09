@@ -9,6 +9,8 @@ const ViewReport = ({ route }) => {
   const [fullTableVisible, setFullTableVisible] = useState(false);
   const { tableData = [] } = route?.params || {};
 
+  const closeFullTable = () => setFullTableVisible(false);
+
   return (
     <View style={styles.screen}>
       <View style={styles.blockHeader}>
@@ -27,15 +29,16 @@ const ViewReport = ({ route }) => {
         <HistoryTable tableData={tableData} />
       </View>
 
-      <Modal visible={fullTableVisible} animationType="slide">
+      <Modal
+        visible={fullTableVisible}
+        animationType="slide"
+        onRequestClose={closeFullTable}
+      >
         <SafeAreaView style={styles.fullSafe}>
           <View style={styles.fullHeader}>
             <Text style={styles.fullTitle}>Production Entries</Text>
 
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={() => setFullTableVisible(false)}
-            >
+            <TouchableOpacity style={styles.closeBtn} onPress={closeFullTable}>
               <X size={22} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -56,8 +59,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  // Let the table use all remaining height instead of a fixed 50% that
-  // left dead space below it.
   tableWrap: {
     flex: 1,
     paddingHorizontal: 15,
