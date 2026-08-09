@@ -30,7 +30,9 @@ const PAPER_THEME = {
 
 export default function HistoryListScreen({ navigation }) {
   const [search, setSearch] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(moment().format('YYYY-MM'));
+  const [selectedMonth, setSelectedMonth] = useState(
+    moment().format('YYYY-MM'),
+  );
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const { contentMaxWidth } = useResponsive();
 
@@ -56,18 +58,6 @@ export default function HistoryListScreen({ navigation }) {
           centeredContent(contentMaxWidth),
         ]}
       >
-        <TouchableOpacity
-          style={styles.monthButton}
-          onPress={() => setShowMonthPicker(true)}
-        >
-          <CalendarDays size={19} color={COLORS.primary} />
-          <View>
-            <Text style={styles.monthLabel}>PRODUCTION MONTH</Text>
-            <Text style={styles.monthValue}>
-              {moment(`${selectedMonth}-01`).format('MMMM YYYY')}
-            </Text>
-          </View>
-        </TouchableOpacity>
         <View style={styles.searchCard}>
           <Search size={20} color={COLORS.gray} />
 
@@ -211,7 +201,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   monthLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
-  monthValue: { color: COLORS.primary, fontSize: 16, fontWeight: '800', marginTop: 2 },
+  monthValue: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 2,
+  },
 
   searchInput: {
     flex: 1,

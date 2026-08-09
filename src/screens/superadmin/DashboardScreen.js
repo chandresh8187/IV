@@ -37,9 +37,6 @@ export default function DashboardScreen() {
   });
 
   useEffect(() => {
-    // Notification permission is already requested once at login
-    // (LoginScreen.js) - asking again here just re-prompts on every
-    // dashboard mount/focus.
     if (!socket.connected) {
       socket.connect();
     }
@@ -61,9 +58,6 @@ export default function DashboardScreen() {
     socket.on('plant_status_updated', handlePlantStatusUpdated);
 
     return () => {
-      // Passing the specific handler (not just the event name) means this
-      // cleanup won't accidentally remove listeners other screens
-      // (ProductionScreen, ShiftScreen) registered for the same events.
       socket.off('production_updated', handleProductionUpdated);
       socket.off('shift_updated', handleShiftUpdated);
       socket.off('plant_status_updated', handlePlantStatusUpdated);
@@ -90,20 +84,15 @@ export default function DashboardScreen() {
   }
 
   const dashboard = data?.data;
-
   const shiftStatus = dashboard?.shift_status;
   const todaySummary = dashboard?.today_summary;
   const dayShift = todaySummary?.day_shift || {};
   const nightShift = todaySummary?.night_shift || {};
   const activeShift = dashboard?.active_shift_summary || {};
   const monthlySummary = dashboard?.current_month || {};
-  const monthlyRows = Array.isArray(monthlySummary.daily_summary)
-    ? monthlySummary.daily_summary
-    : [];
   const plantStatusData = dashboard?.plant_status || {};
   const plantStatus = plantStatusData?.status || 'running';
   const productionAllowed = plantStatusData?.production_allowed !== false;
-
   const plantStatusConfig = getPlantStatusConfig(plantStatus, plantStatusData);
 
   return (
@@ -214,55 +203,6 @@ export default function DashboardScreen() {
               isTablet={isTablet}
             />
           </View>
-        </View>
-
-        <View style={styles.monthlyProductionCard}>
-          <View style={styles.monthHeader}>
-            <Text style={styles.monthTitle}>Monthly Production Summary</Text>
-            <Text style={styles.monthSubTitle}>Day-by-day production</Text>
-          </View>
-          {monthlyRows.length ? (
-            monthlyRows.map(row => (
-              <View key={row.production_date} style={styles.monthlyRow}>
-                <View style={styles.monthlyDateBox}>
-                  <Text style={styles.monthlyDateDay}>
-                    {moment(row.production_date).format('DD')}
-                  </Text>
-                  <Text style={styles.monthlyDateMonth}>
-                    {moment(row.production_date).format('MMM')}
-                  </Text>
-                </View>
-                <View style={styles.monthlyMetric}>
-                  <Text style={styles.monthlyMetricLabel}>Qty</Text>
-                  <Text style={styles.monthlyMetricValue}>
-                    {row.total_dipping_qty || 0}
-                  </Text>
-                </View>
-                <View style={styles.monthlyMetric}>
-                  <Text style={styles.monthlyMetricLabel}>MS</Text>
-                  <Text style={styles.monthlyMetricValue}>
-                    {row.total_ms || 0}
-                  </Text>
-                </View>
-                <View style={styles.monthlyMetric}>
-                  <Text style={styles.monthlyMetricLabel}>GI</Text>
-                  <Text style={styles.monthlyMetricValue}>
-                    {row.total_gi || 0}
-                  </Text>
-                </View>
-                <View style={styles.monthlyMetric}>
-                  <Text style={styles.monthlyMetricLabel}>Zinc</Text>
-                  <Text style={styles.monthlyMetricValue}>
-                    {row.zinc_consumption || 0}%
-                  </Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              No monthly production available.
-            </Text>
-          )}
         </View>
 
         <View style={styles.grid}>

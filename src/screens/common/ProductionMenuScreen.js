@@ -78,7 +78,7 @@ export default function ProductionMenuScreen({ navigation }) {
             icon: FileCheck2,
             screen: 'GenerateCertificate',
           },
-      ];
+        ];
 
   if (role === 'superadmin') {
     menus = [
