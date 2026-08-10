@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -32,9 +33,14 @@ import java.util.Locale;
 public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
   private static final String EVENT_NAME = "NativeAppUpdateEvent";
   private static final long POLL_INTERVAL_MS = 500L;
+  private static final String PREFERENCES_NAME = "iv_native_app_updater";
+  private static final String PREF_DOWNLOAD_ID = "active_download_id";
+  private static final String PREF_APK_PATH = "active_apk_path";
+  private static final String PREF_SHA256 = "expected_sha256";
 
   private final ReactApplicationContext reactContext;
   private final Handler handler = new Handler(Looper.getMainLooper());
+  private final SharedPreferences preferences;
   private DownloadManager downloadManager;
   private long activeDownloadId = -1L;
   private File activeApkFile;
@@ -46,6 +52,11 @@ public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
     this.reactContext = reactContext;
     this.downloadManager =
         (DownloadManager) reactContext.getSystemService(Context.DOWNLOAD_SERVICE);
+    this.preferences = reactContext.getSharedPreferences(
+        PREFERENCES_NAME,
+        Context.MODE_PRIVATE
+    );
+    restoreActiveDownload();
   }
 
   @NonNull
@@ -170,6 +181,7 @@ public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
       expectedSha256 = normalizedSha;
       registerDownloadReceiver();
       activeDownloadId = downloadManager.enqueue(request);
+      persistActiveDownload();
       startProgressPolling();
       promise.resolve((double) activeDownloadId);
     } catch (Exception error) {
@@ -240,6 +252,16 @@ public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
             clearActiveDownload();
             return;
           }
+
+          if (status == DownloadManager.STATUS_SUCCESSFUL) {
+            handler.removeCallbacks(this);
+            handleCompletedDownload();
+            return;
+          }
+        } else {
+          emitError("The active app update download could not be found.");
+          clearActiveDownload();
+          return;
         }
       } catch (Exception error) {
         emitError("Unable to read update download progress.");
@@ -340,11 +362,54 @@ public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
     }
   }
 
+  private void persistActiveDownload() {
+    if (activeDownloadId == -1L || activeApkFile == null || expectedSha256 == null) {
+      return;
+    }
+
+    preferences.edit()
+        .putLong(PREF_DOWNLOAD_ID, activeDownloadId)
+        .putString(PREF_APK_PATH, activeApkFile.getAbsolutePath())
+        .putString(PREF_SHA256, expectedSha256)
+        .apply();
+  }
+
+  private void restoreActiveDownload() {
+    long storedDownloadId = preferences.getLong(PREF_DOWNLOAD_ID, -1L);
+    String storedApkPath = preferences.getString(PREF_APK_PATH, null);
+    String storedSha256 = preferences.getString(PREF_SHA256, null);
+
+    if (
+        storedDownloadId == -1L ||
+        storedApkPath == null ||
+        storedSha256 == null ||
+        !storedSha256.matches("^[a-f0-9]{64}$")
+    ) {
+      clearPersistedDownload();
+      return;
+    }
+
+    activeDownloadId = storedDownloadId;
+    activeApkFile = new File(storedApkPath);
+    expectedSha256 = storedSha256;
+    registerDownloadReceiver();
+    startProgressPolling();
+  }
+
+  private void clearPersistedDownload() {
+    preferences.edit()
+        .remove(PREF_DOWNLOAD_ID)
+        .remove(PREF_APK_PATH)
+        .remove(PREF_SHA256)
+        .apply();
+  }
+
   private void clearActiveDownload() {
     handler.removeCallbacks(progressRunnable);
     activeDownloadId = -1L;
     activeApkFile = null;
     expectedSha256 = null;
+    clearPersistedDownload();
     if (receiverRegistered) {
       try {
         reactContext.unregisterReceiver(downloadReceiver);
@@ -367,6 +432,16 @@ public class NativeAppUpdaterModule extends ReactContextBaseJavaModule {
   @Override
   public void invalidate() {
     super.invalidate();
-    clearActiveDownload();
+    // DownloadManager continues outside the React instance. Keep the persisted
+    // ID so the replacement instance resumes this download instead of starting
+    // another system notification/download.
+    handler.removeCallbacks(progressRunnable);
+    if (receiverRegistered) {
+      try {
+        reactContext.unregisterReceiver(downloadReceiver);
+      } catch (Exception ignored) {
+      }
+      receiverRegistered = false;
+    }
   }
 }

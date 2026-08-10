@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Platform, StyleSheet, View } from 'react-native';
-import { Button, ProgressBar, Text } from 'react-native-paper';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AppState, Modal, Platform, StyleSheet, View } from 'react-native';
+import { Button, Text } from 'react-native-paper';
+import { Download, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import * as Updates from 'expo-updates';
 
 import { getAndroidUpdateApi } from '../api/appUpdateApi';
@@ -30,6 +31,7 @@ export default function AppUpdateManager() {
   const [phase, setPhase] = useState('idle');
   const [nativeProgress, setNativeProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const actionLockedRef = useRef(false);
 
   const isNative = update?.type === 'native';
   const isOta = update?.type === 'ota';
@@ -113,7 +115,9 @@ export default function AppUpdateManager() {
     return subscribeToNativeUpdateEvents(event => {
       if (event?.type === 'progress') {
         setPhase('downloading');
-        setNativeProgress(clamp(event.progress, 0, 100));
+        setNativeProgress(currentProgress =>
+          Math.max(currentProgress, clamp(event.progress, 0, 100)),
+        );
       } else if (event?.type === 'verifying') {
         setPhase('verifying');
         setNativeProgress(100);
@@ -121,14 +125,36 @@ export default function AppUpdateManager() {
         setPhase('installing');
         setNativeProgress(100);
       } else if (event?.type === 'error') {
+        actionLockedRef.current = false;
         setPhase('error');
         setErrorMessage(event.message || 'The update could not be installed.');
       }
     });
   }, []);
 
+  useEffect(() => {
+    if (phase !== 'installing') return undefined;
+
+    let installerWasOpened = AppState.currentState !== 'active';
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState !== 'active') {
+        installerWasOpened = true;
+      } else if (installerWasOpened) {
+        // Returning without installing must unlock the action for a clean retry.
+        actionLockedRef.current = false;
+        setPhase('idle');
+        setNativeProgress(0);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [phase]);
+
   const startNativeUpdate = async () => {
+    if (actionLockedRef.current) return;
+    actionLockedRef.current = true;
     setErrorMessage('');
+    setPhase('preparing');
 
     try {
       const allowed = await canInstallApks();
@@ -136,7 +162,7 @@ export default function AppUpdateManager() {
       if (!allowed) {
         Alert.alert(
           'Installation permission required',
-          'Enable “Allow from this source” for IV APP, return to the app, and tap Update now again.',
+          'Enable "Allow from this source" for IV APP, return to the app, and tap Update now again.',
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -145,6 +171,8 @@ export default function AppUpdateManager() {
             },
           ],
         );
+        setPhase('idle');
+        actionLockedRef.current = false;
         return;
       }
 
@@ -157,12 +185,15 @@ export default function AppUpdateManager() {
         versionCode: update.latestVersionCode,
       });
     } catch (error) {
+      actionLockedRef.current = false;
       setPhase('error');
       setErrorMessage(error?.message || 'Unable to start the APK download.');
     }
   };
 
   const startOtaUpdate = async () => {
+    if (actionLockedRef.current) return;
+    actionLockedRef.current = true;
     setErrorMessage('');
     setPhase('downloading');
 
@@ -174,19 +205,24 @@ export default function AppUpdateManager() {
       }
 
       setPhase('ready');
+      actionLockedRef.current = false;
     } catch (error) {
+      actionLockedRef.current = false;
       setPhase('error');
       setErrorMessage(error?.message || 'Unable to download the OTA update.');
     }
   };
 
   const reloadOtaUpdate = async () => {
+    if (actionLockedRef.current) return;
+    actionLockedRef.current = true;
     setErrorMessage('');
     setPhase('reloading');
 
     try {
       await Updates.reloadAsync();
     } catch (error) {
+      actionLockedRef.current = false;
       setPhase('error');
       setErrorMessage(error?.message || 'Unable to reload the updated app.');
     }
@@ -198,19 +234,26 @@ export default function AppUpdateManager() {
 
   const otaProgress = clamp(otaState.downloadProgress, 0, 1);
   const progress = isNative ? nativeProgress / 100 : otaProgress;
-  const busy = ['downloading', 'verifying', 'installing', 'reloading'].includes(
-    phase,
-  );
+  const busy = [
+    'preparing',
+    'downloading',
+    'verifying',
+    'installing',
+    'reloading',
+  ].includes(phase);
+  const showProgress = ['preparing', 'downloading', 'verifying'].includes(phase);
 
   const progressLabel =
-    phase === 'downloading'
-      ? `Downloading ${Math.round(progress * 100)}%`
+    phase === 'preparing'
+      ? 'Preparing secure download...'
+      : phase === 'downloading'
+      ? 'Downloading update'
       : phase === 'verifying'
-      ? 'Verifying update…'
+      ? 'Verifying download...'
       : phase === 'installing'
-      ? 'Opening installer…'
+      ? 'Opening installer...'
       : phase === 'reloading'
-      ? 'Reloading app…'
+      ? 'Reloading app...'
       : '';
 
   const actionLabel = isNative
@@ -231,6 +274,7 @@ export default function AppUpdateManager() {
 
   const dismiss = () => {
     if (!isMandatory && !busy) {
+      actionLockedRef.current = false;
       setUpdate(null);
       setPhase('idle');
       setErrorMessage('');
@@ -247,9 +291,15 @@ export default function AppUpdateManager() {
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text variant="headlineSmall" style={styles.title}>
-            New update available
-          </Text>
+          <View style={styles.iconCircle}>
+            {isNative ? (
+              <Download size={27} color={COLORS.accent} />
+            ) : (
+              <RefreshCw size={27} color={COLORS.accent} />
+            )}
+          </View>
+
+          <Text variant="headlineSmall" style={styles.title}>Update available</Text>
 
           <Text style={styles.updateType}>
             {isNative
@@ -257,12 +307,42 @@ export default function AppUpdateManager() {
               : 'Quick app update'}
           </Text>
 
-          <Text style={styles.notes}>{update.releaseNotes}</Text>
+          <View style={styles.notesBox}>
+            <Text style={styles.notesTitle}>WHAT'S NEW</Text>
+            <Text style={styles.notes}>{update.releaseNotes}</Text>
+          </View>
 
-          {busy && (
+          {showProgress && (
             <View style={styles.progressArea}>
-              <ProgressBar progress={progress} color={COLORS.primary} />
-              <Text style={styles.progressText}>{progressLabel}</Text>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressText}>{progressLabel}</Text>
+                <Text style={styles.progressPercent}>
+                  {Math.round(progress * 100)}%
+                </Text>
+              </View>
+              <View
+                style={styles.progressTrack}
+                accessibilityRole="progressbar"
+                accessibilityValue={{
+                  min: 0,
+                  max: 100,
+                  now: Math.round(progress * 100),
+                }}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.round(progress * 100)}%` },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+
+          {busy && !showProgress && (
+            <View style={styles.statusBox}>
+              <RefreshCw size={16} color={COLORS.accent} />
+              <Text style={styles.statusText}>{progressLabel}</Text>
             </View>
           )}
 
@@ -272,15 +352,21 @@ export default function AppUpdateManager() {
             </Text>
           )}
 
-          {!!errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
+          {!!errorMessage && (
+            <View style={styles.errorBox}>
+              <Text style={styles.error}>{errorMessage}</Text>
+            </View>
+          )}
 
           <Button
             mode="contained"
             onPress={handleAction}
             disabled={busy}
+            loading={busy}
             style={styles.primaryButton}
+            contentStyle={styles.primaryButtonContent}
           >
-            {busy ? progressLabel : actionLabel}
+            {busy ? 'Update in progress' : actionLabel}
           </Button>
 
           {!isMandatory && !busy && phase !== 'ready' && (
@@ -290,9 +376,10 @@ export default function AppUpdateManager() {
           )}
 
           {isMandatory && (
-            <Text style={styles.required}>
-              This native update is required to continue.
-            </Text>
+            <View style={styles.requiredRow}>
+              <ShieldCheck size={15} color={COLORS.danger} />
+              <Text style={styles.required}>This update is required to continue.</Text>
+            </View>
           )}
         </View>
       </View>
@@ -309,31 +396,100 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 22,
-    borderRadius: UI.radius,
+    width: '100%',
+    maxWidth: 430,
+    alignSelf: 'center',
+    borderRadius: UI.radiusLarge,
     backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...UI.shadow,
+  },
+  iconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
+    marginBottom: 14,
   },
   title: {
     color: COLORS.primary,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
   },
   updateType: {
-    marginTop: 6,
-    color: COLORS.primary,
-    fontWeight: '600',
+    marginTop: 5,
+    color: COLORS.gray,
+    fontWeight: '700',
     textAlign: 'center',
   },
+  notesBox: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  notesTitle: {
+    color: COLORS.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    marginBottom: 7,
+  },
   notes: {
-    marginTop: 18,
     lineHeight: 21,
     color: COLORS.text,
   },
   progressArea: {
     marginTop: 20,
   },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 9,
+  },
   progressText: {
-    marginTop: 8,
-    textAlign: 'center',
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressPercent: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 10,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 99,
+    backgroundColor: COLORS.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 99,
+    backgroundColor: COLORS.accent,
+  },
+  statusBox: {
+    marginTop: 18,
+    padding: 12,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.accentSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  statusText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '700',
   },
   readyText: {
     marginTop: 16,
@@ -341,17 +497,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
-  error: {
+  errorBox: {
     marginTop: 14,
-    color: '#B3261E',
+    padding: 12,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.dangerSoft,
+  },
+  error: {
+    color: COLORS.danger,
+    fontSize: 12,
+    lineHeight: 18,
   },
   primaryButton: {
     marginTop: 20,
+    borderRadius: UI.radiusSmall,
+  },
+  primaryButtonContent: {
+    minHeight: 48,
+  },
+  requiredRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   required: {
-    marginTop: 10,
-    color: '#B3261E',
-    textAlign: 'center',
+    color: COLORS.danger,
     fontSize: 12,
+    fontWeight: '700',
   },
 });
