@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateHistoricalProductionApi } from '../../api/historyApi';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import {
+  formatTime12Hour,
+  formatTimeForApi,
+  parseTimeForPicker,
+} from '../../utils/format';
 
 const fields = [
   ['challan_no', 'Challan No', 'default'],
   ['party_name', 'Party Name', 'default'],
   ['material', 'Material', 'default'],
-  ['production_time', 'Production Time (HH:mm:ss)', 'default'],
   ['dipping_qty', 'Dipping Qty', 'numeric'],
   ['kettle_temperature', 'Kettle Temperature', 'decimal-pad'],
   ['ms_weight', 'MS Weight 1 Nos', 'decimal-pad'],
@@ -24,9 +29,18 @@ const fields = [
 
 export default function HistoricalProductionEditScreen({ route, navigation }) {
   const { item, date, shift_name } = route.params;
-  const [form, setForm] = useState(() =>
-    fields.reduce((result, [key]) => ({ ...result, [key]: item[key] == null ? '' : String(item[key]) }), {}),
-  );
+  const [form, setForm] = useState(() => ({
+    production_time:
+      item.production_time == null ? '' : String(item.production_time),
+    ...fields.reduce(
+      (result, [key]) => ({
+        ...result,
+        [key]: item[key] == null ? '' : String(item[key]),
+      }),
+      {},
+    ),
+  }));
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const queryClient = useQueryClient();
   const { formMaxWidth } = useResponsive();
   const mutation = useMutation({
@@ -49,6 +63,42 @@ export default function HistoricalProductionEditScreen({ route, navigation }) {
         <Text style={styles.subtitle}>{date} • {String(shift_name).toUpperCase()} shift</Text>
       </View>
       <View style={styles.formCard}>
+        <TouchableOpacity onPress={() => setShowTimePicker(true)}>
+          <View pointerEvents="none">
+            <TextInput
+              label="Production Time"
+              value={formatTime12Hour(
+                form.production_time,
+                'Select production time',
+              )}
+              mode="outlined"
+              editable={false}
+              style={styles.input}
+              outlineColor={COLORS.inputBorder}
+              activeOutlineColor={COLORS.accent}
+              textColor={COLORS.text}
+              theme={PAPER_THEME}
+              right={<TextInput.Icon icon="clock-outline" />}
+            />
+          </View>
+        </TouchableOpacity>
+        {showTimePicker && (
+          <DateTimePicker
+            value={parseTimeForPicker(form.production_time)}
+            mode="time"
+            display="clock"
+            is24Hour={false}
+            onChange={(event, selectedTime) => {
+              setShowTimePicker(false);
+              if (event?.type === 'set' && selectedTime) {
+                setForm(prev => ({
+                  ...prev,
+                  production_time: formatTimeForApi(selectedTime),
+                }));
+              }
+            }}
+          />
+        )}
         {fields.map(([key, label, keyboardType]) => (
           <TextInput
             key={key}

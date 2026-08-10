@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,20 +7,19 @@ import {
   View,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import dayjs from 'dayjs';
-import DateTimePicker from 'react-native-ui-datepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   CalendarDays,
   Filter,
   Search,
   Sun,
   Moon,
-  X,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
+import { formatDateForApi, parseDateForPicker } from '../../utils/format';
 
 const PAPER_THEME = {
   colors: {
@@ -32,12 +30,10 @@ const PAPER_THEME = {
   roundness: 14,
 };
 
-const formatDate = date => dayjs(date).format('YYYY-MM-DD');
-
 export default function HistoryScreen() {
   const navigation = useNavigation();
   const { contentMaxWidth } = useResponsive();
-  const today = formatDate(new Date());
+  const today = formatDateForApi(new Date());
 
   const [filters, setFilters] = useState({
     date: today,
@@ -47,7 +43,7 @@ export default function HistoryScreen() {
 
   const [datePicker, setDatePicker] = useState({
     visible: false,
-    value: dayjs(today),
+    value: parseDateForPicker(today),
   });
 
   const updateFilter = (key, value) => {
@@ -57,7 +53,7 @@ export default function HistoryScreen() {
   const openDatePicker = () => {
     setDatePicker({
       visible: true,
-      value: dayjs(filters.date),
+      value: parseDateForPicker(filters.date),
     });
   };
 
@@ -68,16 +64,16 @@ export default function HistoryScreen() {
     }));
   };
 
-  const handleDateChange = params => {
-    const selectedDate = params?.date;
+  const handleDateChange = (event, selectedDate) => {
+    closeDatePicker();
 
-    if (!selectedDate) return;
+    if (event?.type !== 'set' || !selectedDate) return;
 
-    updateFilter('date', formatDate(selectedDate));
+    updateFilter('date', formatDateForApi(selectedDate));
 
     setDatePicker(prev => ({
       ...prev,
-      value: dayjs(selectedDate),
+      value: parseDateForPicker(selectedDate),
     }));
   };
 
@@ -184,65 +180,16 @@ export default function HistoryScreen() {
         </View>
       </View>
 
-      <DatePickerModal
-        visible={datePicker.visible}
-        value={datePicker.value}
-        onChange={handleDateChange}
-        onClose={closeDatePicker}
-      />
+      {datePicker.visible && (
+        <DateTimePicker
+          value={datePicker.value}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleDateChange}
+        />
+      )}
     </ScrollView>
-  );
-}
-
-function DatePickerModal({ visible, value, onChange, onClose }) {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.dateOverlay}>
-        <View style={styles.dateCard}>
-          <View style={styles.dateHeader}>
-            <Text style={styles.dateTitle}>Select Date</Text>
-
-            <TouchableOpacity style={styles.dateCloseBtn} onPress={onClose}>
-              <X size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <DateTimePicker
-            mode="single"
-            date={value}
-            onChange={onChange}
-            styles={{
-              selected: {
-                backgroundColor: COLORS.primary,
-                borderRadius: 99,
-              },
-              day_label: { color: COLORS.primary, fontWeight: '700' },
-              selected_label: { color: COLORS.white },
-              today_label: {
-                color: COLORS.accent,
-                fontWeight: '700',
-              },
-              weekday_label: {
-                color: COLORS.primary,
-                fontWeight: '700',
-              },
-              month_selector_label: {
-                color: COLORS.primary,
-                fontWeight: '700',
-              },
-              year_selector_label: {
-                color: COLORS.primary,
-                fontWeight: '700',
-              },
-            }}
-          />
-
-          <TouchableOpacity style={styles.doneBtn} onPress={onClose}>
-            <Text style={styles.doneText}>DONE</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
   );
 }
 
@@ -360,55 +307,4 @@ const styles = StyleSheet.create({
 
   clearText: { color: COLORS.gray, fontWeight: '800' },
 
-  dateOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'center',
-    padding: 18,
-  },
-
-  dateCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 12,
-    // Keep the calendar a comfortable size on tablets instead of
-    // stretching the full window width.
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-  },
-
-  dateHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  dateTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
-
-  dateCloseBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  doneBtn: {
-    height: 52,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-  },
-
-  doneText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
 });

@@ -21,6 +21,7 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
   const { data, isLoading } = useQuery({
     queryKey: ['history-date-summary', date],
     queryFn: () => getHistoryDateSummaryApi(date),
+    staleTime: 30_000,
   });
 
   const summary = data?.data || {};

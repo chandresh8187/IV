@@ -8,14 +8,18 @@ import ProductionPlanningScreen from './../../screens/common/ProductionPlanningS
 import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';
 import HistoryStack from './HistoryStack';
 import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
+import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
+import { COLORS } from '../../assets/Colors';
 const Stack = createNativeStackNavigator();
+const renderHeader = props => <AppHeader {...props} />;
 
 export default function ProductionStack() {
   return (
     <Stack.Navigator
       initialRouteName="ProductionMenu"
       screenOptions={{
-        header: props => <AppHeader {...props} />,
+        header: renderHeader,
+        contentStyle: { backgroundColor: COLORS.bg },
       }}
     >
       <Stack.Screen
@@ -52,6 +56,13 @@ export default function ProductionStack() {
         name="GenerateCertificate"
         component={GenerateCertificateScreen}
         options={{ title: 'Generate Certificate' }}
+      />
+      <Stack.Screen
+        name="PdfViewer"
+        component={PdfViewerScreen}
+        options={({ route }) => ({
+          title: route.params?.title || 'PDF Preview',
+        })}
       />
       <Stack.Screen
         name="ControlPanel"

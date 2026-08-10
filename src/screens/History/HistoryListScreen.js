@@ -1,311 +1,218 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useQueryClient } from '@tanstack/react-query';
+import { CalendarDays, Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  RefreshControl,
-  ScrollView,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { TextInput } from 'react-native-paper';
-import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Search } from 'lucide-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
 
-import { getHistoryDatesApi } from '../../api/historyApi';
+import { getHistoryDateSummaryApi } from '../../api/historyApi';
+import { COLORS, UI } from '../../assets/Colors';
+import { formatDateForApi, parseDateForPicker } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-import { COLORS } from '../../assets/Colors';
-
-const PAPER_THEME = {
-  colors: {
-    primary: COLORS.accent,
-    onSurfaceVariant: COLORS.primary,
-    background: COLORS.white,
-  },
-  roundness: 14,
-};
-
 export default function HistoryListScreen({ navigation }) {
-  const [search, setSearch] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(
-    moment().format('YYYY-MM'),
+  const [selectedDate, setSelectedDate] = useState(() =>
+    formatDateForApi(new Date()),
   );
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const queryClient = useQueryClient();
   const { contentMaxWidth } = useResponsive();
 
-  const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['history-dates', selectedMonth],
-    queryFn: () => getHistoryDatesApi(selectedMonth),
-  });
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(false);
 
-  const historyDates = data?.data || [];
+    if (event?.type === 'set' && date) {
+      setSelectedDate(formatDateForApi(date));
+    }
+  };
 
-  const filteredDates = historyDates.filter(item =>
-    String(item.shift_date).toLowerCase().includes(search.toLowerCase()),
-  );
+  const handleFetch = async () => {
+    if (isFetching) return;
+
+    setIsFetching(true);
+
+    try {
+      await queryClient.fetchQuery({
+        queryKey: ['history-date-summary', selectedDate],
+        queryFn: () => getHistoryDateSummaryApi(selectedDate),
+        staleTime: 30_000,
+      });
+
+      navigation.navigate('HistoryDateDetails', { date: selectedDate });
+    } catch (error) {
+      Alert.alert(
+        'Unable to fetch history',
+        error?.response?.data?.message ||
+          'Production history could not be loaded. Please try again.',
+      );
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   return (
-    <View style={[styles.container, styles.safe]}>
-      <View
-        style={[
-          {
-            paddingHorizontal: 16,
-            paddingTop: 16,
-          },
-          centeredContent(contentMaxWidth),
-        ]}
-      >
-        <View style={styles.searchCard}>
-          <Search size={20} color={COLORS.gray} />
+    <View style={styles.screen}>
+      <View style={[styles.content, centeredContent(contentMaxWidth)]}>
+        <View style={styles.card}>
+          <View style={styles.iconBox}>
+            <CalendarDays size={30} color={COLORS.accent} />
+          </View>
 
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search date..."
-            mode="flat"
-            underlineColor="transparent"
-            activeUnderlineColor="transparent"
-            style={styles.searchInput}
-            textColor={COLORS.text}
-            placeholderTextColor={COLORS.gray}
-            theme={PAPER_THEME}
-          />
+          <Text style={styles.title}>Select Production Date</Text>
+          <Text style={styles.description}>
+            Choose a date to view its day and night production details.
+          </Text>
+
+          <Text style={styles.label}>PRODUCTION DATE</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.dateField}
+            onPress={() => setShowDatePicker(true)}
+            disabled={isFetching}
+          >
+            <CalendarDays size={21} color={COLORS.primary} />
+            <View style={styles.dateTextWrap}>
+              <Text style={styles.dateValue}>
+                {parseDateForPicker(selectedDate).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </Text>
+              <Text style={styles.apiDate}>{selectedDate}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[styles.fetchButton, isFetching && styles.buttonDisabled]}
+            onPress={handleFetch}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Search size={19} color={COLORS.white} />
+            )}
+            <Text style={styles.fetchButtonText}>
+              {isFetching ? 'FETCHING...' : 'FETCH PRODUCTION'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {isLoading ? (
-        <View style={styles.loaderBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            centeredContent(contentMaxWidth),
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-          }
-        >
-          {filteredDates.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <CalendarDays size={34} color={COLORS.gray} />
-              <Text style={styles.emptyText}>No production history found</Text>
-            </View>
-          ) : (
-            filteredDates.map(item => (
-              <TouchableOpacity
-                key={item.shift_date}
-                activeOpacity={0.85}
-                style={styles.dateCard}
-                onPress={() =>
-                  navigation.navigate('HistoryDateDetails', {
-                    date: item.shift_date,
-                  })
-                }
-              >
-                <View style={styles.iconBox}>
-                  <CalendarDays size={24} color={COLORS.primary} />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dateText}>{item.shift_date}</Text>
-
-                  <Text style={styles.metaText}>
-                    Day + Night production report
-                  </Text>
-
-                  <View style={styles.summaryRow}>
-                    <MiniInfo
-                      label="MS"
-                      value={`${item.total_ms_production_kg || 0} KG`}
-                    />
-                    <MiniInfo
-                      label="GI"
-                      value={`${item.total_gi_production_kg || 0} KG`}
-                    />
-                    <MiniInfo
-                      label="Zinc"
-                      value={`${item.zinc_consumption || 0}%`}
-                    />
-                  </View>
-                </View>
-
-                <Text style={styles.arrow}>›</Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
-      )}
-      {showMonthPicker && (
+      {showDatePicker && (
         <DateTimePicker
-          value={moment(`${selectedMonth}-01`).toDate()}
+          value={parseDateForPicker(selectedDate)}
           mode="date"
-          display="spinner"
-          onChange={(event, date) => {
-            setShowMonthPicker(false);
-            if (event?.type !== 'dismissed' && date) {
-              setSelectedMonth(moment(date).format('YYYY-MM'));
-            }
-          }}
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleDateChange}
         />
       )}
     </View>
   );
 }
 
-function MiniInfo({ label, value }) {
-  return (
-    <View style={styles.miniBox}>
-      <Text style={styles.miniLabel}>{label}</Text>
-      <Text style={styles.miniValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: {
+  screen: {
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-
-  container: {
+  content: {
     flex: 1,
+    justifyContent: 'center',
+    padding: 20,
   },
-
-  searchCard: {
+  card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 2,
+    borderRadius: UI.radiusLarge,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 22,
+    ...UI.shadow,
   },
-  monthButton: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 10,
-    elevation: 2,
-  },
-  monthLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
-  monthValue: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-
-  searchInput: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    height: 50,
-  },
-
-  loaderBox: {
-    flex: 1,
+  iconBox: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    backgroundColor: COLORS.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.bg,
+    alignSelf: 'center',
   },
-
-  listContent: {
-    paddingTop: 14,
-    paddingBottom: 30,
-    padding: 16,
-  },
-
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 30,
-    alignItems: 'center',
-    marginTop: 20,
-    elevation: 2,
-  },
-
-  emptyText: {
-    color: COLORS.gray,
+  title: {
+    color: COLORS.primary,
+    fontSize: 22,
     fontWeight: '800',
-    marginTop: 10,
+    textAlign: 'center',
+    marginTop: 16,
   },
-
-  dateCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    elevation: 2,
+  description: {
+    color: COLORS.gray,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 7,
+    marginBottom: 24,
+  },
+  label: {
+    color: COLORS.gray,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    marginBottom: 8,
+  },
+  dateField: {
+    minHeight: 64,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: UI.radius,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.inputBorder,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-
-  iconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
+  dateTextWrap: {
+    flex: 1,
   },
-
-  dateText: {
+  dateValue: {
     color: COLORS.primary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
   },
-
-  metaText: {
-    color: COLORS.gray,
-    fontSize: 12,
+  apiDate: {
+    color: COLORS.muted,
+    fontSize: 11,
     fontWeight: '700',
     marginTop: 3,
   },
-
-  summaryRow: {
+  fetchButton: {
+    height: 54,
+    backgroundColor: COLORS.primary,
+    borderRadius: UI.radius,
+    marginTop: 18,
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
   },
-
-  miniBox: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 8,
+  buttonDisabled: {
+    opacity: 0.7,
   },
-
-  miniLabel: {
-    color: COLORS.gray,
-    fontSize: 10,
+  fetchButtonText: {
+    color: COLORS.white,
+    fontSize: 13,
     fontWeight: '800',
-  },
-
-  miniValue: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-
-  arrow: {
-    color: COLORS.accent,
-    fontSize: 32,
-    fontWeight: '800',
+    letterSpacing: 0.6,
   },
 });

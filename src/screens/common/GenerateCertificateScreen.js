@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,21 +9,28 @@ import {
   View,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import DateTimePicker from 'react-native-ui-datepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { CalendarDays, FileCheck2, Plus, Trash2, X } from 'lucide-react-native';
+import {
+  CalendarDays,
+  FileCheck2,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react-native';
 
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import {
   createCertificateApi,
-  getProductionsByChallanApi,
+  getCertificateReadingsApi,
 } from '../../api/certificateApi';
 import { getProductionPlanningApi } from '../../api/productionPlanningApi';
-import { generateCoatingCertificatePdf } from '../../utils/certificatePdfGenerator';
+import { downloadCertificatePdf } from '../../utils/serverCertificatePdf';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { formatDateForApi, parseDateForPicker } from '../../utils/format';
+import { getCoatingRange } from '../../utils/coatingRange';
 
 const DEFAULT_REFERENCE_STANDARD = 'IS 4759, IS 6745, IS 2633, IS 2629';
 const FIXED_QUANTITY = 'As per challan';
@@ -107,12 +113,20 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   const { contentMaxWidth } = useResponsive();
 
   /* ------------------------------ form state ----------------------------- */
-  const [certificateType, setCertificateType] = useState('auto');
+  const certificateType = 'auto';
 
   const [inspectionDate, setInspectionDate] = useState(
     dayjs().format('YYYY-MM-DD'),
   );
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+  const handleInspectionDateChange = (event, selectedDate) => {
+    setDatePickerVisible(false);
+
+    if (event?.type === 'set' && selectedDate) {
+      setInspectionDate(formatDateForApi(selectedDate));
+    }
+  };
 
   const [clientName, setClientName] = useState(
     initialPlanning?.party_name || '',
@@ -134,7 +148,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   const [materialDescription, setMaterialDescription] = useState(
     initialPlanning?.material_description || '',
   );
-  const [neededCoating, setNeededCoating] = useState('');
+  const [minimumCoating, setMinimumCoating] = useState('');
+  const [maximumCoating, setMaximumCoating] = useState('');
 
   const [checklist, setChecklist] = useState(CHECKLIST_DEFAULTS);
   const [remarks, setRemarks] = useState(
@@ -178,6 +193,10 @@ export default function GenerateCertificateScreen({ route, navigation }) {
     () => planningList.find(p => p.challan_no === selectedChallanNo) || null,
     [planningList, selectedChallanNo],
   );
+  const coatingRange = useMemo(
+    () => getCoatingRange(minimumCoating, maximumCoating),
+    [maximumCoating, minimumCoating],
+  );
 
   // Auto-fill (but keep editable) when a challan is picked.
   const onChallanSelected = challanNo => {
@@ -195,39 +214,36 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   const {
     data: readingsData,
     isLoading: loadingReadings,
+    isRefetching: reshufflingReadings,
     isError: readingsError,
+    refetch: reshuffleReadings,
   } = useQuery({
-    queryKey: ['certificate-readings', selectedChallanNo],
-    queryFn: () => getProductionsByChallanApi(selectedChallanNo),
-    enabled: certificateType === 'auto' && !!selectedChallanNo,
+    queryKey: [
+      'certificate-readings',
+      selectedPlanning?.id,
+      coatingRange.minimum,
+      coatingRange.maximum,
+    ],
+    queryFn: () =>
+      getCertificateReadingsApi({
+        planningId: selectedPlanning.id,
+        minimum:
+          coatingRange.minimum == null ? '' : String(coatingRange.minimum),
+        maximum:
+          coatingRange.maximum == null ? '' : String(coatingRange.maximum),
+      }),
+    enabled:
+      certificateType === 'auto' &&
+      !!selectedPlanning?.id &&
+      !coatingRange.error,
+    staleTime: Infinity,
   });
 
-  // Auto mode: production entries of the selected challan that actually
-  // have coating readings filled in. A dip entry can exist without
-  // coating readings yet (e.g. weighed and dipped but not measured), so
-  // those get skipped instead of showing up as blank rows on the
-  // certificate - we only want entries someone actually measured.
-  const autoReadings = useMemo(() => {
-    const rows = readingsData?.data?.table_data || readingsData?.data || [];
-    if (!Array.isArray(rows)) return [];
-
-    const minimum = neededCoating === '' ? null : Number(neededCoating);
-    const withReadings = rows.filter(row => {
-      const readings = [row.c1, row.c2, row.c3, row.c4, row.c5];
-      const hasReadings = readings.some(
-        value => value !== null && value !== undefined && value !== '',
-      );
-      const valid = readings.map(Number).filter(Number.isFinite);
-      const average = Number.isFinite(Number(row.avg_coating))
-        ? Number(row.avg_coating)
-        : valid.length
-        ? valid.reduce((sum, value) => sum + value, 0) / valid.length
-        : 0;
-      return hasReadings && (minimum == null || average >= minimum);
-    });
-
-    return withReadings.slice(0, minimum == null ? MAX_READING_ROWS : 5);
-  }, [readingsData, neededCoating]);
+  const autoReadings = Array.isArray(readingsData?.data?.readings)
+    ? readingsData.data.readings
+    : [];
+  const matchingReadingsCount =
+    Number(readingsData?.data?.matching_count) || 0;
 
   /* ------------------------------ checklist ------------------------------ */
   const updateChecklistField = (key, field, value) => {
@@ -279,6 +295,10 @@ export default function GenerateCertificateScreen({ route, navigation }) {
       Alert.alert('Error', 'Please select the date of inspection');
       return;
     }
+    if (coatingRange.error) {
+      Alert.alert('Invalid Coating Range', coatingRange.error);
+      return;
+    }
 
     // Build the readings the certificate table will show.
     let readings;
@@ -287,7 +307,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
       if (!readings.length) {
         Alert.alert(
           'Error',
-          'No production entries found for this challan. Switch to Manual to enter readings yourself.',
+          `No complete C1-C5 production readings found with ${coatingRange.description}.`,
         );
         return;
       }
@@ -330,7 +350,6 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         quantity: FIXED_QUANTITY,
         inspection_date: inspectionDate,
         reference_standard: DEFAULT_REFERENCE_STANDARD,
-        needed_coating: neededCoating || null,
         coating_readings: readings,
         remarks,
         ...checklistPayload,
@@ -357,11 +376,14 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         quantity: FIXED_QUANTITY,
         inspection_date: inspectionDate,
         reference_standard: DEFAULT_REFERENCE_STANDARD,
-        needed_coating: neededCoating || null,
         remarks,
         ...checklistPayload,
       };
-      await generateCoatingCertificatePdf({ certificate, readings });
+      const pdf = await downloadCertificatePdf({ certificate, readings });
+      navigation.navigate('PdfViewer', {
+        ...pdf,
+        title: 'Certificate Preview',
+      });
     } catch (error) {
       // Log the full error so the real cause (network vs server vs a plain
       // JS exception in PDF generation) is visible in Metro/adb logs.
@@ -395,39 +417,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
           </Text>
         </View>
 
-        {/* ----------------------- certificate type ----------------------- */}
-        {/* <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Certificate Type</Text>
-          <View style={styles.typeRow}>
-            {['auto'].map(type => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeBtn,
-                  certificateType === type && styles.typeBtnActive,
-                ]}
-                onPress={() => setCertificateType(type)}
-              >
-                <Text
-                  style={[
-                    styles.typeText,
-                    certificateType === type && styles.typeTextActive,
-                  ]}
-                >
-                  {type.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.typeHint}>
-            {certificateType === 'auto'
-              ? 'Coating readings are pulled automatically from production entries of the selected challan (max 10 entries).'
-              : 'Enter the 5 coating readings for each row manually (max 10 rows).'}
-          </Text>
-        </View> */}
-
         {/* --------------------- challan + structure ---------------------- */}
-        <View style={[styles.formCard, { zIndex: 3000 }]}>
+        <View style={[styles.formCard, styles.dropdownFormCard]}>
           <Text style={styles.formTitle}>Challan & Structure</Text>
 
           <Text style={styles.fieldLabel}>Challan No.</Text>
@@ -470,12 +461,33 @@ export default function GenerateCertificateScreen({ route, navigation }) {
             multiline
             numberOfLines={2}
           />
-          <AppInput
-            label="Needed Coating (optional)"
-            value={neededCoating}
-            onChangeText={setNeededCoating}
-            keyboardType="decimal-pad"
-          />
+
+          <Text style={styles.rangeTitle}>Production Reading Range</Text>
+          <View style={styles.rangeRow}>
+            <AppInput
+              style={styles.rangeInput}
+              label="Minimum Avg. Coating"
+              value={minimumCoating}
+              onChangeText={setMinimumCoating}
+              keyboardType="decimal-pad"
+            />
+            <AppInput
+              style={styles.rangeInput}
+              label="Maximum Avg. Coating"
+              value={maximumCoating}
+              onChangeText={setMaximumCoating}
+              keyboardType="decimal-pad"
+            />
+          </View>
+          <Text
+            style={[
+              styles.rangeHelp,
+              coatingRange.error && styles.rangeError,
+            ]}
+          >
+            {coatingRange.error ||
+              `Leave both empty to randomly select entries with ${coatingRange.description}.`}
+          </Text>
         </View>
 
         {/* ------------------------ certificate info ---------------------- */}
@@ -492,6 +504,14 @@ export default function GenerateCertificateScreen({ route, navigation }) {
               <Text style={styles.dateValue}>{inspectionDate}</Text>
             </View>
           </TouchableOpacity>
+          {datePickerVisible && (
+            <DateTimePicker
+              value={parseDateForPicker(inspectionDate)}
+              mode="date"
+              display="default"
+              onChange={handleInspectionDateChange}
+            />
+          )}
 
           <AppInput
             label="Client Name"
@@ -540,6 +560,10 @@ export default function GenerateCertificateScreen({ route, navigation }) {
               <Text style={styles.readingsText}>
                 Select a challan to load its production coating readings.
               </Text>
+            ) : coatingRange.error ? (
+              <Text style={[styles.readingsText, styles.rangeError]}>
+                {coatingRange.error}
+              </Text>
             ) : loadingReadings ? (
               <ActivityIndicator color={COLORS.primary} />
             ) : readingsError ? (
@@ -547,13 +571,41 @@ export default function GenerateCertificateScreen({ route, navigation }) {
                 Could not load production entries for this challan.
               </Text>
             ) : (
-              <Text style={styles.readingsText}>
-                {autoReadings.length} production entr
-                {autoReadings.length === 1 ? 'y' : 'ies'} (max{' '}
-                {neededCoating === '' ? MAX_READING_ROWS : 5}) will be included
-                {neededCoating !== '' ? ` with average coating ${neededCoating}+` : ''} with their 5 coating
-                readings each.
-              </Text>
+              <>
+                <Text style={styles.readingsText}>
+                  {autoReadings.length} random production entr
+                  {autoReadings.length === 1 ? 'y' : 'ies'} selected from{' '}
+                  {matchingReadingsCount} matching entr
+                  {matchingReadingsCount === 1 ? 'y' : 'ies'} with{' '}
+                  {coatingRange.description}. A maximum of 10 will appear in
+                  the PDF.
+                </Text>
+
+                {matchingReadingsCount > 1 && (
+                  <TouchableOpacity
+                    style={styles.reshuffleBtn}
+                    disabled={reshufflingReadings}
+                    onPress={() => reshuffleReadings()}
+                  >
+                    {reshufflingReadings ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <RefreshCw size={15} color={COLORS.white} />
+                    )}
+                    <Text style={styles.reshuffleText}>
+                      {reshufflingReadings ? 'SELECTING...' : 'RESHUFFLE'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {autoReadings.map((row, index) => (
+                  <ReadingPreviewRow
+                    key={row.id || `${row.sr_no}-${index}`}
+                    row={row}
+                    position={index + 1}
+                  />
+                ))}
+              </>
             )}
           </View>
         ) : (
@@ -659,75 +711,41 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* --------------------------- date picker -------------------------- */}
-      <Modal
-        visible={datePickerVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDatePickerVisible(false)}
-      >
-        <View style={styles.dateOverlay}>
-          <View style={styles.dateCard}>
-            <View style={styles.dateHeader}>
-              <Text style={styles.dateTitle}>Date of Inspection</Text>
-              <TouchableOpacity
-                style={styles.dateCloseBtn}
-                onPress={() => setDatePickerVisible(false)}
-              >
-                <X size={20} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <DateTimePicker
-              mode="single"
-              date={dayjs(inspectionDate).toDate()}
-              onChange={({ date }) => {
-                if (date) {
-                  setInspectionDate(dayjs(date).format('YYYY-MM-DD'));
-                }
-              }}
-              styles={{
-                selected: {
-                  backgroundColor: COLORS.primary,
-                  borderRadius: 99,
-                },
-                day_label: { color: COLORS.primary, fontWeight: '700' },
-                selected_label: { color: COLORS.white },
-                today_label: {
-                  color: COLORS.accent,
-                  fontWeight: '700',
-                },
-                weekday_label: {
-                  color: COLORS.primary,
-                  fontWeight: '700',
-                },
-                month_selector_label: {
-                  color: COLORS.primary,
-                  fontWeight: '700',
-                },
-                year_selector_label: {
-                  color: COLORS.primary,
-                  fontWeight: '700',
-                },
-              }}
-            />
-
-            <TouchableOpacity
-              style={styles.doneBtn}
-              onPress={() => setDatePickerVisible(false)}
-            >
-              <Text style={styles.doneText}>DONE</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
+function ReadingPreviewRow({ row, position }) {
+  const displayNumber = value => {
+    const number = Number(value);
+    return Number.isFinite(number) ? String(Number(number.toFixed(2))) : '-';
+  };
 
+  return (
+    <View style={styles.readingPreviewCard}>
+      <Text style={styles.readingPreviewMeta}>
+        Position {position} - SR {row.sr_no || '-'} - {row.shift_date || '-'} -{' '}
+        {String(row.shift_name || '-').toUpperCase()}
+      </Text>
+      <View style={styles.readingValuesRow}>
+        {[row.c1, row.c2, row.c3, row.c4, row.c5].map((value, index) => (
+          <View key={index} style={styles.readingValueBox}>
+            <Text style={styles.readingValueLabel}>C{index + 1}</Text>
+            <Text style={styles.readingValueText}>{displayNumber(value)}</Text>
+          </View>
+        ))}
+        <View style={[styles.readingValueBox, styles.averageValueBox]}>
+          <Text style={styles.readingValueLabel}>AVG</Text>
+          <Text style={styles.readingValueText}>
+            {displayNumber(row.avg_coating)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 40 },
 
   headerCard: {
@@ -753,41 +771,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 12,
   },
+  dropdownFormCard: { zIndex: 3000 },
 
   formTitle: {
     color: COLORS.primary,
     fontSize: 16,
     fontWeight: '800',
     marginBottom: 12,
-  },
-
-  typeRow: { flexDirection: 'row', gap: 8 },
-
-  typeBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  typeBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-
-  typeText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
-  typeTextActive: { color: COLORS.white },
-
-  typeHint: {
-    color: COLORS.gray,
-    fontSize: 11.5,
-    fontWeight: '700',
-    marginTop: 10,
-    lineHeight: 16,
   },
 
   fieldLabel: {
@@ -809,6 +799,35 @@ const styles = StyleSheet.create({
   dropdownText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
 
   input: { backgroundColor: COLORS.white, marginBottom: 12 },
+
+  rangeTitle: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 2,
+    marginBottom: 9,
+  },
+
+  rangeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+
+  rangeInput: {
+    flex: 1,
+  },
+
+  rangeHelp: {
+    color: COLORS.gray,
+    fontSize: 11.5,
+    fontWeight: '700',
+    lineHeight: 17,
+    marginTop: -3,
+  },
+
+  rangeError: {
+    color: COLORS.danger,
+  },
 
   dateBtn: {
     flexDirection: 'row',
@@ -864,6 +883,74 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     textAlign: 'center',
+  },
+
+  reshuffleBtn: {
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 12,
+    alignSelf: 'center',
+  },
+
+  reshuffleText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+
+  readingPreviewCard: {
+    width: '100%',
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginTop: 9,
+  },
+
+  readingPreviewMeta: {
+    color: COLORS.primary,
+    fontSize: 10.5,
+    fontWeight: '800',
+    marginBottom: 7,
+  },
+
+  readingValuesRow: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+
+  readingValueBox: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: 7,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+
+  averageValueBox: {
+    backgroundColor: COLORS.accentSoft,
+  },
+
+  readingValueLabel: {
+    color: COLORS.gray,
+    fontSize: 8,
+    fontWeight: '800',
+  },
+
+  readingValueText: {
+    color: COLORS.primary,
+    fontSize: 10.5,
+    fontWeight: '800',
+    marginTop: 2,
   },
 
   manualHeader: {
@@ -946,56 +1033,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  dateOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'center',
-    padding: 18,
-  },
-
-  dateCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 12,
-    // Keep the calendar a comfortable size on tablets instead of
-    // stretching the full window width.
-    width: '100%',
-    maxWidth: 480,
-    alignSelf: 'center',
-  },
-
-  dateHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  dateTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '800' },
-
-  dateCloseBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  doneBtn: {
-    height: 50,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-
-  doneText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
 });

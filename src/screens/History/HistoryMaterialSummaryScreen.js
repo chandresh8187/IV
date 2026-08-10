@@ -21,9 +21,9 @@ import {
 import { formatQuantity, formatWeight } from '../../utils/format';
 
 import { COLORS } from '../../assets/Colors';
-import { downloadAndOpenProductionReport } from '../../utils/serverProductionReport';
+import { downloadProductionReport } from '../../utils/serverProductionReport';
 
-export default function HistoryMaterialSummaryScreen({ route }) {
+export default function HistoryMaterialSummaryScreen({ route, navigation }) {
   const { date } = route.params;
   const { isTablet, contentMaxWidth } = useResponsive();
   const infoBoxWidth = gridItemWidth(2, 3, isTablet);
@@ -107,7 +107,15 @@ export default function HistoryMaterialSummaryScreen({ route }) {
                 onPress={async () => {
                   setDownloading(item.material);
                   try {
-                    await downloadAndOpenProductionReport({ type: 'material', value: item.material, date });
+                    const pdf = await downloadProductionReport({
+                      type: 'material',
+                      value: item.material,
+                      date,
+                    });
+                    navigation.navigate('PdfViewer', {
+                      ...pdf,
+                      title: 'Material Report',
+                    });
                   } catch (error) {
                     Alert.alert('Error', error?.response?.data?.message || error.message || 'Could not create report');
                   } finally {

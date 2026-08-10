@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Factory, ShieldCheck } from 'lucide-react-native';
+import { ShieldCheck } from 'lucide-react-native';
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
-  PermissionsAndroid,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,8 +18,6 @@ import { useDispatch } from 'react-redux';
 import { loginApi } from '../../api/authApi';
 import { setAuth } from '../../redux/slices/authSlice';
 import { IVSnackbar } from './../../components/IVSnackbar';
-import { getFCMToken } from '../../services/firebaseService';
-import { saveFcmTokenApi } from '../../api/notificationApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -39,12 +36,12 @@ export default function LoginScreen() {
     let err = {};
     let valid = true;
     if (!email.trim()) {
-      err['email'] = 'Please enter email address.';
+      err.email = 'Please enter email address.';
       valid = false;
     }
 
     if (!password.trim()) {
-      err['password'] = 'Please enter password.';
+      err.password = 'Please enter password.';
       valid = false;
     }
 
@@ -73,22 +70,6 @@ export default function LoginScreen() {
             user: res.user,
           }),
         );
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-          );
-
-          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-            const fcmToken = await getFCMToken();
-
-            if (fcmToken) {
-              await saveFcmTokenApi({
-                fcm_token: fcmToken,
-                device_type: 'android',
-              });
-            }
-          }
-        } catch (error) {}
       } else {
         Alert.alert('Login Failed', res?.message || 'Invalid login details.');
       }
@@ -119,13 +100,9 @@ export default function LoginScreen() {
       >
         <View style={[styles.card, isTablet && centeredContent(480)]}>
           <View style={styles.brandMark}>
-            {/* <Factory size={25} color={COLORS.white} strokeWidth={2.2} /> */}
             <Image
               source={require('../../assets/Image/IV_logo.png')}
-              style={{
-                height: 60,
-                width: 60,
-              }}
+              style={styles.logo}
             />
           </View>
           <Text style={styles.eyebrow}>IV PRODUCTION</Text>
@@ -198,11 +175,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-  },
-
   flex: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -215,43 +187,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: COLORS.bg,
-  },
-
-  logoBox: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-
-  logoCircle: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-
-  logoText: {
-    color: COLORS.white,
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-
-  appTitle: {
-    color: COLORS.primary,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-
-  appSubtitle: {
-    marginTop: 6,
-    color: COLORS.gray,
-    fontSize: 14,
-    textAlign: 'center',
   },
 
   card: {
@@ -276,6 +211,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 3,
+  },
+  logo: {
+    height: 60,
+    width: 60,
   },
 
   eyebrow: {

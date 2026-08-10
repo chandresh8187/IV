@@ -5,6 +5,12 @@ export const createCertificateApi = async body => {
   return response.data;
 };
 
+export const generateCertificatePdfApi = async body => {
+  return apiClient.post('/certificates/pdf', body, {
+    responseType: 'arraybuffer',
+  });
+};
+
 export const getCertificatesApi = async params => {
   const response = await apiClient.get('/certificates', { params });
   return response.data;
@@ -15,11 +21,17 @@ export const getCertificateByIdApi = async id => {
   return response.data;
 };
 
-// All production entries for one challan, regardless of which shift/day
-// they were recorded on - needed for the certificate's readings table.
-export const getProductionsByChallanApi = async challanNo => {
-  const response = await apiClient.get('/productions', {
-    params: { challan_no: challanNo, limit: 500 },
+export const getCertificateReadingsApi = async ({
+  planningId,
+  minimum,
+  maximum,
+}) => {
+  const response = await apiClient.get('/certificates/readings', {
+    params: {
+      planning_id: planningId,
+      minimum: minimum || undefined,
+      maximum: maximum || undefined,
+    },
   });
   return response.data;
 };

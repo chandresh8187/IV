@@ -12,16 +12,11 @@ import { useQuery } from '@tanstack/react-query';
 import { FileCheck2, Maximize2 } from 'lucide-react-native';
 
 import { getHistoryShiftTableApi } from '../../api/historyApi';
-import { generateProductionPdf } from '../../utils/productionPdfGenerator';
+import ProductionTable from '../../components/ProductionTable';
+import { downloadProductionReport } from '../../utils/serverProductionReport';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
-import {
-  formatNumber,
-  formatQuantity,
-  formatTime12Hour,
-  formatWeight,
-} from '../../utils/format';
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
@@ -40,11 +35,14 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
     setSaving(true);
 
     try {
-      await generateProductionPdf({
+      const pdf = await downloadProductionReport({
+        type: 'shift',
+        value: shift_name,
         date,
-        shiftName: shift_name,
-        summary,
-        tableData,
+      });
+      navigation.navigate('PdfViewer', {
+        ...pdf,
+        title: 'Production Report',
       });
     } catch (error) {
       Alert.alert(
@@ -106,7 +104,6 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
               navigation.navigate('HistoryFullTable', {
                 date,
                 shift_name,
-                tableData,
               })
             }
           >
@@ -115,83 +112,12 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View>
-            <View style={styles.tableHead}>
-              <Cell width={55} header>
-                Sr
-              </Cell>
-              <Cell width={100} header>
-                Time
-              </Cell>
-              <Cell width={120} header>
-                Challan
-              </Cell>
-              <Cell width={160} header>
-                Party
-              </Cell>
-              <Cell width={180} header>
-                Material
-              </Cell>
-              <Cell width={80} header>
-                Qty
-              </Cell>
-              <Cell width={90} header>
-                MS
-              </Cell>
-              <Cell width={90} header>
-                GI
-              </Cell>
-              <Cell width={90} header>
-                Zinc %
-              </Cell>
-              <Cell width={80} header>
-                Avg
-              </Cell>
-            </View>
-
-            {tableData.length === 0 ? (
-              <View style={styles.emptyTable}>
-                <Text style={styles.emptyText}>No production found</Text>
-              </View>
-            ) : (
-              tableData.slice(0, 8).map(item => (
-                <View key={item.id} style={styles.tableRow}>
-                  <Cell width={55}>{item.sr_no || '-'}</Cell>
-                  <Cell width={100}>
-                    {formatTime12Hour(item.production_time)}
-                  </Cell>
-                  <Cell width={120}>{item.challan_no || '-'}</Cell>
-                  <Cell width={160}>{item.party_name || '-'}</Cell>
-                  <Cell width={180}>{item.material || '-'}</Cell>
-                  <Cell width={80}>
-                    {formatQuantity(item.dipping_qty, '-')}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.ms_weight !== null &&
-                    item.ms_weight !== undefined &&
-                    item.ms_weight !== ''
-                      ? `${formatWeight(item.ms_weight)} KG`
-                      : '-'}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.gi_weight !== null &&
-                    item.gi_weight !== undefined &&
-                    item.gi_weight !== ''
-                      ? `${formatWeight(item.gi_weight)} KG`
-                      : '-'}
-                  </Cell>
-                  <Cell width={90}>
-                    {item.zinc_percentage
-                      ? `${formatWeight(item.zinc_percentage)}%`
-                      : '-'}
-                  </Cell>
-                  <Cell width={80}>{formatNumber(item.avg_coating)}</Cell>
-                </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
+        <ProductionTable
+          rows={tableData}
+          rowLimit={8}
+          emptyMessage="No production found"
+          showsHorizontalScrollIndicator={false}
+        />
 
         {tableData.length > 8 && (
           <Text style={styles.moreText}>
@@ -228,22 +154,7 @@ function SummaryBox({ label, value }) {
   );
 }
 
-function Cell({ children, width, header }) {
-  return (
-    <View style={[styles.cell, { width }, header && styles.headCell]}>
-      <Text
-        numberOfLines={2}
-        style={[styles.cellText, header && styles.headText]}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
-
   container: {
     padding: 16,
     paddingBottom: 40,
@@ -327,55 +238,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  tableHead: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.primary,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: 'hidden',
-  },
-
-  tableRow: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-
-  cell: {
-    minHeight: 44,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-  },
-
-  headCell: {
-    minHeight: 46,
-    borderRightColor: 'rgba(255,255,255,0.25)',
-  },
-
-  cellText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  headText: {
-    color: COLORS.white,
-    fontWeight: '800',
-  },
-
-  emptyTable: {
-    padding: 20,
-    alignItems: 'center',
-  },
-
-  emptyText: {
-    color: COLORS.gray,
-    fontWeight: '800',
-  },
-
   moreText: {
     color: COLORS.gray,
     fontSize: 12,
@@ -383,21 +245,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-  pdfBtn: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-  },
-
-  pdfBtnText: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
   generateBtn: {
     backgroundColor: COLORS.primary,
     height: 56,

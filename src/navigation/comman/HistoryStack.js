@@ -8,19 +8,22 @@ import AppHeader from '../../components/AppHeader';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HistoryFullTableScreen from './../../screens/History/HistoryFullTableScreen';
 import HistoricalProductionEditScreen from '../../screens/History/HistoricalProductionEditScreen';
+import { COLORS } from '../../assets/Colors';
 
 const Stack = createNativeStackNavigator();
+const renderHeader = props => <AppHeader {...props} />;
 
 const HistoryStack = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        header: props => <AppHeader {...props} />,
+        header: renderHeader,
+        contentStyle: { backgroundColor: COLORS.bg },
       }}
     >
       <Stack.Screen
         name="HistoryList"
-        options={{ title: 'All Dates' }}
+        options={{ title: 'Production History' }}
         component={HistoryListScreen}
       />
       <Stack.Screen

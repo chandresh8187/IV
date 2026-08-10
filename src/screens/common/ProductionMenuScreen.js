@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {
   ClipboardList,
+  ChevronRight,
   Factory,
   FileCheck2,
   History,
@@ -74,7 +75,7 @@ export default function ProductionMenuScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={{ backgroundColor: COLORS.bg }}
+      style={styles.screen}
       contentContainerStyle={[styles.container, centeredContent(wideMaxWidth)]}
     >
       <Text style={styles.eyebrow}>WORKSPACE</Text>
@@ -98,7 +99,7 @@ export default function ProductionMenuScreen({ navigation }) {
                 <Icon size={24} color={COLORS.primary} />
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 <Text style={styles.cardDesc}>{item.desc}</Text>
               </View>
@@ -107,7 +108,7 @@ export default function ProductionMenuScreen({ navigation }) {
                 <Text style={styles.cardNumber}>
                   {String(index + 1).padStart(2, '0')}
                 </Text>
-                <Text style={styles.arrow}>›</Text>
+                <ChevronRight size={20} color={COLORS.accent} />
               </View>
             </TouchableOpacity>
           );
@@ -118,6 +119,8 @@ export default function ProductionMenuScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  screen: { backgroundColor: COLORS.bg },
+  flex: { flex: 1 },
   container: {
     paddingHorizontal: UI.pagePadding,
     paddingTop: 22,
@@ -189,5 +192,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.8,
   },
-  arrow: { color: COLORS.accent, fontSize: 30, fontWeight: '700' },
 });

@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Clock3,
   Plus,
-  Edit3,
   LockKeyhole,
   Star,
   X,
@@ -40,13 +39,14 @@ import {
 import { getUsersApi } from '../../api/userApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
 import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
+import ProductionTable from '../../components/ProductionTable';
 import { socket } from '../../socket/socket';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import {
   formatNumber,
   formatQuantity,
-  formatTime12Hour,
-  formatWeight,
+  formatTimeForApi,
+  parseTimeForPicker,
 } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -66,6 +66,15 @@ const PAPER_THEME = {
   },
   roundness: 14,
 };
+
+const ClockIcon = () => <Clock3 size={21} color={COLORS.primary} />;
+const DropdownArrowDownIcon = () => (
+  <ChevronDown size={20} color={COLORS.primary} />
+);
+const DropdownArrowUpIcon = () => (
+  <ChevronUp size={20} color={COLORS.primary} />
+);
+const DropdownTickIcon = () => <Check size={18} color={COLORS.accent} />;
 
 function FormInput({
   label,
@@ -361,11 +370,6 @@ export default function ProductionScreen() {
     setModalType('Full');
   };
 
-  const openEditModal = item => {
-    fillFromSrNo(item.sr_no);
-    setModalType('Full');
-  };
-
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
 
@@ -392,22 +396,7 @@ export default function ProductionScreen() {
   };
 
   const openProductionTimePicker = () => {
-    const selectedDate = new Date();
-
-    if (fullForm.production_time) {
-      const parsedTime = moment(
-        fullForm.production_time,
-        ['HH:mm:ss', 'HH:mm', 'hh:mm A'],
-        true,
-      );
-
-      if (parsedTime.isValid()) {
-        selectedDate.setHours(parsedTime.hours());
-        selectedDate.setMinutes(parsedTime.minutes());
-        selectedDate.setSeconds(0);
-        selectedDate.setMilliseconds(0);
-      }
-    }
+    const selectedDate = parseTimeForPicker(fullForm.production_time);
 
     setProductionTimePickerValue(selectedDate);
     setShowProductionTimePicker(true);
@@ -418,12 +407,12 @@ export default function ProductionScreen() {
       return;
     }
 
-    const selectedDate = new Date(date);
+    const selectedDate = parseTimeForPicker(date);
 
     setProductionTimePickerValue(selectedDate);
     setFullForm(prev => ({
       ...prev,
-      production_time: moment(selectedDate).format('HH:mm:ss'),
+      production_time: formatTimeForApi(selectedDate),
     }));
     setShowProductionTimePicker(false);
   };
@@ -551,7 +540,7 @@ export default function ProductionScreen() {
       return;
     }
 
-    const selectedPlanning = availablePlanning.find(
+    const planningForEntry = availablePlanning.find(
       item => String(item.id) === String(fullForm.planning_id),
     );
     const existingEntry = rows.find(
@@ -563,13 +552,13 @@ export default function ProductionScreen() {
         ? Number(existingEntry.dipping_qty) || 0
         : 0;
     const maximumQty =
-      Number(selectedPlanning?.remaining_qty) + originalQtyForPlanning;
+      Number(planningForEntry?.remaining_qty) + originalQtyForPlanning;
 
-    if (selectedPlanning && dippingQty > maximumQty) {
+    if (planningForEntry && dippingQty > maximumQty) {
       Alert.alert(
         'Quantity Exceeds Plan',
         `Only ${formatQuantity(maximumQty)} NOS remain for challan ${
-          selectedPlanning.challan_no
+          planningForEntry.challan_no
         }.`,
       );
       return;
@@ -710,107 +699,25 @@ export default function ProductionScreen() {
             <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator>
-            <View>
-              <View style={styles.tableHeader}>
-                <HeaderCell width={55}>Sr</HeaderCell>
-                <HeaderCell width={90}>Challan</HeaderCell>
-                <HeaderCell width={150}>Party</HeaderCell>
-                <HeaderCell width={150}>Material</HeaderCell>
-                <HeaderCell width={90}>Time</HeaderCell>
-                <HeaderCell width={80}>Qty</HeaderCell>
-                <HeaderCell width={90}>Temp</HeaderCell>
-                <HeaderCell width={90}>MS</HeaderCell>
-                <HeaderCell width={90}>GI</HeaderCell>
-                <HeaderCell width={90}>Zn %</HeaderCell>
-                <HeaderCell width={80}>C1</HeaderCell>
-                <HeaderCell width={80}>C2</HeaderCell>
-                <HeaderCell width={80}>C3</HeaderCell>
-                <HeaderCell width={80}>C4</HeaderCell>
-                <HeaderCell width={80}>C5</HeaderCell>
-                <HeaderCell width={90}>Avg</HeaderCell>
-                <HeaderCell width={110}>Action</HeaderCell>
-              </View>
-
-              <ScrollView>
-                {rows.length === 0 ? (
-                  <View style={styles.emptyBox}>
-                    <Text style={styles.emptyText}>
-                      No production entries found
-                    </Text>
-                  </View>
-                ) : (
-                  rows.map((item, index) => (
-                    <View
-                      key={item.id || item.sr_no}
-                      style={[
-                        styles.tableRow,
-                        index % 2 === 1 && styles.altRow,
-                      ]}
+          <ProductionTable
+            rows={rows}
+            scrollRows
+            renderAction={
+              isSuperAdmin
+                ? item => (
+                    <TouchableOpacity
+                      style={styles.rowIconBtn}
+                      onPress={() => {
+                        setGrantRow(item);
+                        setSelectedGrantUserId(item.editable_user_id || null);
+                      }}
                     >
-                      <Cell width={55} bold>
-                        {item.sr_no}
-                      </Cell>
-                      <Cell width={90}>{item.challan_no || '-'}</Cell>
-                      <Cell width={150}>{item.party_name || '-'}</Cell>
-                      <Cell width={150}>{item.material || '-'}</Cell>
-                      <Cell width={90}>
-                        {formatTime12Hour(item.production_time)}
-                      </Cell>
-                      <Cell width={80}>
-                        {formatQuantity(item.dipping_qty, '-')}
-                      </Cell>
-                      <Cell width={90}>
-                        {item.kettle_temperature
-                          ? `${item.kettle_temperature}°`
-                          : '-'}
-                      </Cell>
-                      <Cell width={90}>
-                        {item?.ms_weight != null
-                          ? `${formatWeight(item.ms_weight)} KG`
-                          : '-'}
-                      </Cell>
-                      <Cell width={90}>
-                        {item?.gi_weight != null
-                          ? `${formatWeight(item.gi_weight)} KG`
-                          : '-'}
-                      </Cell>
-                      <Cell width={90}>
-                        {item?.zinc_percentage != null
-                          ? `${formatWeight(item.zinc_percentage)} %`
-                          : '-'}
-                      </Cell>
-                      <Cell width={80}>{formatNumber(item.c1)}</Cell>
-                      <Cell width={80}>{formatNumber(item.c2)}</Cell>
-                      <Cell width={80}>{formatNumber(item.c3)}</Cell>
-                      <Cell width={80}>{formatNumber(item.c4)}</Cell>
-                      <Cell width={80}>{formatNumber(item.c5)}</Cell>
-                      <Cell width={90} bold>
-                        {item.avg_coating != null
-                          ? formatNumber(item.avg_coating)
-                          : '-'}
-                      </Cell>
-                      <View style={[styles.actionCell, { width: 110 }]}>
-                        {isSuperAdmin && (
-                          <TouchableOpacity
-                            style={styles.rowIconBtn}
-                            onPress={() => {
-                              setGrantRow(item);
-                              setSelectedGrantUserId(
-                                item.editable_user_id || null,
-                              );
-                            }}
-                          >
-                            <LockKeyhole size={17} color={COLORS.primary} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  ))
-                )}
-              </ScrollView>
-            </View>
-          </ScrollView>
+                      <LockKeyhole size={17} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  )
+                : undefined
+            }
+          />
         )}
       </View>
 
@@ -977,9 +884,7 @@ export default function ProductionScreen() {
                     placeholderTextColor={COLORS.gray}
                     theme={PAPER_THEME}
                     right={
-                      <TextInput.Icon
-                        icon={() => <Clock3 size={21} color={COLORS.primary} />}
-                      />
+                      <TextInput.Icon icon={ClockIcon} />
                     }
                   />
                 </View>
@@ -1073,12 +978,11 @@ export default function ProductionScreen() {
               mode="time"
               display="clock"
               is24Hour={false}
-              onDismiss={() => {
+              onChange={(event, date) => {
                 setShowProductionTimePicker(false);
-                return;
-              }}
-              onValueChange={date => {
-                selectProductionTime(date);
+                if (event?.type === 'set' && date) {
+                  selectProductionTime(date);
+                }
               }}
             />
           )}
@@ -1129,27 +1033,6 @@ export default function ProductionScreen() {
     </View>
   );
 }
-
-const HeaderCell = React.memo(function HeaderCell({ children, width }) {
-  return (
-    <View style={[styles.headerCell, { width }]}>
-      <Text style={styles.headerCellText}>{children}</Text>
-    </View>
-  );
-});
-
-const Cell = React.memo(function Cell({ children, width, bold }) {
-  return (
-    <View style={[styles.cell, { width }]}>
-      <Text
-        style={[styles.cellText, bold && styles.boldCell]}
-        numberOfLines={2}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-});
 
 function FormCard({ title, children }) {
   return (
@@ -1209,13 +1092,9 @@ function FormDropdown({
         selectedItemContainerStyle={styles.dropdownSelectedItem}
         selectedItemLabelStyle={styles.dropdownSelectedItemLabel}
         showTickIcon
-        ArrowDownIconComponent={() => (
-          <ChevronDown size={20} color={COLORS.primary} />
-        )}
-        ArrowUpIconComponent={() => (
-          <ChevronUp size={20} color={COLORS.primary} />
-        )}
-        TickIconComponent={() => <Check size={18} color={COLORS.accent} />}
+        ArrowDownIconComponent={DropdownArrowDownIcon}
+        ArrowUpIconComponent={DropdownArrowUpIcon}
+        TickIconComponent={DropdownTickIcon}
       />
     </View>
   );
@@ -1239,7 +1118,6 @@ function SaveButton({ title, loading, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -1269,48 +1147,6 @@ const styles = StyleSheet.create({
   },
 
   loaderBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
-  tableHeader: { flexDirection: 'row', backgroundColor: COLORS.primary },
-
-  headerCell: {
-    height: 50,
-    borderRightWidth: 1,
-    borderRightColor: '#3A4375',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-
-  headerCellText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
-  },
-
-  altRow: { backgroundColor: '#FAFBFD' },
-
-  cell: {
-    minHeight: 54,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-
-  cellText: { color: COLORS.text, fontSize: 12, textAlign: 'center' },
-  boldCell: { fontWeight: '800', color: COLORS.primary },
-
-  emptyBox: { height: 180, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { color: COLORS.gray, fontWeight: '700' },
 
   fab: {
     position: 'absolute',
@@ -1504,111 +1340,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 
-  timeModalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.58)',
-    justifyContent: 'center',
-    padding: 18,
-  },
-
-  timePickerCard: {
-    width: '100%',
-    maxWidth: 500,
-    alignSelf: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 12,
-  },
-
-  timePickerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-
-  timePickerTitle: {
-    color: COLORS.primary,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-
-  timePickerSubtitle: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-
-  timePickerCloseButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  selectedTimeBox: {
-    marginTop: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    borderWidth: 1,
-    borderColor: '#D8ECFA',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-  },
-
-  selectedTimeText: {
-    color: COLORS.primary,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-
-  timePickerActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-
-  nowButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    borderWidth: 1,
-    borderColor: '#D8ECFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  nowButtonText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  timeDoneButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  timeDoneButtonText: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '800',
-  },
   remainingQtyBadge: {
     backgroundColor: '#ECFDF5',
     borderColor: '#86EFAC',
@@ -1673,16 +1404,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
-  actionCell: {
-    minHeight: 48,
-    paddingHorizontal: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-  },
   rowIconBtn: {
     width: 54,
     height: 34,
@@ -1691,17 +1412,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowEditBtn: {
-    minHeight: 34,
-    paddingHorizontal: 8,
-    borderRadius: 9,
-    backgroundColor: COLORS.primary,
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowEditText: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
   defaultChallanBtn: {
     minHeight: 46,
     borderRadius: 12,

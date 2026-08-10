@@ -8,60 +8,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { TextInput } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { LogOut, Mail, ShieldCheck, UserCircle2 } from 'lucide-react-native';
 import messaging from '@react-native-firebase/messaging';
 import { removeFcmTokenApi } from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
-import {
-  changeMyPasswordApi,
-  getMyProfileApi,
-  updateMyProfileApi,
-} from '../../api/profileApi';
+import { getMyProfileApi } from '../../api/profileApi';
 import { clearAuth, setAuth } from '../../redux/slices/authSlice';
-import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
-
-const Input = props => (
-  <TextInput
-    {...props}
-    mode="outlined"
-    style={styles.input}
-    outlineColor={COLORS.inputBorder}
-    activeOutlineColor={COLORS.accent}
-    textColor={COLORS.text}
-    theme={PAPER_THEME}
-  />
-);
 
 export default function ProfileScreen() {
   const dispatch = useDispatch();
   const { user: storedUser, token } = useSelector(state => state.auth);
   const { contentMaxWidth } = useResponsive();
   const [profile, setProfile] = useState(storedUser);
-  const [form, setForm] = useState({
-    name: storedUser?.name || '',
-    email: storedUser?.email || '',
-    current_password: '',
-  });
-  const [password, setPassword] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: '',
-  });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   const applyUser = useCallback(
     async next => {
       setProfile(next);
-      setForm({
-        name: next?.name || '',
-        email: next?.email || '',
-        current_password: '',
-      });
       await AsyncStorage.setItem('user', JSON.stringify(next));
       dispatch(setAuth({ token, user: next }));
     },
@@ -83,62 +50,6 @@ export default function ProfileScreen() {
       )
       .finally(() => setLoading(false));
   }, [applyUser]);
-
-  const saveProfile = async () => {
-    if (!form.name.trim() || !form.email.trim())
-      return Alert.alert('Required', 'Name and email are required.');
-    const emailChanged =
-      form.email.trim().toLowerCase() !==
-      String(profile?.email || '').toLowerCase();
-    if (emailChanged && !form.current_password)
-      return Alert.alert('Required', 'Enter current password to change email.');
-    setSaving(true);
-    try {
-      const response = await updateMyProfileApi({
-        ...form,
-        name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
-      });
-      await applyUser(
-        response?.data?.user || response?.data || response?.user || response,
-      );
-      Alert.alert('Saved', 'Profile updated successfully.');
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Could not update profile',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const savePassword = async () => {
-    if (password.new_password.length < 8)
-      return Alert.alert(
-        'Invalid',
-        'New password must be at least 8 characters.',
-      );
-    if (password.new_password !== password.confirm_password)
-      return Alert.alert('Invalid', 'New passwords do not match.');
-    setSaving(true);
-    try {
-      await changeMyPasswordApi(password);
-      setPassword({
-        current_password: '',
-        new_password: '',
-        confirm_password: '',
-      });
-      Alert.alert('Saved', 'Password changed successfully.');
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Could not change password',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleLogout = () =>
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -242,30 +153,6 @@ const styles = StyleSheet.create({
     marginTop: 9,
   },
   roleText: { color: COLORS.teal, fontSize: 12, fontWeight: '800' },
-  formCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: UI.radius,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginTop: 16,
-    ...UI.shadow,
-  },
-  sectionTitle: {
-    color: COLORS.primary,
-    fontSize: 17,
-    fontWeight: '800',
-    marginBottom: 12,
-  },
-  input: { backgroundColor: COLORS.white, marginBottom: 12 },
-  saveBtn: {
-    minHeight: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveText: { color: COLORS.white, fontSize: 13, fontWeight: '800' },
   infoCard: {
     backgroundColor: COLORS.white,
     borderRadius: UI.radius,

@@ -107,7 +107,7 @@ export default function DashboardScreen() {
         <View style={styles.pageIntro}>
           <View style={styles.introCopy}>
             <Text style={styles.eyebrow}>PLANT OPERATIONS</Text>
-            <Text style={styles.title}>Operations overview IV</Text>
+            <Text style={styles.title}>Operations overview</Text>
             <Text style={styles.subTitle}>
               Live production and plant performance at a glance
             </Text>
@@ -125,7 +125,7 @@ export default function DashboardScreen() {
                 <Factory size={22} color={COLORS.primary} />
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex}>
                 <Text style={styles.cardTitle}>
                   {productionAllowed
                     ? 'Current Shift'
@@ -308,11 +308,7 @@ function getPlantStatusConfig(status, data) {
 
 function PlantStatusBanner({ config, data }) {
   return (
-    <View
-      style={{
-        padding: 20,
-      }}
-    >
+    <View style={styles.bannerPadding}>
       <View style={[styles.plantStatusCard, config.containerStyle]}>
         <View style={styles.plantStatusHeader}>
           <View style={styles.plantStatusIcon}>{config.icon}</View>
@@ -364,22 +360,13 @@ function SummaryCard({ title, value, icon, isfull, isTablet }) {
 
   return (
     <View style={[styles.summaryCard, { width }]}>
-      <View
-        style={[
-          isfull
-            ? {
-                flexDirection: 'row',
-                alignItems: 'center',
-              }
-            : {},
-        ]}
-      >
-        <View style={[styles.summaryIcon, isfull && { marginRight: 10 }]}>
+      <View style={isfull && styles.summaryHeaderFull}>
+        <View style={[styles.summaryIcon, isfull && styles.summaryIconFull]}>
           {icon}
         </View>
         <Text style={styles.summaryTitle}>{title}</Text>
       </View>
-      <Text style={[styles.summaryValue, isfull && { fontSize: 25 }]}>
+      <Text style={[styles.summaryValue, isfull && styles.summaryValueFull]}>
         {value}
       </Text>
     </View>
@@ -427,6 +414,8 @@ function SectionTitle({ title }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  bannerPadding: { padding: 20 },
   screen: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -665,12 +654,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  cardDesc: {
-    color: COLORS.gray,
-    fontSize: 12,
-    marginTop: 2,
-  },
-
   shiftInfoBox: {
     marginTop: 14,
   },
@@ -701,6 +684,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  summaryHeaderFull: { flexDirection: 'row', alignItems: 'center' },
+  summaryIconFull: { marginRight: 10 },
 
   summaryTitle: {
     color: COLORS.gray,
@@ -714,6 +699,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 5,
   },
+  summaryValueFull: { fontSize: 25 },
 
   sectionTitle: {
     color: COLORS.primary,
@@ -805,29 +791,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
-  monthValues: {
-    marginTop: 14,
-  },
-
-  materialCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    marginBottom: 12,
-  },
-
-  materialTitle: {
-    color: COLORS.primary,
-    fontSize: 17,
-    fontWeight: '800',
-    marginBottom: 12,
-  },
-
-  materialGrid: {
-    gap: 6,
-  },
-
   infoLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -848,51 +811,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 2,
-  },
-
   emptyText: {
     color: COLORS.gray,
     fontSize: 13,
     fontWeight: '700',
     marginTop: 8,
-  },
-  monthlyProductionCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    marginBottom: 16,
-  },
-  monthlyRow: {
-    minHeight: 62,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingVertical: 9,
-    gap: 8,
-  },
-  monthlyDateBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monthlyDateDay: { color: COLORS.primary, fontSize: 16, fontWeight: '900' },
-  monthlyDateMonth: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
-  monthlyMetric: { flex: 1, minWidth: 0 },
-  monthlyMetricLabel: { color: COLORS.gray, fontSize: 9, fontWeight: '800' },
-  monthlyMetricValue: {
-    color: COLORS.text,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 2,
   },
 });

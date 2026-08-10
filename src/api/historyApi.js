@@ -1,12 +1,5 @@
 import apiClient from './apiClient';
 
-export const getHistoryDatesApi = async month => {
-  const response = await apiClient.get('/production-history/dates', {
-    params: { month },
-  });
-  return response.data;
-};
-
 export const downloadProductionReportApi = async ({ type, value, date }) => {
   const response = await apiClient.get('/production-history/report', {
     params: { type, value, date },

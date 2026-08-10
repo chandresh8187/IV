@@ -10,7 +10,6 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.ivsquare.production.ShareIntentPackage
-import com.ivsquare.production.PdfOpenerPackage
 import com.ivsquare.production.updater.NativeAppUpdaterPackage
 
 class MainApplication : Application(), ReactApplication {
@@ -23,7 +22,6 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
           add(ShareIntentPackage())
-          add(PdfOpenerPackage())
           add(NativeAppUpdaterPackage())
         },
     )

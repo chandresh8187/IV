@@ -1,16 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { useSelector } from 'react-redux';
-import { FileDown } from 'lucide-react-native';
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
 import {
@@ -20,17 +16,14 @@ import {
 } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
-import { formatQuantity, formatWeight } from '../../utils/format';
-import { downloadAndOpenProductionReport } from '../../utils/serverProductionReport';
+import { formatQuantity } from '../../utils/format';
 
 export default function HistoryPlanningSummaryScreen({ route }) {
   const { date } = route.params;
   const { isTablet, contentMaxWidth } = useResponsive();
   const infoBoxWidth = gridItemWidth(2, 4, isTablet);
-  const role = String(useSelector(state => state.auth.user?.role) || '').toLowerCase();
-  const [downloading, setDownloading] = useState(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['history-planning-summary', date],
     queryFn: () => getHistoryPlanningSummaryApi(date),
   });
@@ -53,22 +46,20 @@ export default function HistoryPlanningSummaryScreen({ route }) {
         centeredContent(contentMaxWidth),
       ]}
     >
+      <View style={styles.dateCard}>
+        <Text style={styles.dateLabel}>PRODUCTION DATE</Text>
+        <Text style={styles.dateValue}>{date}</Text>
+      </View>
+
       {planningList.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Text
-            style={styles.emptyText}
-            onPress={() => {
-              refetch();
-            }}
-          >
-            No planning summary found
-          </Text>
+          <Text style={styles.emptyText}>No planning summary found</Text>
         </View>
       ) : (
         planningList.map(item => (
           <View key={item.id} style={styles.card}>
             <View style={styles.topRow}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex}>
                 <Text style={styles.challan}>{item.challan_no}</Text>
 
                 <Text style={styles.party}>
@@ -101,8 +92,20 @@ export default function HistoryPlanningSummaryScreen({ route }) {
               />
 
               <InfoBox
-                label="Produced Qty"
-                value={`${formatQuantity(item.completed_qty)} NOS`}
+                label="Day Shift"
+                value={`${formatQuantity(item.day_produced_qty)} NOS`}
+                width={infoBoxWidth}
+              />
+
+              <InfoBox
+                label="Night Shift"
+                value={`${formatQuantity(item.night_produced_qty)} NOS`}
+                width={infoBoxWidth}
+              />
+
+              <InfoBox
+                label="Total Produced"
+                value={`${formatQuantity(item.total_produced_qty)} NOS`}
                 width={infoBoxWidth}
               />
 
@@ -111,38 +114,7 @@ export default function HistoryPlanningSummaryScreen({ route }) {
                 value={`${formatQuantity(item.remaining_qty)} NOS`}
                 width={infoBoxWidth}
               />
-
-              <InfoBox
-                label="Completion"
-                value={`${formatWeight(item.completion_percentage)}%`}
-                width={infoBoxWidth}
-              />
             </View>
-            {role === 'superadmin' && (
-              <TouchableOpacity
-                style={styles.reportBtn}
-                disabled={downloading === item.id}
-                onPress={async () => {
-                  setDownloading(item.id);
-                  try {
-                    await downloadAndOpenProductionReport({
-                      type: 'challan',
-                      value: item.challan_no,
-                      date,
-                    });
-                  } catch (error) {
-                    Alert.alert('Error', error?.response?.data?.message || error.message || 'Could not create report');
-                  } finally {
-                    setDownloading(null);
-                  }
-                }}
-              >
-                <FileDown size={17} color={COLORS.white} />
-                <Text style={styles.reportBtnText}>
-                  {downloading === item.id ? 'GENERATING...' : 'CHALLAN REPORT'}
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         ))
       )}
@@ -160,6 +132,7 @@ function InfoBox({ label, value, width }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   safe: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -182,6 +155,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 25,
     alignItems: 'center',
+  },
+
+  dateCard: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+  },
+
+  dateLabel: {
+    color: COLORS.borderStrong,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+
+  dateValue: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+
+  dateDescription: {
+    color: COLORS.border,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 5,
   },
 
   emptyText: {
@@ -273,15 +274,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 4,
   },
-  reportBtn: {
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    marginTop: 14,
-  },
-  reportBtnText: { color: COLORS.white, fontSize: 12, fontWeight: '800' },
 });

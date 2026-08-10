@@ -374,3 +374,465 @@
 {"_e":"metro:client_log","_t":1785753029302,"level":"error","data":["Text strings must be rendered within a <Text> component."]}
 {"_e":"metro:client_log","_t":1785753413528,"level":"error","data":["Text strings must be rendered within a <Text> component."]}
 {"_e":"metro:client_log","_t":1785753969821,"level":"error","data":["Text strings must be rendered within a <Text> component."]}
+{"_e":"root:init","_t":1786301455534,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1786301455535,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786301455537,"mode":"development","files":["../..\\..\\.env.development"],"env":{"API_BASE_URL":"http://localhost:5000/api","SOCKET_URL":"http://localhost:5000"}}
+{"_e":"devserver:start","_t":1786301455705,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786301455930,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1786301474788,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786301484418,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1786301484419,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786301484422,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786301484853,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786301484954,"id":"1","progress":0.031141868512110732,"total":17,"current":3}
+{"_e":"metro:bundling:progress","_t":1786301485056,"id":"1","progress":0.031141868512110732,"total":55,"current":9}
+{"_e":"metro:bundling:progress","_t":1786301485291,"id":"1","progress":0.03305785123966942,"total":55,"current":10}
+{"_e":"metro:bundling:progress","_t":1786301485402,"id":"1","progress":0.043807463493780424,"total":86,"current":18}
+{"_e":"metro:bundling:progress","_t":1786301485504,"id":"1","progress":0.12993510005408326,"total":86,"current":31}
+{"_e":"metro:bundling:progress","_t":1786301485610,"id":"1","progress":0.14473062381852553,"total":92,"current":35}
+{"_e":"metro:bundling:progress","_t":1786301485711,"id":"1","progress":0.14473062381852553,"total":112,"current":38}
+{"_e":"metro:bundling:progress","_t":1786301485811,"id":"1","progress":0.14473062381852553,"total":225,"current":46}
+{"_e":"metro:bundling:progress","_t":1786301485918,"id":"1","progress":0.14473062381852553,"total":232,"current":57}
+{"_e":"metro:bundling:progress","_t":1786301486018,"id":"1","progress":0.14473062381852553,"total":252,"current":70}
+{"_e":"metro:bundling:progress","_t":1786301486120,"id":"1","progress":0.14473062381852553,"total":252,"current":77}
+{"_e":"metro:bundling:progress","_t":1786301486221,"id":"1","progress":0.14473062381852553,"total":265,"current":92}
+{"_e":"metro:bundling:progress","_t":1786301486320,"id":"1","progress":0.14473062381852553,"total":300,"current":111}
+{"_e":"metro:bundling:progress","_t":1786301486420,"id":"1","progress":0.14473062381852553,"total":353,"current":119}
+{"_e":"metro:bundling:progress","_t":1786301486520,"id":"1","progress":0.14473062381852553,"total":364,"current":126}
+{"_e":"metro:bundling:progress","_t":1786301486620,"id":"1","progress":0.14473062381852553,"total":390,"current":139}
+{"_e":"metro:bundling:progress","_t":1786301486721,"id":"1","progress":0.14473062381852553,"total":404,"current":143}
+{"_e":"metro:bundling:progress","_t":1786301486821,"id":"1","progress":0.14473062381852553,"total":421,"current":159}
+{"_e":"metro:bundling:progress","_t":1786301486922,"id":"1","progress":0.16625588285656465,"total":439,"current":179}
+{"_e":"metro:bundling:progress","_t":1786301487034,"id":"1","progress":0.18501268091760265,"total":458,"current":197}
+{"_e":"metro:bundling:progress","_t":1786301487135,"id":"1","progress":0.21485015380648012,"total":466,"current":216}
+{"_e":"metro:bundling:progress","_t":1786301487246,"id":"1","progress":0.2247898529291994,"total":483,"current":229}
+{"_e":"metro:bundling:progress","_t":1786301487347,"id":"1","progress":0.24596780802832371,"total":494,"current":245}
+{"_e":"metro:bundling:progress","_t":1786301487447,"id":"1","progress":0.26105395460240544,"total":503,"current":257}
+{"_e":"metro:bundling:progress","_t":1786301487547,"id":"1","progress":0.27991481882098435,"total":516,"current":273}
+{"_e":"metro:bundling:progress","_t":1786301487715,"id":"1","progress":0.3040440213119049,"total":535,"current":295}
+{"_e":"metro:bundling:progress","_t":1786301487825,"id":"1","progress":0.3040440213119049,"total":2249,"current":296}
+{"_e":"metro:bundling:progress","_t":1786301487925,"id":"1","progress":0.3040440213119049,"total":2267,"current":308}
+{"_e":"metro:bundling:progress","_t":1786301488025,"id":"1","progress":0.3040440213119049,"total":2268,"current":314}
+{"_e":"metro:bundling:progress","_t":1786301488135,"id":"1","progress":0.3040440213119049,"total":2274,"current":332}
+{"_e":"metro:bundling:progress","_t":1786301488236,"id":"1","progress":0.3040440213119049,"total":2312,"current":350}
+{"_e":"metro:bundling:progress","_t":1786301488337,"id":"1","progress":0.3040440213119049,"total":2328,"current":372}
+{"_e":"metro:bundling:progress","_t":1786301488439,"id":"1","progress":0.3040440213119049,"total":2358,"current":396}
+{"_e":"metro:bundling:progress","_t":1786301488539,"id":"1","progress":0.3040440213119049,"total":2387,"current":412}
+{"_e":"metro:bundling:progress","_t":1786301488639,"id":"1","progress":0.3040440213119049,"total":2413,"current":441}
+{"_e":"metro:bundling:progress","_t":1786301488739,"id":"1","progress":0.3040440213119049,"total":2443,"current":462}
+{"_e":"metro:bundling:progress","_t":1786301488841,"id":"1","progress":0.3040440213119049,"total":2467,"current":480}
+{"_e":"metro:bundling:progress","_t":1786301488941,"id":"1","progress":0.3040440213119049,"total":2498,"current":505}
+{"_e":"metro:bundling:progress","_t":1786301489041,"id":"1","progress":0.3040440213119049,"total":2510,"current":534}
+{"_e":"metro:bundling:progress","_t":1786301489141,"id":"1","progress":0.3040440213119049,"total":2510,"current":585}
+{"_e":"metro:bundling:progress","_t":1786301489241,"id":"1","progress":0.3040440213119049,"total":2510,"current":637}
+{"_e":"metro:bundling:progress","_t":1786301489342,"id":"1","progress":0.3040440213119049,"total":2510,"current":684}
+{"_e":"metro:bundling:progress","_t":1786301489442,"id":"1","progress":0.3040440213119049,"total":2513,"current":734}
+{"_e":"metro:bundling:progress","_t":1786301489542,"id":"1","progress":0.3040440213119049,"total":2513,"current":794}
+{"_e":"metro:bundling:progress","_t":1786301489642,"id":"1","progress":0.3040440213119049,"total":2513,"current":859}
+{"_e":"metro:bundling:progress","_t":1786301489743,"id":"1","progress":0.3040440213119049,"total":2513,"current":918}
+{"_e":"metro:bundling:progress","_t":1786301489844,"id":"1","progress":0.3040440213119049,"total":2513,"current":984}
+{"_e":"metro:bundling:progress","_t":1786301489948,"id":"1","progress":0.3040440213119049,"total":2513,"current":1042}
+{"_e":"metro:bundling:progress","_t":1786301490048,"id":"1","progress":0.3040440213119049,"total":2513,"current":1107}
+{"_e":"metro:bundling:progress","_t":1786301490149,"id":"1","progress":0.3040440213119049,"total":2513,"current":1168}
+{"_e":"metro:bundling:progress","_t":1786301490249,"id":"1","progress":0.3040440213119049,"total":2513,"current":1220}
+{"_e":"metro:bundling:progress","_t":1786301490350,"id":"1","progress":0.3040440213119049,"total":2513,"current":1249}
+{"_e":"metro:bundling:progress","_t":1786301490451,"id":"1","progress":0.3040440213119049,"total":2513,"current":1318}
+{"_e":"metro:bundling:progress","_t":1786301490552,"id":"1","progress":0.3040440213119049,"total":2513,"current":1384}
+{"_e":"metro:bundling:progress","_t":1786301490656,"id":"1","progress":0.3324694873565537,"total":2513,"current":1449}
+{"_e":"metro:bundling:progress","_t":1786301490755,"id":"1","progress":0.3624873696966779,"total":2513,"current":1513}
+{"_e":"metro:bundling:progress","_t":1786301490857,"id":"1","progress":0.3928042147407298,"total":2513,"current":1575}
+{"_e":"metro:bundling:progress","_t":1786301490957,"id":"1","progress":0.423302210914704,"total":2513,"current":1635}
+{"_e":"metro:bundling:progress","_t":1786301491059,"id":"1","progress":0.4517252032368414,"total":2513,"current":1689}
+{"_e":"metro:bundling:progress","_t":1786301491159,"id":"1","progress":0.4882745022342236,"total":2513,"current":1756}
+{"_e":"metro:bundling:progress","_t":1786301491261,"id":"1","progress":0.5204878919313165,"total":2513,"current":1813}
+{"_e":"metro:bundling:progress","_t":1786301491360,"id":"1","progress":0.5572892823612481,"total":2513,"current":1876}
+{"_e":"metro:bundling:progress","_t":1786301491460,"id":"1","progress":0.5910568664116511,"total":2513,"current":1932}
+{"_e":"metro:bundling:progress","_t":1786301491560,"id":"1","progress":0.6333955591687254,"total":2513,"current":2000}
+{"_e":"metro:bundling:progress","_t":1786301491660,"id":"1","progress":0.6661105981486798,"total":2513,"current":2051}
+{"_e":"metro:bundling:progress","_t":1786301491767,"id":"1","progress":0.7023146965663151,"total":2513,"current":2106}
+{"_e":"metro:bundling:progress","_t":1786301491867,"id":"1","progress":0.7415313826122468,"total":2513,"current":2164}
+{"_e":"metro:bundling:progress","_t":1786301491969,"id":"1","progress":0.7860413553461515,"total":2513,"current":2228}
+{"_e":"metro:bundling:progress","_t":1786301492069,"id":"1","progress":0.8191076997434529,"total":2517,"current":2278}
+{"_e":"metro:bundling:progress","_t":1786301492176,"id":"1","progress":0.8284097242460494,"total":2527,"current":2300}
+{"_e":"metro:bundling:progress","_t":1786301492276,"id":"1","progress":0.8284097242460494,"total":2582,"current":2318}
+{"_e":"metro:bundling:progress","_t":1786301492376,"id":"1","progress":0.8284097242460494,"total":2599,"current":2338}
+{"_e":"metro:bundling:progress","_t":1786301492476,"id":"1","progress":0.8284097242460494,"total":2611,"current":2359}
+{"_e":"metro:bundling:progress","_t":1786301492577,"id":"1","progress":0.8284097242460494,"total":2623,"current":2379}
+{"_e":"metro:bundling:progress","_t":1786301492678,"id":"1","progress":0.8406836880556225,"total":2635,"current":2416}
+{"_e":"metro:bundling:progress","_t":1786301492778,"id":"1","progress":0.858244927020292,"total":2650,"current":2455}
+{"_e":"metro:bundling:progress","_t":1786301492879,"id":"1","progress":0.8711111111111112,"total":2655,"current":2478}
+{"_e":"metro:bundling:progress","_t":1786301492978,"id":"1","progress":0.8812708423851356,"total":2678,"current":2514}
+{"_e":"metro:bundling:progress","_t":1786301493078,"id":"1","progress":0.8897191630198382,"total":2696,"current":2543}
+{"_e":"metro:bundling:progress","_t":1786301493179,"id":"1","progress":0.9040465199485312,"total":2704,"current":2571}
+{"_e":"metro:bundling:progress","_t":1786301493282,"id":"1","progress":0.9040465199485312,"total":2717,"current":2576}
+{"_e":"metro:bundling:progress","_t":1786301493383,"id":"1","progress":0.9046493452739114,"total":2742,"current":2608}
+{"_e":"metro:bundling:progress","_t":1786301493485,"id":"1","progress":0.912225554108961,"total":2762,"current":2638}
+{"_e":"metro:bundling:progress","_t":1786301493585,"id":"1","progress":0.912225554108961,"total":2790,"current":2658}
+{"_e":"metro:bundling:progress","_t":1786301493686,"id":"1","progress":0.912225554108961,"total":2805,"current":2673}
+{"_e":"metro:bundling:progress","_t":1786301493795,"id":"1","progress":0.912225554108961,"total":2836,"current":2692}
+{"_e":"metro:bundling:progress","_t":1786301493896,"id":"1","progress":0.912225554108961,"total":2840,"current":2709}
+{"_e":"metro:bundling:progress","_t":1786301493996,"id":"1","progress":0.912225554108961,"total":2857,"current":2726}
+{"_e":"metro:bundling:progress","_t":1786301494096,"id":"1","progress":0.912225554108961,"total":2942,"current":2743}
+{"_e":"metro:bundling:progress","_t":1786301494197,"id":"1","progress":0.912225554108961,"total":2959,"current":2767}
+{"_e":"metro:bundling:progress","_t":1786301494297,"id":"1","progress":0.912225554108961,"total":2998,"current":2797}
+{"_e":"metro:bundling:progress","_t":1786301494406,"id":"1","progress":0.912225554108961,"total":3093,"current":2813}
+{"_e":"metro:bundling:progress","_t":1786301494511,"id":"1","progress":0.912225554108961,"total":3099,"current":2845}
+{"_e":"metro:bundling:progress","_t":1786301494617,"id":"1","progress":0.912225554108961,"total":3115,"current":2866}
+{"_e":"metro:bundling:progress","_t":1786301494718,"id":"1","progress":0.912225554108961,"total":3116,"current":2880}
+{"_e":"metro:bundling:progress","_t":1786301494819,"id":"1","progress":0.912225554108961,"total":3119,"current":2897}
+{"_e":"metro:bundling:progress","_t":1786301494926,"id":"1","progress":0.912225554108961,"total":3124,"current":2912}
+{"_e":"metro:bundling:progress","_t":1786301495028,"id":"1","progress":0.912225554108961,"total":3128,"current":2935}
+{"_e":"metro:bundling:progress","_t":1786301495128,"id":"1","progress":0.912225554108961,"total":3174,"current":2962}
+{"_e":"metro:bundling:progress","_t":1786301495254,"id":"1","progress":0.912225554108961,"total":3190,"current":2975}
+{"_e":"metro:bundling:progress","_t":1786301495355,"id":"1","progress":0.912225554108961,"total":3205,"current":3009}
+{"_e":"metro:bundling:progress","_t":1786301495454,"id":"1","progress":0.912225554108961,"total":3206,"current":3035}
+{"_e":"metro:bundling:progress","_t":1786301495554,"id":"1","progress":0.912225554108961,"total":3216,"current":3068}
+{"_e":"metro:bundling:progress","_t":1786301495655,"id":"1","progress":0.9234334489297529,"total":3227,"current":3101}
+{"_e":"metro:bundling:progress","_t":1786301495756,"id":"1","progress":0.9311921059613892,"total":3227,"current":3114}
+{"_e":"metro:bundling:progress","_t":1786301495857,"id":"1","progress":0.9457667651667003,"total":3237,"current":3148}
+{"_e":"metro:bundling:progress","_t":1786301495957,"id":"1","progress":0.9584270877860436,"total":3237,"current":3169}
+{"_e":"metro:bundling:progress","_t":1786301496059,"id":"1","progress":0.9676308004622777,"total":3248,"current":3195}
+{"_e":"metro:bundling:progress","_t":1786301496160,"id":"1","progress":0.9774500620775345,"total":3263,"current":3226}
+{"_e":"metro:bundling:progress","_t":1786301496260,"id":"1","progress":0.9774500620775345,"total":3287,"current":3249}
+{"_e":"metro:bundling:progress","_t":1786301496362,"id":"1","progress":0.9945313789264324,"total":3287,"current":3278}
+{"_e":"metro:bundling:progress","_t":1786301496468,"id":"1","progress":0.9975683899574356,"total":3288,"current":3284}
+{"_e":"metro:bundling:progress","_t":1786301496568,"id":"1","progress":0.999,"total":3293,"current":3292}
+{"_e":"metro:bundling:progress","_t":1786301496795,"id":"1","progress":0.999,"total":3293,"current":3293}
+{"_e":"metro:bundling:progress","_t":1786301496897,"id":"1","progress":0.999,"total":3303,"current":3303}
+{"_e":"metro:bundling:done","_t":1786301497087,"id":"1","total":3303,"ms":12668.3585}
+{"_e":"metro:client_log","_t":1786301505821,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786301505822,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1786301505866,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786301505909,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786301513704,"level":"warn","data":["DateTimePicker: `onChange` is deprecated. Use `onValueChange`, `onDismiss`, and `onNeutralButtonPress` instead."]}
+{"_e":"metro:client_log","_t":1786301557815,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"root:init","_t":1786303014598,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1786303014599,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786303014601,"mode":"development","files":["../..\\..\\.env.development"],"env":{"API_BASE_URL":"http://localhost:5000/api","SOCKET_URL":"http://localhost:5000"}}
+{"_e":"devserver:start","_t":1786303014757,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786303015011,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:server_log","_t":1786303015324,"level":"error","data":["An unexpected error occurred while installing the latest version of React Native DevTools. Using a fallback version instead. Details:\n\ndotslash error: 'fetch' command failed\ncaused by: failed to create directory `C:\\Users\\User\\AppData\\Local\\dotslash\\1f`\ncaused by: Cannot create a file when that file already exists. (os error 183)\n"]}
+{"_e":"metro:instantiate","_t":1786303042903,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1786303164666,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1786303164666,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1786303164670,"mode":"development","files":["../..\\..\\.env.development"],"env":{"API_BASE_URL":"http://localhost:5000/api","SOCKET_URL":"http://localhost:5000"}}
+{"_e":"devserver:start","_t":1786303164825,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786303165050,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1786303184221,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786303190255,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1786303190255,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786303190259,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786303190631,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786303190738,"id":"1","progress":0.01384083044982699,"total":17,"current":2}
+{"_e":"metro:bundling:progress","_t":1786303190855,"id":"1","progress":0.01384083044982699,"total":52,"current":6}
+{"_e":"metro:bundling:progress","_t":1786303190982,"id":"1","progress":0.018121301775147928,"total":52,"current":7}
+{"_e":"metro:bundling:progress","_t":1786303191089,"id":"1","progress":0.027777777777777776,"total":60,"current":10}
+{"_e":"metro:bundling:progress","_t":1786303191229,"id":"1","progress":0.033611111111111105,"total":60,"current":11}
+{"_e":"metro:bundling:progress","_t":1786303191330,"id":"1","progress":0.09140075716603568,"total":86,"current":26}
+{"_e":"metro:bundling:progress","_t":1786303191430,"id":"1","progress":0.10600324499729585,"total":129,"current":42}
+{"_e":"metro:bundling:progress","_t":1786303191531,"id":"1","progress":0.10600324499729585,"total":234,"current":52}
+{"_e":"metro:bundling:progress","_t":1786303191632,"id":"1","progress":0.10600324499729585,"total":253,"current":68}
+{"_e":"metro:bundling:progress","_t":1786303191735,"id":"1","progress":0.10600324499729585,"total":255,"current":79}
+{"_e":"metro:bundling:progress","_t":1786303191835,"id":"1","progress":0.10802484229057654,"total":286,"current":94}
+{"_e":"metro:bundling:progress","_t":1786303191961,"id":"1","progress":0.11046417734107387,"total":343,"current":114}
+{"_e":"metro:bundling:progress","_t":1786303192068,"id":"1","progress":0.1147839589118815,"total":366,"current":124}
+{"_e":"metro:bundling:progress","_t":1786303192168,"id":"1","progress":0.1286625708884688,"total":368,"current":132}
+{"_e":"metro:bundling:progress","_t":1786303192269,"id":"1","progress":0.13375762848228362,"total":391,"current":143}
+{"_e":"metro:bundling:progress","_t":1786303192369,"id":"1","progress":0.14368069850311874,"total":401,"current":152}
+{"_e":"metro:bundling:progress","_t":1786303192474,"id":"1","progress":0.15311909262759926,"total":414,"current":162}
+{"_e":"metro:bundling:progress","_t":1786303192577,"id":"1","progress":0.1766974704362127,"total":452,"current":190}
+{"_e":"metro:bundling:progress","_t":1786303192681,"id":"1","progress":0.20678559556786705,"total":475,"current":216}
+{"_e":"metro:bundling:progress","_t":1786303192781,"id":"1","progress":0.23883391168323012,"total":487,"current":238}
+{"_e":"metro:bundling:progress","_t":1786303192883,"id":"1","progress":0.25100300802004805,"total":499,"current":250}
+{"_e":"metro:bundling:progress","_t":1786303193032,"id":"1","progress":0.29867495943753375,"total":516,"current":282}
+{"_e":"metro:bundling:progress","_t":1786303193143,"id":"1","progress":0.29867495943753375,"total":2236,"current":284}
+{"_e":"metro:bundling:progress","_t":1786303193275,"id":"1","progress":0.29867495943753375,"total":2250,"current":301}
+{"_e":"metro:bundling:progress","_t":1786303193376,"id":"1","progress":0.29867495943753375,"total":2274,"current":330}
+{"_e":"metro:bundling:progress","_t":1786303193476,"id":"1","progress":0.29867495943753375,"total":2306,"current":349}
+{"_e":"metro:bundling:progress","_t":1786303193583,"id":"1","progress":0.29867495943753375,"total":2326,"current":363}
+{"_e":"metro:bundling:progress","_t":1786303193683,"id":"1","progress":0.29867495943753375,"total":2359,"current":398}
+{"_e":"metro:bundling:progress","_t":1786303193784,"id":"1","progress":0.29867495943753375,"total":2385,"current":421}
+{"_e":"metro:bundling:progress","_t":1786303193884,"id":"1","progress":0.29867495943753375,"total":2428,"current":453}
+{"_e":"metro:bundling:progress","_t":1786303193988,"id":"1","progress":0.29867495943753375,"total":2461,"current":480}
+{"_e":"metro:bundling:progress","_t":1786303194091,"id":"1","progress":0.29867495943753375,"total":2497,"current":511}
+{"_e":"metro:bundling:progress","_t":1786303194190,"id":"1","progress":0.29867495943753375,"total":2504,"current":531}
+{"_e":"metro:bundling:progress","_t":1786303194291,"id":"1","progress":0.29867495943753375,"total":2504,"current":590}
+{"_e":"metro:bundling:progress","_t":1786303194391,"id":"1","progress":0.29867495943753375,"total":2504,"current":643}
+{"_e":"metro:bundling:progress","_t":1786303194491,"id":"1","progress":0.29867495943753375,"total":2507,"current":698}
+{"_e":"metro:bundling:progress","_t":1786303194591,"id":"1","progress":0.29867495943753375,"total":2507,"current":762}
+{"_e":"metro:bundling:progress","_t":1786303194697,"id":"1","progress":0.29867495943753375,"total":2507,"current":828}
+{"_e":"metro:bundling:progress","_t":1786303194797,"id":"1","progress":0.29867495943753375,"total":2507,"current":891}
+{"_e":"metro:bundling:progress","_t":1786303194898,"id":"1","progress":0.29867495943753375,"total":2507,"current":957}
+{"_e":"metro:bundling:progress","_t":1786303194998,"id":"1","progress":0.29867495943753375,"total":2507,"current":1041}
+{"_e":"metro:bundling:progress","_t":1786303195098,"id":"1","progress":0.29867495943753375,"total":2507,"current":1116}
+{"_e":"metro:bundling:progress","_t":1786303195199,"id":"1","progress":0.29867495943753375,"total":2507,"current":1174}
+{"_e":"metro:bundling:progress","_t":1786303195299,"id":"1","progress":0.29867495943753375,"total":2507,"current":1241}
+{"_e":"metro:bundling:progress","_t":1786303195399,"id":"1","progress":0.29867495943753375,"total":2507,"current":1309}
+{"_e":"metro:bundling:progress","_t":1786303195499,"id":"1","progress":0.3008130883307354,"total":2507,"current":1375}
+{"_e":"metro:bundling:progress","_t":1786303195600,"id":"1","progress":0.3253594363385234,"total":2507,"current":1430}
+{"_e":"metro:bundling:progress","_t":1786303195701,"id":"1","progress":0.35608568843297805,"total":2507,"current":1496}
+{"_e":"metro:bundling:progress","_t":1786303195801,"id":"1","progress":0.38472651525867174,"total":2507,"current":1555}
+{"_e":"metro:bundling:progress","_t":1786303195901,"id":"1","progress":0.4185940316455767,"total":2507,"current":1622}
+{"_e":"metro:bundling:progress","_t":1786303196001,"id":"1","progress":0.449600472486372,"total":2507,"current":1681}
+{"_e":"metro:bundling:progress","_t":1786303196101,"id":"1","progress":0.4861543641107651,"total":2507,"current":1748}
+{"_e":"metro:bundling:progress","_t":1786303196201,"id":"1","progress":0.520101593480019,"total":2507,"current":1808}
+{"_e":"metro:bundling:progress","_t":1786303196301,"id":"1","progress":0.5410198074828056,"total":2507,"current":1844}
+{"_e":"metro:bundling:progress","_t":1786303196401,"id":"1","progress":0.5816571994904096,"total":2507,"current":1912}
+{"_e":"metro:bundling:progress","_t":1786303196501,"id":"1","progress":0.6187356693639142,"total":2507,"current":1972}
+{"_e":"metro:bundling:progress","_t":1786303196607,"id":"1","progress":0.6608451262671142,"total":2507,"current":2038}
+{"_e":"metro:bundling:progress","_t":1786303196708,"id":"1","progress":0.7030023154950741,"total":2507,"current":2102}
+{"_e":"metro:bundling:progress","_t":1786303196807,"id":"1","progress":0.7423331146662501,"total":2507,"current":2160}
+{"_e":"metro:bundling:progress","_t":1786303196907,"id":"1","progress":0.7876828008819025,"total":2507,"current":2225}
+{"_e":"metro:bundling:progress","_t":1786303197008,"id":"1","progress":0.7910532871972318,"total":2550,"current":2268}
+{"_e":"metro:bundling:progress","_t":1786303197108,"id":"1","progress":0.8067025434280477,"total":2563,"current":2302}
+{"_e":"metro:bundling:progress","_t":1786303197209,"id":"1","progress":0.8068695681453408,"total":2585,"current":2322}
+{"_e":"metro:bundling:progress","_t":1786303197315,"id":"1","progress":0.8097928786046948,"total":2607,"current":2346}
+{"_e":"metro:bundling:progress","_t":1786303197414,"id":"1","progress":0.8183969358610268,"total":2622,"current":2372}
+{"_e":"metro:bundling:progress","_t":1786303197514,"id":"1","progress":0.8261326688966583,"total":2635,"current":2395}
+{"_e":"metro:bundling:progress","_t":1786303197614,"id":"1","progress":0.8399892158960204,"total":2647,"current":2426}
+{"_e":"metro:bundling:progress","_t":1786303197717,"id":"1","progress":0.8534638475415692,"total":2652,"current":2450}
+{"_e":"metro:bundling:progress","_t":1786303197817,"id":"1","progress":0.8674274251233476,"total":2666,"current":2483}
+{"_e":"metro:bundling:progress","_t":1786303197918,"id":"1","progress":0.8750404962119778,"total":2695,"current":2521}
+{"_e":"metro:bundling:progress","_t":1786303198019,"id":"1","progress":0.8975807956104251,"total":2700,"current":2558}
+{"_e":"metro:bundling:progress","_t":1786303198119,"id":"1","progress":0.9006191028055694,"total":2726,"current":2587}
+{"_e":"metro:bundling:progress","_t":1786303198223,"id":"1","progress":0.9068643313004043,"total":2746,"current":2615}
+{"_e":"metro:bundling:progress","_t":1786303198323,"id":"1","progress":0.9171905364646317,"total":2766,"current":2649}
+{"_e":"metro:bundling:progress","_t":1786303198426,"id":"1","progress":0.9171905364646317,"total":2793,"current":2669}
+{"_e":"metro:bundling:progress","_t":1786303198531,"id":"1","progress":0.9171905364646317,"total":2821,"current":2685}
+{"_e":"metro:bundling:progress","_t":1786303198650,"id":"1","progress":0.9171905364646317,"total":2832,"current":2705}
+{"_e":"metro:bundling:progress","_t":1786303198749,"id":"1","progress":0.9188235905183809,"total":2847,"current":2729}
+{"_e":"metro:bundling:progress","_t":1786303198852,"id":"1","progress":0.92331700009363,"total":2864,"current":2752}
+{"_e":"metro:bundling:progress","_t":1786303198953,"id":"1","progress":0.92331700009363,"total":2892,"current":2777}
+{"_e":"metro:bundling:progress","_t":1786303199053,"id":"1","progress":0.92331700009363,"total":2960,"current":2800}
+{"_e":"metro:bundling:progress","_t":1786303199153,"id":"1","progress":0.92331700009363,"total":3011,"current":2825}
+{"_e":"metro:bundling:progress","_t":1786303199258,"id":"1","progress":0.92331700009363,"total":3022,"current":2843}
+{"_e":"metro:bundling:progress","_t":1786303199357,"id":"1","progress":0.92331700009363,"total":3030,"current":2867}
+{"_e":"metro:bundling:progress","_t":1786303199462,"id":"1","progress":0.92331700009363,"total":3045,"current":2890}
+{"_e":"metro:bundling:progress","_t":1786303199563,"id":"1","progress":0.92331700009363,"total":3057,"current":2901}
+{"_e":"metro:bundling:progress","_t":1786303199667,"id":"1","progress":0.92331700009363,"total":3064,"current":2919}
+{"_e":"metro:bundling:progress","_t":1786303199774,"id":"1","progress":0.92331700009363,"total":3069,"current":2931}
+{"_e":"metro:bundling:progress","_t":1786303199874,"id":"1","progress":0.9277160764563407,"total":3069,"current":2956}
+{"_e":"metro:bundling:progress","_t":1786303199975,"id":"1","progress":0.9367070209637153,"total":3078,"current":2979}
+{"_e":"metro:bundling:progress","_t":1786303200089,"id":"1","progress":0.9456190387915103,"total":3083,"current":2998}
+{"_e":"metro:bundling:progress","_t":1786303200192,"id":"1","progress":0.9628118683298248,"total":3090,"current":3032}
+{"_e":"metro:bundling:progress","_t":1786303200293,"id":"1","progress":0.9724504682622268,"total":3100,"current":3057}
+{"_e":"metro:bundling:progress","_t":1786303200395,"id":"1","progress":0.9827451713051688,"total":3116,"current":3089}
+{"_e":"metro:bundling:progress","_t":1786303200496,"id":"1","progress":0.9974367200542836,"total":3119,"current":3115}
+{"_e":"metro:bundling:progress","_t":1786303200603,"id":"1","progress":0.999,"total":3119,"current":3118}
+{"_e":"metro:bundling:progress","_t":1786303200819,"id":"1","progress":0.999,"total":3119,"current":3119}
+{"_e":"metro:bundling:progress","_t":1786303200920,"id":"1","progress":0.999,"total":3129,"current":3129}
+{"_e":"metro:bundling:done","_t":1786303201062,"id":"1","total":3129,"ms":10807.301}
+{"_e":"metro:client_log","_t":1786303210675,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786303210675,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1786303210751,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786303210751,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786303220893,"level":"warn","data":["DateTimePicker: `onChange` is deprecated. Use `onValueChange`, `onDismiss`, and `onNeutralButtonPress` instead."]}
+{"_e":"metro:client_log","_t":1786303266649,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1786304279644,"level":"error","data":["[Error: Cannot find native module 'ExpoSharing']"]}
+{"_e":"root:init","_t":1786384789616,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"devserver:start","_t":1786384789638,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1786384790847,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1786384816989,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1786384835474,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1786384835474,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786384835479,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1786384836211,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1786384836312,"id":"1","progress":0.07438016528925619,"total":11,"current":3}
+{"_e":"metro:bundling:progress","_t":1786384836413,"id":"1","progress":0.07438016528925619,"total":36,"current":5}
+{"_e":"metro:bundling:progress","_t":1786384836514,"id":"1","progress":0.07438016528925619,"total":43,"current":11}
+{"_e":"metro:bundling:progress","_t":1786384836617,"id":"1","progress":0.140625,"total":48,"current":18}
+{"_e":"metro:bundling:progress","_t":1786384836724,"id":"1","progress":0.3036234902124114,"total":49,"current":27}
+{"_e":"metro:bundling:progress","_t":1786384836826,"id":"1","progress":0.37869822485207105,"total":52,"current":32}
+{"_e":"metro:bundling:progress","_t":1786384836925,"id":"1","progress":0.45963803504740014,"total":59,"current":40}
+{"_e":"metro:bundling:progress","_t":1786384837041,"id":"1","progress":0.5817293881068658,"total":59,"current":45}
+{"_e":"metro:bundling:progress","_t":1786384837087,"id":"1","progress":0.6078713013501867,"total":59,"current":46}
+{"_e":"metro:bundling:progress","_t":1786384837187,"id":"1","progress":0.6078713013501867,"total":78,"current":51}
+{"_e":"metro:bundling:progress","_t":1786384837290,"id":"1","progress":0.6078713013501867,"total":172,"current":58}
+{"_e":"metro:bundling:progress","_t":1786384837397,"id":"1","progress":0.6078713013501867,"total":216,"current":63}
+{"_e":"metro:bundling:progress","_t":1786384837515,"id":"1","progress":0.6078713013501867,"total":239,"current":73}
+{"_e":"metro:bundling:progress","_t":1786384837617,"id":"1","progress":0.6078713013501867,"total":239,"current":74}
+{"_e":"metro:bundling:progress","_t":1786384837718,"id":"1","progress":0.6078713013501867,"total":244,"current":80}
+{"_e":"metro:bundling:progress","_t":1786384837817,"id":"1","progress":0.6078713013501867,"total":255,"current":87}
+{"_e":"metro:bundling:progress","_t":1786384837922,"id":"1","progress":0.6078713013501867,"total":269,"current":95}
+{"_e":"metro:bundling:progress","_t":1786384838026,"id":"1","progress":0.6078713013501867,"total":276,"current":103}
+{"_e":"metro:bundling:progress","_t":1786384838125,"id":"1","progress":0.6078713013501867,"total":284,"current":109}
+{"_e":"metro:bundling:progress","_t":1786384838227,"id":"1","progress":0.6078713013501867,"total":301,"current":122}
+{"_e":"metro:bundling:progress","_t":1786384838329,"id":"1","progress":0.6078713013501867,"total":314,"current":137}
+{"_e":"metro:bundling:progress","_t":1786384838437,"id":"1","progress":0.6078713013501867,"total":336,"current":151}
+{"_e":"metro:bundling:progress","_t":1786384838542,"id":"1","progress":0.6078713013501867,"total":342,"current":166}
+{"_e":"metro:bundling:progress","_t":1786384838642,"id":"1","progress":0.6078713013501867,"total":351,"current":175}
+{"_e":"metro:bundling:progress","_t":1786384838743,"id":"1","progress":0.6078713013501867,"total":377,"current":190}
+{"_e":"metro:bundling:progress","_t":1786384838843,"id":"1","progress":0.6078713013501867,"total":377,"current":204}
+{"_e":"metro:bundling:progress","_t":1786384838949,"id":"1","progress":0.6078713013501867,"total":378,"current":210}
+{"_e":"metro:bundling:progress","_t":1786384839050,"id":"1","progress":0.6078713013501867,"total":412,"current":224}
+{"_e":"metro:bundling:progress","_t":1786384839150,"id":"1","progress":0.6078713013501867,"total":454,"current":238}
+{"_e":"metro:bundling:progress","_t":1786384839262,"id":"1","progress":0.6078713013501867,"total":474,"current":246}
+{"_e":"metro:bundling:progress","_t":1786384839363,"id":"1","progress":0.6078713013501867,"total":506,"current":273}
+{"_e":"metro:bundling:progress","_t":1786384839468,"id":"1","progress":0.6078713013501867,"total":512,"current":286}
+{"_e":"metro:bundling:progress","_t":1786384839568,"id":"1","progress":0.6078713013501867,"total":531,"current":305}
+{"_e":"metro:bundling:progress","_t":1786384839671,"id":"1","progress":0.6078713013501867,"total":546,"current":316}
+{"_e":"metro:bundling:progress","_t":1786384839782,"id":"1","progress":0.6078713013501867,"total":560,"current":331}
+{"_e":"metro:bundling:progress","_t":1786384839884,"id":"1","progress":0.6078713013501867,"total":588,"current":344}
+{"_e":"metro:bundling:progress","_t":1786384839981,"id":"1","progress":0.6078713013501867,"total":592,"current":359}
+{"_e":"metro:bundling:progress","_t":1786384840082,"id":"1","progress":0.6078713013501867,"total":594,"current":368}
+{"_e":"metro:bundling:progress","_t":1786384840182,"id":"1","progress":0.6078713013501867,"total":605,"current":382}
+{"_e":"metro:bundling:progress","_t":1786384840293,"id":"1","progress":0.6078713013501867,"total":614,"current":399}
+{"_e":"metro:bundling:progress","_t":1786384840399,"id":"1","progress":0.6078713013501867,"total":667,"current":405}
+{"_e":"metro:bundling:progress","_t":1786384840499,"id":"1","progress":0.6078713013501867,"total":671,"current":408}
+{"_e":"metro:bundling:progress","_t":1786384840600,"id":"1","progress":0.6078713013501867,"total":676,"current":411}
+{"_e":"metro:bundling:progress","_t":1786384840703,"id":"1","progress":0.6078713013501867,"total":684,"current":419}
+{"_e":"metro:bundling:progress","_t":1786384840804,"id":"1","progress":0.6078713013501867,"total":697,"current":429}
+{"_e":"metro:bundling:progress","_t":1786384840905,"id":"1","progress":0.6078713013501867,"total":701,"current":435}
+{"_e":"metro:bundling:progress","_t":1786384841023,"id":"1","progress":0.6078713013501867,"total":704,"current":440}
+{"_e":"metro:bundling:progress","_t":1786384841123,"id":"1","progress":0.6078713013501867,"total":710,"current":447}
+{"_e":"metro:bundling:progress","_t":1786384841230,"id":"1","progress":0.6078713013501867,"total":716,"current":467}
+{"_e":"metro:bundling:progress","_t":1786384841319,"id":"1","progress":0.6078713013501867,"total":716,"current":468}
+{"_e":"metro:bundling:progress","_t":1786384841421,"id":"1","progress":0.6078713013501867,"total":716,"current":470}
+{"_e":"metro:bundling:progress","_t":1786384841559,"id":"1","progress":0.6078713013501867,"total":718,"current":480}
+{"_e":"metro:bundling:progress","_t":1786384841662,"id":"1","progress":0.6078713013501867,"total":718,"current":482}
+{"_e":"metro:bundling:progress","_t":1786384841925,"id":"1","progress":0.6078713013501867,"total":725,"current":493}
+{"_e":"metro:bundling:progress","_t":1786384842070,"id":"1","progress":0.6078713013501867,"total":726,"current":493}
+{"_e":"metro:bundling:progress","_t":1786384842317,"id":"1","progress":0.6078713013501867,"total":2439,"current":494}
+{"_e":"metro:bundling:progress","_t":1786384842607,"id":"1","progress":0.6078713013501867,"total":2445,"current":500}
+{"_e":"metro:bundling:progress","_t":1786384842744,"id":"1","progress":0.6078713013501867,"total":2446,"current":508}
+{"_e":"metro:bundling:progress","_t":1786384842883,"id":"1","progress":0.6078713013501867,"total":2447,"current":513}
+{"_e":"metro:bundling:progress","_t":1786384842984,"id":"1","progress":0.6078713013501867,"total":2462,"current":543}
+{"_e":"metro:bundling:progress","_t":1786384843098,"id":"1","progress":0.6078713013501867,"total":2470,"current":566}
+{"_e":"metro:bundling:progress","_t":1786384843202,"id":"1","progress":0.6078713013501867,"total":2477,"current":583}
+{"_e":"metro:bundling:progress","_t":1786384843304,"id":"1","progress":0.6078713013501867,"total":2486,"current":606}
+{"_e":"metro:bundling:progress","_t":1786384843403,"id":"1","progress":0.6078713013501867,"total":2497,"current":627}
+{"_e":"metro:bundling:progress","_t":1786384843503,"id":"1","progress":0.6078713013501867,"total":2516,"current":646}
+{"_e":"metro:bundling:progress","_t":1786384843609,"id":"1","progress":0.6078713013501867,"total":2527,"current":659}
+{"_e":"metro:bundling:progress","_t":1786384843711,"id":"1","progress":0.6078713013501867,"total":2537,"current":662}
+{"_e":"metro:bundling:progress","_t":1786384843826,"id":"1","progress":0.6078713013501867,"total":2537,"current":663}
+{"_e":"metro:bundling:progress","_t":1786384843933,"id":"1","progress":0.6078713013501867,"total":2559,"current":670}
+{"_e":"metro:bundling:progress","_t":1786384844035,"id":"1","progress":0.6078713013501867,"total":2587,"current":683}
+{"_e":"metro:bundling:progress","_t":1786384844136,"id":"1","progress":0.6078713013501867,"total":2602,"current":694}
+{"_e":"metro:bundling:progress","_t":1786384844236,"id":"1","progress":0.6078713013501867,"total":2613,"current":704}
+{"_e":"metro:bundling:progress","_t":1786384844337,"id":"1","progress":0.6078713013501867,"total":2615,"current":711}
+{"_e":"metro:bundling:progress","_t":1786384844452,"id":"1","progress":0.6078713013501867,"total":2621,"current":728}
+{"_e":"metro:bundling:progress","_t":1786384844552,"id":"1","progress":0.6078713013501867,"total":2624,"current":752}
+{"_e":"metro:bundling:progress","_t":1786384844654,"id":"1","progress":0.6078713013501867,"total":2624,"current":785}
+{"_e":"metro:bundling:progress","_t":1786384844755,"id":"1","progress":0.6078713013501867,"total":2624,"current":811}
+{"_e":"metro:bundling:progress","_t":1786384844854,"id":"1","progress":0.6078713013501867,"total":2624,"current":838}
+{"_e":"metro:bundling:progress","_t":1786384844954,"id":"1","progress":0.6078713013501867,"total":2624,"current":881}
+{"_e":"metro:bundling:progress","_t":1786384845078,"id":"1","progress":0.6078713013501867,"total":2624,"current":907}
+{"_e":"metro:bundling:progress","_t":1786384845180,"id":"1","progress":0.6078713013501867,"total":2624,"current":931}
+{"_e":"metro:bundling:progress","_t":1786384845280,"id":"1","progress":0.6078713013501867,"total":2624,"current":966}
+{"_e":"metro:bundling:progress","_t":1786384845380,"id":"1","progress":0.6078713013501867,"total":2624,"current":1005}
+{"_e":"metro:bundling:progress","_t":1786384845480,"id":"1","progress":0.6078713013501867,"total":2624,"current":1043}
+{"_e":"metro:bundling:progress","_t":1786384845580,"id":"1","progress":0.6078713013501867,"total":2624,"current":1084}
+{"_e":"metro:bundling:progress","_t":1786384845683,"id":"1","progress":0.6078713013501867,"total":2624,"current":1126}
+{"_e":"metro:bundling:progress","_t":1786384845783,"id":"1","progress":0.6078713013501867,"total":2624,"current":1175}
+{"_e":"metro:bundling:progress","_t":1786384845889,"id":"1","progress":0.6078713013501867,"total":2624,"current":1215}
+{"_e":"metro:bundling:progress","_t":1786384845994,"id":"1","progress":0.6078713013501867,"total":2624,"current":1241}
+{"_e":"metro:bundling:progress","_t":1786384846094,"id":"1","progress":0.6078713013501867,"total":2624,"current":1291}
+{"_e":"metro:bundling:progress","_t":1786384846194,"id":"1","progress":0.6078713013501867,"total":2624,"current":1329}
+{"_e":"metro:bundling:progress","_t":1786384846294,"id":"1","progress":0.6078713013501867,"total":2624,"current":1377}
+{"_e":"metro:bundling:progress","_t":1786384846397,"id":"1","progress":0.6078713013501867,"total":2624,"current":1418}
+{"_e":"metro:bundling:progress","_t":1786384846500,"id":"1","progress":0.6078713013501867,"total":2624,"current":1467}
+{"_e":"metro:bundling:progress","_t":1786384846600,"id":"1","progress":0.6078713013501867,"total":2624,"current":1524}
+{"_e":"metro:bundling:progress","_t":1786384846700,"id":"1","progress":0.6078713013501867,"total":2624,"current":1579}
+{"_e":"metro:bundling:progress","_t":1786384846802,"id":"1","progress":0.6078713013501867,"total":2624,"current":1625}
+{"_e":"metro:bundling:progress","_t":1786384846902,"id":"1","progress":0.6078713013501867,"total":2624,"current":1671}
+{"_e":"metro:bundling:progress","_t":1786384847002,"id":"1","progress":0.6078713013501867,"total":2624,"current":1721}
+{"_e":"metro:bundling:progress","_t":1786384847102,"id":"1","progress":0.6078713013501867,"total":2624,"current":1779}
+{"_e":"metro:bundling:progress","_t":1786384847202,"id":"1","progress":0.6078713013501867,"total":2624,"current":1831}
+{"_e":"metro:bundling:progress","_t":1786384847302,"id":"1","progress":0.6078713013501867,"total":2624,"current":1896}
+{"_e":"metro:bundling:progress","_t":1786384847403,"id":"1","progress":0.6078713013501867,"total":2624,"current":1955}
+{"_e":"metro:bundling:progress","_t":1786384847503,"id":"1","progress":0.6078713013501867,"total":2624,"current":2012}
+{"_e":"metro:bundling:progress","_t":1786384847612,"id":"1","progress":0.6078713013501867,"total":2624,"current":2029}
+{"_e":"metro:bundling:progress","_t":1786384847714,"id":"1","progress":0.6133325180788965,"total":2624,"current":2055}
+{"_e":"metro:bundling:progress","_t":1786384847816,"id":"1","progress":0.6362250950420136,"total":2624,"current":2093}
+{"_e":"metro:bundling:progress","_t":1786384847921,"id":"1","progress":0.6676085663295657,"total":2624,"current":2144}
+{"_e":"metro:bundling:progress","_t":1786384848021,"id":"1","progress":0.6876859012492563,"total":2624,"current":2176}
+{"_e":"metro:bundling:progress","_t":1786384848121,"id":"1","progress":0.7183596073765616,"total":2624,"current":2224}
+{"_e":"metro:bundling:progress","_t":1786384848224,"id":"1","progress":0.7444322575847709,"total":2624,"current":2264}
+{"_e":"metro:bundling:progress","_t":1786384848326,"id":"1","progress":0.7616287040823914,"total":2624,"current":2290}
+{"_e":"metro:bundling:progress","_t":1786384848429,"id":"1","progress":0.7884681969437835,"total":2624,"current":2330}
+{"_e":"metro:bundling:progress","_t":1786384848529,"id":"1","progress":0.819218151630354,"total":2624,"current":2375}
+{"_e":"metro:bundling:progress","_t":1786384848632,"id":"1","progress":0.8428415528796104,"total":2624,"current":2409}
+{"_e":"metro:bundling:progress","_t":1786384848732,"id":"1","progress":0.8626994220800683,"total":2627,"current":2440}
+{"_e":"metro:bundling:progress","_t":1786384848832,"id":"1","progress":0.8689911903122132,"total":2640,"current":2461}
+{"_e":"metro:bundling:progress","_t":1786384848935,"id":"1","progress":0.8736958348166607,"total":2650,"current":2477}
+{"_e":"metro:bundling:progress","_t":1786384849037,"id":"1","progress":0.8775840896004566,"total":2658,"current":2490}
+{"_e":"metro:bundling:progress","_t":1786384849137,"id":"1","progress":0.8775840896004566,"total":2693,"current":2506}
+{"_e":"metro:bundling:progress","_t":1786384849239,"id":"1","progress":0.8775840896004566,"total":2698,"current":2523}
+{"_e":"metro:bundling:progress","_t":1786384849341,"id":"1","progress":0.8775840896004566,"total":2702,"current":2529}
+{"_e":"metro:bundling:progress","_t":1786384849442,"id":"1","progress":0.8786471957681152,"total":2714,"current":2544}
+{"_e":"metro:bundling:progress","_t":1786384849547,"id":"1","progress":0.8813556226897267,"total":2729,"current":2562}
+{"_e":"metro:bundling:progress","_t":1786384849647,"id":"1","progress":0.8813556226897267,"total":2767,"current":2583}
+{"_e":"metro:bundling:progress","_t":1786384849750,"id":"1","progress":0.8813556226897267,"total":2780,"current":2602}
+{"_e":"metro:bundling:progress","_t":1786384849850,"id":"1","progress":0.8813556226897267,"total":2791,"current":2615}
+{"_e":"metro:bundling:progress","_t":1786384849950,"id":"1","progress":0.8813556226897267,"total":2809,"current":2628}
+{"_e":"metro:bundling:progress","_t":1786384850051,"id":"1","progress":0.8813556226897267,"total":2823,"current":2639}
+{"_e":"metro:bundling:progress","_t":1786384850151,"id":"1","progress":0.8813556226897267,"total":2832,"current":2655}
+{"_e":"metro:bundling:progress","_t":1786384850251,"id":"1","progress":0.8877650093540748,"total":2838,"current":2674}
+{"_e":"metro:bundling:progress","_t":1786384850353,"id":"1","progress":0.8929686917393698,"total":2853,"current":2696}
+{"_e":"metro:bundling:progress","_t":1786384850453,"id":"1","progress":0.8929686917393698,"total":2869,"current":2711}
+{"_e":"metro:bundling:progress","_t":1786384850642,"id":"1","progress":0.8972299382716049,"total":2880,"current":2728}
+{"_e":"metro:bundling:progress","_t":1786384850746,"id":"1","progress":0.8972299382716049,"total":2895,"current":2741}
+{"_e":"metro:bundling:progress","_t":1786384850846,"id":"1","progress":0.8982610030585373,"total":2910,"current":2758}
+{"_e":"metro:bundling:progress","_t":1786384850949,"id":"1","progress":0.9045487152339398,"total":2923,"current":2780}
+{"_e":"metro:bundling:progress","_t":1786384851049,"id":"1","progress":0.9190574936919585,"total":2928,"current":2807}
+{"_e":"metro:bundling:progress","_t":1786384851152,"id":"1","progress":0.9201131384168728,"total":2943,"current":2823}
+{"_e":"metro:bundling:progress","_t":1786384851252,"id":"1","progress":0.9229533419995446,"total":2952,"current":2836}
+{"_e":"metro:bundling:progress","_t":1786384851352,"id":"1","progress":0.9229533419995446,"total":2976,"current":2854}
+{"_e":"metro:bundling:progress","_t":1786384851466,"id":"1","progress":0.9269388969632686,"total":2982,"current":2871}
+{"_e":"metro:bundling:progress","_t":1786384851552,"id":"1","progress":0.9328922114159449,"total":2988,"current":2886}
+{"_e":"metro:bundling:progress","_t":1786384851652,"id":"1","progress":0.9382543482198694,"total":2997,"current":2903}
+{"_e":"metro:bundling:progress","_t":1786384851753,"id":"1","progress":0.948078007019066,"total":3003,"current":2924}
+{"_e":"metro:bundling:progress","_t":1786384851853,"id":"1","progress":0.948078007019066,"total":3087,"current":2940}
+{"_e":"metro:bundling:progress","_t":1786384851955,"id":"1","progress":0.948078007019066,"total":3088,"current":2956}
+{"_e":"metro:bundling:progress","_t":1786384852058,"id":"1","progress":0.948078007019066,"total":3094,"current":2977}
+{"_e":"metro:bundling:progress","_t":1786384852160,"id":"1","progress":0.948078007019066,"total":3094,"current":3001}
+{"_e":"metro:bundling:progress","_t":1786384852260,"id":"1","progress":0.948078007019066,"total":3096,"current":3013}
+{"_e":"metro:bundling:progress","_t":1786384852365,"id":"1","progress":0.9609949904127746,"total":3097,"current":3036}
+{"_e":"metro:bundling:progress","_t":1786384852466,"id":"1","progress":0.969955373002352,"total":3105,"current":3058}
+{"_e":"metro:bundling:progress","_t":1786384852566,"id":"1","progress":0.9782615187076353,"total":3111,"current":3077}
+{"_e":"metro:bundling:progress","_t":1786384852669,"id":"1","progress":0.9891253007120814,"total":3118,"current":3101}
+{"_e":"metro:bundling:progress","_t":1786384852771,"id":"1","progress":0.9980815352139139,"total":3126,"current":3123}
+{"_e":"metro:bundling:progress","_t":1786384852896,"id":"1","progress":0.9987208188069516,"total":3126,"current":3124}
+{"_e":"metro:bundling:progress","_t":1786384853068,"id":"1","progress":0.999,"total":3126,"current":3126}
+{"_e":"metro:bundling:progress","_t":1786384853195,"id":"1","progress":0.999,"total":3136,"current":3136}
+{"_e":"metro:bundling:done","_t":1786384853678,"id":"1","total":3136,"ms":18205.1376}
+{"_e":"metro:client_log","_t":1786384861278,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786384861279,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1786384861721,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786384861721,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786384885905,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786384885927,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `requestPermission`. Please use `requestPermission()` instead."]}
+{"_e":"metro:client_log","_t":1786384885927,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `AuthorizationStatus`. Please use `AuthorizationStatus` instead."]}
+{"_e":"metro:client_log","_t":1786384885927,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786384885927,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1786384893863,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1786384946011,"level":"warn","data":["DateTimePicker: `onChange` is deprecated. Use `onValueChange`, `onDismiss`, and `onNeutralButtonPress` instead."]}
+{"_e":"metro:bundling:failed","_t":1786386061347,"id":null,"message":"Unable to resolve \"./../../screens/History/HistoryFullTableScreen\" from \"src\\navigation\\comman\\HistoryStack.js\"\n   7 | import AppHeader from '../../components/AppHeader';\n   8 | import { createNativeStackNavigator } from '@react-navigation/native-stack';\n>  9 | import HistoryFullTableScreen from './../../screens/History/HistoryFullTableScreen';\n     |                                     ^\n  10 | import HistoricalProductionEditScreen from '../../screens/History/HistoricalProductionEditScreen';\n  11 |\n  12 | const Stack = createNativeStackNavigator();","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\HistoryStack.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./../../screens/History/HistoryFullTableScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./HistoryStack\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\SuperAdminTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./SuperAdminTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"./../../screens/History/HistoryFullTableScreen","originModulePath":"src\\navigation\\comman\\HistoryStack.js"}
+{"_e":"metro:bundling:failed","_t":1786386061528,"id":null,"message":"Unable to resolve \"./../../screens/History/HistoryFullTableScreen\" from \"src\\navigation\\comman\\HistoryStack.js\"\n   7 | import AppHeader from '../../components/AppHeader';\n   8 | import { createNativeStackNavigator } from '@react-navigation/native-stack';\n>  9 | import HistoryFullTableScreen from './../../screens/History/HistoryFullTableScreen';\n     |                                     ^\n  10 | import HistoricalProductionEditScreen from '../../screens/History/HistoricalProductionEditScreen';\n  11 |\n  12 | const Stack = createNativeStackNavigator();","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\HistoryStack.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./../../screens/History/HistoryFullTableScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./HistoryStack\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\SuperAdminTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./SuperAdminTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"./../../screens/History/HistoryFullTableScreen","originModulePath":"src\\navigation\\comman\\HistoryStack.js"}
+{"_e":"metro:bundling:started","_t":1786386333572,"id":"9","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1786386333572,"id":"9","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1786386333634,"id":"9","total":1,"ms":61.9769}
+{"_e":"metro:client_log","_t":1786386342204,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786386342204,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1786386342204,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786386342212,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786386662328,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1786386670512,"level":"warn","data":["DateTimePicker: `onChange` is deprecated. Use `onValueChange`, `onDismiss`, and `onNeutralButtonPress` instead."]}
+{"_e":"metro:bundling:failed","_t":1786387190340,"id":null,"message":"Unable to resolve \"../../screens/History/HistoryListScreen\" from \"src\\navigation\\comman\\HistoryStack.js\"\n  1 | import React from 'react';\n  2 | import HistoryDateDetailsScreen from '../../screens/History/HistoryDateDetailsScreen';\n> 3 | import HistoryListScreen from '../../screens/History/HistoryListScreen';\n    |                                ^\n  4 | import HistoryMaterialSummaryScreen from '../../screens/History/HistoryMaterialSummaryScreen';\n  5 | import HistoryPlanningSummaryScreen from '../../screens/History/HistoryPlanningSummaryScreen';\n  6 | import HistoryShiftTableScreen from '../../screens/History/HistoryShiftTableScreen';","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\HistoryStack.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"../../screens/History/HistoryListScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./HistoryStack\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\SuperAdminTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./SuperAdminTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"../../screens/History/HistoryListScreen","originModulePath":"src\\navigation\\comman\\HistoryStack.js"}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onMessage`. Please use `onMessage()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786388541281,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1786396710461,"level":"error","data":["[ReferenceError: Property 'COLORS' doesn't exist]"]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onMessage`. Please use `onMessage()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1786396715480,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}

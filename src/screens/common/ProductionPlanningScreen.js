@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList,
   Edit3,
+  FileDown,
   Plus,
   Trash2,
   X,
@@ -32,7 +33,8 @@ import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { pick } from '@react-native-documents/picker';
 import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
+import { downloadProductionReport } from '../../utils/serverProductionReport';
 const emptyForm = {
   challan_no: '',
   party_name: '',
@@ -43,24 +45,24 @@ const emptyForm = {
   status: 'pending',
 };
 
-export default function ProductionPlanningScreen() {
+export default function ProductionPlanningScreen({ navigation }) {
   const queryClient = useQueryClient();
   const { contentMaxWidth } = useResponsive();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [downloadingReportId, setDownloadingReportId] = useState(null);
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['production-planning'],
-    queryFn: () => getProductionPlanningApi(),
+    queryKey: ['production-planning', statusFilter],
+    queryFn: () => getProductionPlanningApi({ status: statusFilter }),
   });
 
   const planningList = data?.data || [];
 
   const route = useRoute();
-  const navigation = useNavigation();
-
   useEffect(() => {
     const extracted = route.params?.extractedPdfData;
 
@@ -117,6 +119,21 @@ export default function ProductionPlanningScreen() {
       queryClient.invalidateQueries({
         queryKey: ['available-production-planning'],
       });
+
+      if (editingId) {
+        [
+          'productions',
+          'production-history',
+          'history-date-summary',
+          'history-shift-table',
+          'history-material-summary',
+          'history-planning-summary',
+          'certificate-readings',
+          'dashboard',
+        ].forEach(key =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        );
+      }
 
       Alert.alert('Success', res?.message || 'Saved successfully');
       closeModal();
@@ -251,12 +268,40 @@ export default function ProductionPlanningScreen() {
     );
   };
 
+  const handleGenerateReport = async item => {
+    if (downloadingReportId != null) return;
+
+    setDownloadingReportId(item.id);
+
+    try {
+      const pdf = await downloadProductionReport({
+        type: 'challan',
+        value: item.challan_no,
+        planning_id: item.id,
+      });
+
+      navigation.navigate('PdfViewer', {
+        ...pdf,
+        title: `Challan ${item.challan_no}`,
+      });
+    } catch (error) {
+      Alert.alert(
+        'Unable to generate report',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Could not create the challan production report.',
+      );
+    } finally {
+      setDownloadingReportId(null);
+    }
+  };
+
   return (
     <>
       <View style={styles.container}>
         <View style={styles.headerWrap}>
           <View style={[styles.headerCard, centeredContent(contentMaxWidth)]}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.flex}>
               <Text style={styles.title}>Production Planning</Text>
               <Text style={styles.description}>
                 Challan wise production planning
@@ -270,6 +315,21 @@ export default function ProductionPlanningScreen() {
             >
               <Plus size={24} color={COLORS.white} />
             </TouchableOpacity>
+          </View>
+
+          <View
+            style={[styles.filterCard, centeredContent(contentMaxWidth)]}
+          >
+            <FilterButton
+              label="Pending"
+              active={statusFilter === 'pending'}
+              onPress={() => setStatusFilter('pending')}
+            />
+            <FilterButton
+              label="Completed"
+              active={statusFilter === 'completed'}
+              onPress={() => setStatusFilter('completed')}
+            />
           </View>
         </View>
 
@@ -291,13 +351,18 @@ export default function ProductionPlanningScreen() {
             {planningList.length === 0 ? (
               <View style={styles.emptyCard}>
                 <ClipboardList size={34} color={COLORS.gray} />
-                <Text style={styles.emptyText}>No planning found</Text>
+                <Text style={styles.emptyText}>
+                  No {statusFilter} planning found
+                </Text>
               </View>
             ) : (
               planningList.map(item => (
                 <PlanningCard
                   key={item.id}
                   item={item}
+                  reportLoading={downloadingReportId === item.id}
+                  reportDisabled={downloadingReportId != null}
+                  onReport={() => handleGenerateReport(item)}
                   onEdit={() => openEditModal(item)}
                   onDelete={() => handleDelete(item)}
                 />
@@ -321,7 +386,33 @@ export default function ProductionPlanningScreen() {
   );
 }
 
-function PlanningCard({ item, onEdit, onDelete }) {
+function FilterButton({ label, active, onPress }) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[styles.filterButton, active && styles.filterButtonActive]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.filterButtonText,
+          active && styles.filterButtonTextActive,
+        ]}
+      >
+        {label.toUpperCase()}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function PlanningCard({
+  item,
+  reportLoading,
+  reportDisabled,
+  onReport,
+  onEdit,
+  onDelete,
+}) {
   const partyText = item.third_party_name
     ? `${item.party_name} (${item.third_party_name})`
     : item.party_name;
@@ -329,7 +420,7 @@ function PlanningCard({ item, onEdit, onDelete }) {
   return (
     <View style={styles.planCard}>
       <View style={styles.planTop}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.flex}>
           <Text style={styles.challanNo}>{item.challan_no}</Text>
           <Text style={styles.partyName}>{partyText}</Text>
         </View>
@@ -344,6 +435,25 @@ function PlanningCard({ item, onEdit, onDelete }) {
           Zinc alert target: {item.target_zinc_percentage}%
         </Text>
       )}
+
+      <TouchableOpacity
+        style={[
+          styles.reportBtn,
+          reportDisabled && styles.reportBtnDisabled,
+        ]}
+        activeOpacity={0.85}
+        disabled={reportDisabled}
+        onPress={onReport}
+      >
+        {reportLoading ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <FileDown size={17} color={COLORS.white} />
+        )}
+        <Text style={styles.reportBtnText}>
+          {reportLoading ? 'GENERATING...' : 'GENERATE REPORT'}
+        </Text>
+      </TouchableOpacity>
 
       <View style={styles.actionRow}>
         <TouchableOpacity
@@ -414,28 +524,12 @@ function PlanningModal({
           </TouchableOpacity>
         </View>
 
-        <View
-          style={[
-            {
-              padding: 15,
-            },
-            centeredContent(formMaxWidth),
-          ]}
-        >
+        <View style={[styles.extractWrap, centeredContent(formMaxWidth)]}>
           <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
             <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
           </TouchableOpacity>
         </View>
-        <Text
-          style={{
-            fontSize: 16,
-            color: COLORS.textPrimary,
-            fontWeight: '700',
-            textAlign: 'center',
-            width: '100%',
-            paddingBottom: 15,
-          }}
-        >
+        <Text style={styles.orDivider}>
           -- OR --
         </Text>
         <ScrollView
@@ -524,11 +618,7 @@ function AppInput({ style, ...props }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
+  flex: { flex: 1 },
   container: {
     flex: 1,
     paddingTop: 15,
@@ -570,6 +660,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
+  },
+
+  filterCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 5,
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 6,
+    elevation: 1,
+  },
+
+  filterButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceMuted,
+  },
+
+  filterButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+
+  filterButtonText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  filterButtonTextActive: {
+    color: COLORS.white,
   },
 
   listContent: {
@@ -669,54 +795,32 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  qtyRow: {
+  reportBtn: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     marginTop: 14,
   },
 
-  infoBox: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 10,
+  reportBtnDisabled: {
+    opacity: 0.65,
   },
 
-  infoLabel: {
-    color: COLORS.gray,
-    fontSize: 11,
+  reportBtnText: {
+    color: COLORS.white,
+    fontSize: 12,
     fontWeight: '800',
-  },
-
-  infoValue: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 4,
+    letterSpacing: 0.4,
   },
 
   actionRow: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
-  },
-
-  certificateBtn: {
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: COLORS.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 14,
-  },
-
-  certificateText: {
-    color: COLORS.white,
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
 
   editBtn: {
@@ -794,6 +898,15 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: 16,
   },
+  extractWrap: { padding: 15 },
+  orDivider: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+    textAlign: 'center',
+    width: '100%',
+    paddingBottom: 15,
+  },
 
   formCard: {
     backgroundColor: COLORS.white,
@@ -813,37 +926,6 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: COLORS.white,
     marginBottom: 12,
-  },
-
-  statusRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-
-  statusBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  statusBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-
-  statusText: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  statusTextActive: {
-    color: COLORS.white,
   },
 
   saveBtn: {

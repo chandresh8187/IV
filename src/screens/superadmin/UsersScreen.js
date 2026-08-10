@@ -44,6 +44,10 @@ const emptyForm = {
   assigned_shift: 'day',
 };
 
+const PasswordLockIcon = () => (
+  <LockKeyhole size={20} color={COLORS.gray} />
+);
+
 export default function UsersScreen() {
   const queryClient = useQueryClient();
   const loggedUser = useSelector(state => state.auth.user);
@@ -201,7 +205,7 @@ export default function UsersScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
-          { padding: 16 },
+          styles.listContent,
           centeredContent(contentMaxWidth),
         ]}
         refreshControl={
@@ -221,7 +225,7 @@ export default function UsersScreen() {
                 <Users size={22} color={COLORS.primary} />
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex}>
                 <Text style={styles.userName}>{item.supervisor_name}</Text>
                 <Text style={styles.userEmail}>{item.supervisor_email}</Text>
                 <Text style={styles.shiftText}>
@@ -347,7 +351,7 @@ function UserCard({ item, type, onEdit, onStatus }) {
         )}
       </View>
 
-      <View style={{ flex: 1 }}>
+      <View style={styles.flex}>
         <Text style={styles.userName}>{item.name}</Text>
         <Text style={styles.userEmail}>{item.email}</Text>
 
@@ -498,7 +502,7 @@ function RegisterModal({
                 theme={PAPER_THEME}
                 left={
                   <TextInput.Icon
-                    icon={() => <LockKeyhole size={20} color={COLORS.gray} />}
+                    icon={PasswordLockIcon}
                   />
                 }
                 right={
@@ -567,7 +571,7 @@ function RegisterModal({
               )}
 
               <TouchableOpacity
-                style={[styles.saveBtn, loading && { opacity: 0.6 }]}
+                style={[styles.saveBtn, loading && styles.disabled]}
                 disabled={loading}
                 onPress={onSubmit}
               >
@@ -620,7 +624,9 @@ function Loader() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bg },
+  flex: { flex: 1 },
+  listContent: { padding: 16 },
+  disabled: { opacity: 0.6 },
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,

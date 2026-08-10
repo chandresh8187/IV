@@ -1,4 +1,5 @@
 import messaging from '@react-native-firebase/messaging';
+import { Alert } from 'react-native';
 
 import { saveFcmTokenApi } from '../api/notificationApi';
 
@@ -14,3 +15,13 @@ export const registerFcmRefreshListener = () => {
     }
   });
 };
+
+export const registerForegroundMessageListener = () =>
+  messaging().onMessage(async remoteMessage => {
+    const title = remoteMessage?.notification?.title;
+    const body = remoteMessage?.notification?.body;
+
+    if (title || body) {
+      Alert.alert(title || 'Production Notification', body || '');
+    }
+  });

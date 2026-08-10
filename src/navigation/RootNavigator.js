@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { navigationRef } from './navigationRef';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -18,7 +17,13 @@ import { getSharedPdf, clearSharedPdf } from '../native/ShareIntent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { extractPlanningPdfApi } from '../api/productionPlanningApi';
 
-const Stack = createNativeStackNavigator();
+const APP_NAVIGATION_THEME = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: COLORS.bg,
+  },
+};
 
 export default function RootNavigator() {
   const dispatch = useDispatch();
@@ -131,24 +136,8 @@ export default function RootNavigator() {
 
   if (isLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: COLORS.primary,
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: COLORS.white,
-            height: 80,
-            width: 80,
-            borderRadius: UI.radius,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+      <View style={styles.loadingScreen}>
+        <View style={styles.loadingCard}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       </View>
@@ -158,15 +147,31 @@ export default function RootNavigator() {
   const MainComponent = getMainComponent();
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: COLORS.primary,
-        }}
-      >
+    <NavigationContainer ref={navigationRef} theme={APP_NAVIGATION_THEME}>
+      <SafeAreaView style={styles.safeArea}>
         <MainComponent />
       </SafeAreaView>
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingCard: {
+    backgroundColor: COLORS.white,
+    height: 80,
+    width: 80,
+    borderRadius: UI.radius,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
+});

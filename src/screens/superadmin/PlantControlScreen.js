@@ -30,6 +30,7 @@ import { getShiftStatusApi } from '../../api/shiftApi';
 import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { parseDateForPicker } from '../../utils/format';
 
 const STATUS_META = {
   running: {
@@ -51,6 +52,10 @@ const STATUS_META = {
     icon: Square,
   },
 };
+
+const CalendarClockIcon = () => (
+  <CalendarClock size={21} color={COLORS.primary} />
+);
 
 export default function PlantControlScreen() {
   const queryClient = useQueryClient();
@@ -137,17 +142,13 @@ export default function PlantControlScreen() {
   };
 
   const handleRestartPickerChange = (event, selectedValue) => {
-    if (event?.type === 'dismissed') {
+    if (event?.type !== 'set' || !selectedValue) {
       setShowDateTimePicker(false);
       return;
     }
 
-    if (!selectedValue) {
-      return;
-    }
-
     const currentValue = expectedRestartAt
-      ? new Date(expectedRestartAt)
+      ? parseDateForPicker(expectedRestartAt)
       : new Date();
 
     if (restartPickerMode === 'date') {
@@ -404,11 +405,7 @@ export default function PlantControlScreen() {
               activeOutlineColor={COLORS.accent}
               theme={PAPER_THEME}
               right={
-                <TextInput.Icon
-                  icon={() => (
-                    <CalendarClock size={21} color={COLORS.primary} />
-                  )}
-                />
+                <TextInput.Icon icon={CalendarClockIcon} />
               }
             />
           </View>
@@ -451,7 +448,7 @@ export default function PlantControlScreen() {
         ) : (
           history.map(item => (
             <View key={item.id} style={styles.historyRow}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.flex}>
                 <Text style={styles.historyTitle}>
                   {(item.title || item.status || '-').toUpperCase()}
                 </Text>
@@ -467,12 +464,12 @@ export default function PlantControlScreen() {
 
       {showDateTimePicker && (
         <DateTimePicker
-          value={expectedRestartAt || new Date()}
+          value={parseDateForPicker(expectedRestartAt)}
           mode={restartPickerMode}
           display={restartPickerMode === 'time' ? 'clock' : 'default'}
           is24Hour={false}
           minimumDate={restartPickerMode === 'date' ? new Date() : undefined}
-          onValueChange={handleRestartPickerChange}
+          onChange={handleRestartPickerChange}
         />
       )}
     </ScrollView>
@@ -489,6 +486,7 @@ function InfoLine({ label, value }) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { padding: 16, paddingBottom: 40 },
   center: {
     flex: 1,
@@ -651,72 +649,6 @@ const styles = StyleSheet.create({
   clearDateText: {
     color: COLORS.danger,
     fontSize: 11,
-    fontWeight: '800',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'center',
-    padding: 18,
-  },
-  datePickerCard: {
-    width: '100%',
-    maxWidth: 540,
-    alignSelf: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 10,
-  },
-  datePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  datePickerTitle: {
-    color: COLORS.primary,
-    fontSize: 19,
-    fontWeight: '800',
-  },
-  datePickerSubtitle: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedDateBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: COLORS.bg,
-    marginTop: 10,
-  },
-  selectedDateText: {
-    color: COLORS.primary,
-    fontWeight: '800',
-  },
-  doneButton: {
-    minHeight: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-  },
-  doneButtonText: {
-    color: COLORS.white,
     fontWeight: '800',
   },
 });
