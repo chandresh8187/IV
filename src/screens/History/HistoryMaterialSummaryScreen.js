@@ -22,12 +22,14 @@ import { formatQuantity, formatWeight } from '../../utils/format';
 
 import { COLORS } from '../../assets/Colors';
 import { downloadProductionReport } from '../../utils/serverProductionReport';
+import { hasPermission } from '../../utils/permissions';
 
 export default function HistoryMaterialSummaryScreen({ route, navigation }) {
   const { date } = route.params;
   const { isTablet, contentMaxWidth } = useResponsive();
   const infoBoxWidth = gridItemWidth(2, 3, isTablet);
-  const role = String(useSelector(state => state.auth.user?.role) || '').toLowerCase();
+  const loggedUser = useSelector(state => state.auth.user);
+  const canGenerateReports = hasPermission(loggedUser, 'reports.generate');
   const [downloading, setDownloading] = useState(null);
 
   const { data, isLoading } = useQuery({
@@ -100,7 +102,7 @@ export default function HistoryMaterialSummaryScreen({ route, navigation }) {
                 width={infoBoxWidth}
               />
             </View>
-            {role === 'superadmin' && (
+            {canGenerateReports && (
               <TouchableOpacity
                 style={styles.reportBtn}
                 disabled={downloading === item.material}

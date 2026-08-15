@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import { TextInput } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import {
   CalendarClock,
   Factory,
@@ -27,10 +28,10 @@ import {
   getPlantStatusHistoryApi,
 } from '../../api/plantStatusApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
-import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { parseDateForPicker } from '../../utils/format';
+import { hasPermission } from '../../utils/permissions';
 
 const STATUS_META = {
   running: {
@@ -60,6 +61,8 @@ const CalendarClockIcon = () => (
 export default function PlantControlScreen() {
   const queryClient = useQueryClient();
   const { contentMaxWidth } = useResponsive();
+  const user = useSelector(state => state.auth.user);
+  const canManagePlant = hasPermission(user, 'plant.manage');
   const [selectedStatus, setSelectedStatus] = useState('maintenance');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -107,15 +110,6 @@ export default function PlantControlScreen() {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     queryClient.invalidateQueries({ queryKey: ['productions'] });
   }, [queryClient]);
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    socket.on('plant_status_updated', invalidatePlantData);
-    return () => socket.off('plant_status_updated', invalidatePlantData);
-  }, [invalidatePlantData]);
 
   const current = statusQuery.data?.data || {};
   const currentStatus = current.status || 'running';
@@ -291,7 +285,7 @@ export default function PlantControlScreen() {
         </View>
       </View>
 
-      <View style={styles.controlCard}>
+      {canManagePlant && <View style={styles.controlCard}>
         <Text style={styles.sectionTitle}>Change Plant Status</Text>
         <View style={styles.statusRow}>
           <TouchableOpacity
@@ -439,7 +433,7 @@ export default function PlantControlScreen() {
             </Text>
           )}
         </TouchableOpacity>
-      </View>
+      </View>}
 
       <View style={styles.historyCard}>
         <Text style={styles.sectionTitle}>Recent Status History</Text>

@@ -26,3 +26,8 @@ export const getStoredAuth = async () => {
     user: user ? JSON.parse(user) : null,
   };
 };
+
+export const getMyAccessApi = async () => {
+  const response = await apiClient.get('/auth/access');
+  return response.data;
+};

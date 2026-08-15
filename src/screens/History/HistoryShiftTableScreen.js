@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import { FileCheck2, Maximize2 } from 'lucide-react-native';
 
 import { getHistoryShiftTableApi } from '../../api/historyApi';
@@ -17,10 +18,13 @@ import { downloadProductionReport } from '../../utils/serverProductionReport';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 import { COLORS } from '../../assets/Colors';
+import { hasPermission } from '../../utils/permissions';
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
   const [saving, setSaving] = useState(false);
+  const loggedUser = useSelector(state => state.auth.user);
+  const canGenerateReports = hasPermission(loggedUser, 'reports.generate');
   const { wideMaxWidth } = useResponsive();
   const { data, isLoading } = useQuery({
     queryKey: ['history-shift-table', date, shift_name],
@@ -126,7 +130,7 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
         )}
       </View>
 
-      <TouchableOpacity
+      {canGenerateReports && <TouchableOpacity
         style={[styles.generateBtn, saving && styles.generateBtnDisabled]}
         activeOpacity={0.85}
         disabled={saving}
@@ -140,7 +144,7 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
             <Text style={styles.generateText}>GENERATE REPORT</Text>
           </>
         )}
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </ScrollView>
   );
 }

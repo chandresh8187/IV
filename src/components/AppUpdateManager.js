@@ -14,6 +14,7 @@ import {
   openInstallPermissionSettings,
   subscribeToNativeUpdateEvents,
 } from '../native/NativeAppUpdater';
+import { socket } from '../socket/socket';
 
 const CHECK_DELAY_MS = 2500;
 
@@ -82,17 +83,22 @@ export default function AppUpdateManager() {
 
       // expo-updates APIs are intended for configured release builds.
       if (__DEV__ || !Updates.isEnabled) {
+        if (mounted) setUpdate(null);
         return;
       }
 
       try {
         const result = await Updates.checkForUpdateAsync();
 
-        if (mounted && result?.isAvailable) {
-          setUpdate({
-            type: 'ota',
-            releaseNotes: getOtaReleaseNotes(result.manifest),
-          });
+        if (mounted) {
+          setUpdate(
+            result?.isAvailable
+              ? {
+                  type: 'ota',
+                  releaseNotes: getOtaReleaseNotes(result.manifest),
+                }
+              : null,
+          );
         }
       } catch (error) {
         // OTA errors are non-blocking; the embedded/current bundle continues.
@@ -100,10 +106,29 @@ export default function AppUpdateManager() {
     };
 
     const timer = setTimeout(checkForUpdates, CHECK_DELAY_MS);
+    const handleUpdateConfigurationChanged = () => {
+      checkForUpdates();
+    };
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => {
+        if (nextState === 'active') checkForUpdates();
+      },
+    );
+
+    socket.on(
+      'app_update_configuration_changed',
+      handleUpdateConfigurationChanged,
+    );
 
     return () => {
       mounted = false;
       clearTimeout(timer);
+      appStateSubscription.remove();
+      socket.off(
+        'app_update_configuration_changed',
+        handleUpdateConfigurationChanged,
+      );
     };
   }, []);
 

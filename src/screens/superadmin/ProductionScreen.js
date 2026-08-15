@@ -8,6 +8,7 @@ import {
   Clock3,
   Plus,
   LockKeyhole,
+  Pencil,
   Star,
   X,
 } from 'lucide-react-native';
@@ -28,7 +29,6 @@ import {
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
-import NetInfo from '@react-native-community/netinfo';
 import {
   getDefaultChallanApi,
   getProductionsApi,
@@ -40,7 +40,6 @@ import { getUsersApi } from '../../api/userApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
 import AnimatedRefreshButton from '../../components/AnimatedRefreshButton';
 import ProductionTable from '../../components/ProductionTable';
-import { socket } from '../../socket/socket';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import {
   formatNumber,
@@ -49,14 +48,16 @@ import {
   parseTimeForPicker,
 } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { hasPermission } from '../../utils/permissions';
 
 import { COLORS } from '../../assets/Colors';
 import {
   createClientRequestId,
   enqueueOfflineProduction,
-  flushOfflineProductions,
-  getOfflineProductionCount,
+  getOfflineProductionQueueStats,
+  subscribeOfflineProductionQueue,
 } from '../../utils/offlineProductionQueue';
+import usePersistentFormDraft from '../../hooks/usePersistentFormDraft';
 
 const PAPER_THEME = {
   colors: {
@@ -123,6 +124,9 @@ const emptyFullForm = {
   c5: '',
 };
 
+const canEditProductionRow = row =>
+  row?.can_edit === true || Number(row?.can_edit) === 1;
+
 export default function ProductionScreen() {
   const queryClient = useQueryClient();
   const { formMaxWidth } = useResponsive();
@@ -133,12 +137,18 @@ export default function ProductionScreen() {
   const [selectedGrantUserId, setSelectedGrantUserId] = useState(null);
   const [grantUserOpen, setGrantUserOpen] = useState(false);
   const [offlineCount, setOfflineCount] = useState(0);
+  const [offlineFailedCount, setOfflineFailedCount] = useState(0);
+  const [productionDraftRestored, setProductionDraftRestored] = useState(false);
   const loggedUser = useSelector(state => state.auth.user);
-  const role = String(loggedUser?.role || '')
-    .toLowerCase()
-    .trim();
-  const isSuperAdmin = role === 'superadmin';
-  const isPlantManager = role === 'plant_manager';
+  const canSaveProduction = hasPermission(loggedUser, 'production.save');
+  const canGrantProductionEdit = hasPermission(
+    loggedUser,
+    'production.grant_edit',
+  );
+  const canManageAllProduction = hasPermission(
+    loggedUser,
+    'production.manage_all',
+  );
   const [planningOpen, setPlanningOpen] = useState(false);
   const [showProductionTimePicker, setShowProductionTimePicker] =
     useState(false);
@@ -154,13 +164,13 @@ export default function ProductionScreen() {
   const { data: defaultChallanData } = useQuery({
     queryKey: ['default-production-challan'],
     queryFn: getDefaultChallanApi,
-    enabled: role === 'supervisor',
+    enabled: canSaveProduction,
   });
 
   const { data: usersData } = useQuery({
     queryKey: ['active-users-for-production-grant'],
     queryFn: () => getUsersApi(),
-    enabled: isSuperAdmin,
+    enabled: canGrantProductionEdit,
   });
 
   const {
@@ -182,9 +192,7 @@ export default function ProductionScreen() {
   // Normalized so a role stored as "Supervisor" / " superadmin " on the
   // server still unlocks the entry button.
   const canManageProduction =
-    (isSuperAdmin || isPlantManager || role === 'supervisor') &&
-    isShiftActive &&
-    productionAllowed;
+    canSaveProduction && isShiftActive && productionAllowed;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId],
@@ -211,7 +219,7 @@ export default function ProductionScreen() {
         throw error;
       }
     },
-    onSuccess: res => {
+    onSuccess: async res => {
       Alert.alert('Success', res?.message || 'Saved successfully');
 
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
@@ -220,6 +228,7 @@ export default function ProductionScreen() {
       queryClient.invalidateQueries({
         queryKey: ['available-production-planning'],
       });
+      if (!formExistingEntry) await clearProductionDraft();
       closeModal();
     },
     onError: async error => {
@@ -229,16 +238,22 @@ export default function ProductionScreen() {
           String(item.sr_no) === String(error.ivProductionPayload?.sr_no || ''),
       );
       if (isNetworkError && !attemptedExistingRow && activeShiftId) {
-        const queued = await enqueueOfflineProduction({
-          ...error.ivProductionPayload,
-          offline_shift_id: activeShiftId,
-        });
+        const queued = await enqueueOfflineProduction(
+          {
+            ...error.ivProductionPayload,
+            offline_shift_id: activeShiftId,
+          },
+          loggedUser?.id,
+        );
         if (queued?.client_request_id) {
-          setOfflineCount(await getOfflineProductionCount());
+          const stats = await getOfflineProductionQueueStats(loggedUser?.id);
+          setOfflineCount(stats.total);
+          setOfflineFailedCount(stats.failed);
           Alert.alert(
             'Saved Offline',
             'This production entry will upload automatically when internet is available.',
           );
+          await clearProductionDraft();
           closeModal();
           return;
         }
@@ -286,58 +301,16 @@ export default function ProductionScreen() {
   });
 
   useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleProductionUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    const refreshQueueStats = async () => {
+      const stats = await getOfflineProductionQueueStats(loggedUser?.id);
+      setOfflineCount(stats.total);
+      setOfflineFailedCount(stats.failed);
     };
-
-    const handleShiftUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-
-    const handlePlanningUpdated = () => {
-      queryClient.invalidateQueries({
-        queryKey: ['available-production-planning'],
-      });
-    };
-
-    socket.on('production_updated', handleProductionUpdated);
-    socket.on('shift_updated', handleShiftUpdated);
-    socket.on('plant_status_updated', handleShiftUpdated);
-    socket.on('production_planning_updated', handlePlanningUpdated);
-
-    return () => {
-      socket.off('production_updated', handleProductionUpdated);
-      socket.off('shift_updated', handleShiftUpdated);
-      socket.off('plant_status_updated', handleShiftUpdated);
-      socket.off('production_planning_updated', handlePlanningUpdated);
-    };
-  }, [queryClient]);
-
-  useEffect(() => {
-    getOfflineProductionCount().then(setOfflineCount);
-    const syncQueue = async state => {
-      if (!state.isConnected) return;
-      const result = await flushOfflineProductions(saveProductionApi);
-      setOfflineCount(result.remaining);
-      if (result.synced) {
-        queryClient.invalidateQueries({ queryKey: ['productions'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        queryClient.invalidateQueries({
-          queryKey: ['available-production-planning'],
-        });
-      }
-    };
-    const unsubscribe = NetInfo.addEventListener(syncQueue);
-    NetInfo.fetch().then(syncQueue);
-    return unsubscribe;
-  }, [queryClient]);
+    refreshQueueStats().catch(() => {});
+    return subscribeOfflineProductionQueue(() => {
+      refreshQueueStats().catch(() => {});
+    });
+  }, [loggedUser?.id]);
 
   const rows = useMemo(
     () => (activeShiftId ? data?.data?.table_data || data?.data || [] : []),
@@ -353,20 +326,63 @@ export default function ProductionScreen() {
     [rows],
   );
 
-  const openEntryModal = () => {
+  const formExistingEntry = useMemo(
+    () =>
+      rows.find(item => String(item.sr_no) === String(fullForm.sr_no)) || null,
+    [fullForm.sr_no, rows],
+  );
+
+  const {
+    clearDraft: clearProductionDraft,
+    loadDraft: loadProductionDraft,
+    markChanged: markProductionDraftChanged,
+    persistNow: persistProductionDraft,
+  } = usePersistentFormDraft({
+    formName: 'add-production',
+    userId: loggedUser?.id,
+    scope: activeShiftId,
+    values: fullForm,
+    enabled: modalType === 'Full' && !formExistingEntry,
+    maxAgeMs: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  const hasEditableRow = useMemo(
+    () => rows.some(canEditProductionRow),
+    [rows],
+  );
+
+  const openEntryModal = async () => {
     const preferred = defaultChallanData?.data;
     const defaultPlan = availablePlanning.find(
       item => String(item.id) === String(preferred?.default_planning_id),
     );
-    setFullForm({
+    const initialForm = {
       ...emptyFullForm,
-      sr_no: isSuperAdmin ? '' : String(nextSrNo),
+      sr_no: canManageAllProduction ? '' : String(nextSrNo),
       planning_id: defaultPlan ? String(defaultPlan.id) : '',
       challan_no: defaultPlan?.challan_no || '',
       party_name: defaultPlan?.party_name || '',
       material: defaultPlan?.material_description || '',
       material_description: defaultPlan?.material_description || '',
-    });
+    };
+    const draft = await loadProductionDraft();
+    const draftSrIsNowUsed = rows.some(
+      item => String(item.sr_no) === String(draft?.sr_no || ''),
+    );
+    setFullForm(
+      draft
+        ? {
+            ...initialForm,
+            ...draft,
+            sr_no: canManageAllProduction
+              ? draftSrIsNowUsed
+                ? ''
+                : draft.sr_no || ''
+              : String(nextSrNo),
+          }
+        : initialForm,
+    );
+    setProductionDraftRestored(Boolean(draft));
     setModalType('Full');
   };
 
@@ -390,9 +406,13 @@ export default function ProductionScreen() {
   };
 
   const closeModal = () => {
+    if (modalType === 'Full' && !formExistingEntry) {
+      persistProductionDraft().catch(() => {});
+    }
     setShowProductionTimePicker(false);
     setModalType(null);
     setFullForm(emptyFullForm);
+    setProductionDraftRestored(false);
   };
 
   const openProductionTimePicker = () => {
@@ -410,6 +430,7 @@ export default function ProductionScreen() {
     const selectedDate = parseTimeForPicker(date);
 
     setProductionTimePickerValue(selectedDate);
+    markProductionDraftChanged();
     setFullForm(prev => ({
       ...prev,
       production_time: formatTimeForApi(selectedDate),
@@ -452,6 +473,13 @@ export default function ProductionScreen() {
     }
   };
 
+  const openGrantedEditModal = item => {
+    if (!canEditProductionRow(item)) return;
+    setProductionDraftRestored(false);
+    fillFromSrNo(item.sr_no);
+    setModalType('Full');
+  };
+
   const availablePlanning = useMemo(
     () => availablePlanningData?.data || [],
     [availablePlanningData],
@@ -489,6 +517,7 @@ export default function ProductionScreen() {
   }, [availablePlanning, fullForm.challan_no, fullForm.party_name]);
 
   const handlePlanningSelect = challanNo => {
+    markProductionDraftChanged();
     const found = availablePlanning.find(
       item => String(item.challan_no) === String(challanNo),
     );
@@ -689,7 +718,9 @@ export default function ProductionScreen() {
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineBannerText}>
             {offlineCount} offline entr{offlineCount === 1 ? 'y' : 'ies'}{' '}
-            waiting to sync
+            {offlineFailedCount
+              ? `saved; ${offlineFailedCount} could not sync yet`
+              : 'waiting to sync'}
           </Text>
         </View>
       )}
@@ -703,7 +734,7 @@ export default function ProductionScreen() {
             rows={rows}
             scrollRows
             renderAction={
-              isSuperAdmin
+              canGrantProductionEdit
                 ? item => (
                     <TouchableOpacity
                       style={styles.rowIconBtn}
@@ -715,6 +746,18 @@ export default function ProductionScreen() {
                       <LockKeyhole size={17} color={COLORS.primary} />
                     </TouchableOpacity>
                   )
+                : hasEditableRow
+                ? item =>
+                    canEditProductionRow(item) ? (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit production SR ${item.sr_no}`}
+                        style={[styles.rowIconBtn, styles.rowEditBtn]}
+                        onPress={() => openGrantedEditModal(item)}
+                      >
+                        <Pencil size={17} color={COLORS.primary} />
+                      </TouchableOpacity>
+                    ) : null
                 : undefined
             }
           />
@@ -739,7 +782,9 @@ export default function ProductionScreen() {
         <SafeAreaView style={styles.modalSafe}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Production Entry</Text>
+              <Text style={styles.modalTitle}>
+                {formExistingEntry ? 'Edit Production Entry' : 'Production Entry'}
+              </Text>
               <Text style={styles.modalDesc}>
                 Add / update all data by Sr No
               </Text>
@@ -763,19 +808,33 @@ export default function ProductionScreen() {
               centeredContent(formMaxWidth),
             ]}
           >
+            {productionDraftRestored && !formExistingEntry && (
+              <Text style={styles.draftNotice}>Saved draft restored</Text>
+            )}
             <FormCard title="Production Details">
               <FormInput
-                label={isSuperAdmin ? 'Sr No' : 'Sr No (auto)'}
+                label={
+                  formExistingEntry || canManageAllProduction
+                    ? 'Sr No'
+                    : 'Sr No (auto)'
+                }
                 value={fullForm.sr_no}
                 keyboardType="numeric"
-                editable={isSuperAdmin}
+                editable={canManageAllProduction}
                 onChangeText={v => {
+                  markProductionDraftChanged();
                   setFullForm(prev => ({ ...prev, sr_no: v }));
                   fillFromSrNo(v);
                 }}
               />
 
-              {isSuperAdmin && (
+              {!canManageAllProduction && formExistingEntry && (
+                <Text style={styles.srHint}>
+                  This SR is unlocked for one edit. Access closes after a successful save.
+                </Text>
+              )}
+
+              {canManageAllProduction && (
                 <Text style={styles.srHint}>
                   Type an existing Sr No to load that entry for update.
                 </Text>
@@ -823,7 +882,7 @@ export default function ProductionScreen() {
                   </View>
                 </View>
               )}
-              {role === 'supervisor' && fullForm.planning_id ? (
+              {canSaveProduction && fullForm.planning_id ? (
                 <TouchableOpacity
                   style={styles.defaultChallanBtn}
                   onPress={() =>
@@ -894,18 +953,20 @@ export default function ProductionScreen() {
                 label="Dipping Qty"
                 value={fullForm.dipping_qty}
                 keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, dipping_qty: v }))
-                }
+                onChangeText={v => {
+                  markProductionDraftChanged();
+                  setFullForm(prev => ({ ...prev, dipping_qty: v }));
+                }}
               />
 
               <FormInput
                 label="Kettle Temperature °C"
                 value={fullForm.kettle_temperature}
                 keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, kettle_temperature: v }))
-                }
+                onChangeText={v => {
+                  markProductionDraftChanged();
+                  setFullForm(prev => ({ ...prev, kettle_temperature: v }));
+                }}
               />
             </FormCard>
 
@@ -914,18 +975,20 @@ export default function ProductionScreen() {
                 label="MS Weight 1 Nos"
                 value={fullForm.ms_weight}
                 keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, ms_weight: v }))
-                }
+                onChangeText={v => {
+                  markProductionDraftChanged();
+                  setFullForm(prev => ({ ...prev, ms_weight: v }));
+                }}
               />
 
               <FormInput
                 label="GI Weight 1 Nos"
                 value={fullForm.gi_weight}
                 keyboardType="numeric"
-                onChangeText={v =>
-                  setFullForm(prev => ({ ...prev, gi_weight: v }))
-                }
+                onChangeText={v => {
+                  markProductionDraftChanged();
+                  setFullForm(prev => ({ ...prev, gi_weight: v }));
+                }}
               />
 
               {previewZinc !== '' && (
@@ -943,9 +1006,10 @@ export default function ProductionScreen() {
                     key={key}
                     label={`C${index + 1}`}
                     value={fullForm[key]}
-                    onChangeText={v =>
-                      setFullForm(prev => ({ ...prev, [key]: v }))
-                    }
+                    onChangeText={v => {
+                      markProductionDraftChanged();
+                      setFullForm(prev => ({ ...prev, [key]: v }));
+                    }}
                     mode="outlined"
                     keyboardType="numeric"
                     style={styles.coatingInput}
@@ -1186,6 +1250,17 @@ const styles = StyleSheet.create({
   },
 
   modalBody: { padding: 16 },
+  draftNotice: {
+    color: COLORS.primary,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
 
   formCard: {
     backgroundColor: COLORS.white,
@@ -1411,6 +1486,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rowEditBtn: {
+    backgroundColor: COLORS.tealSoft,
   },
   defaultChallanBtn: {
     minHeight: 46,

@@ -28,13 +28,15 @@ import {
   updateProductionPlanningApi,
 } from '../../api/productionPlanningApi';
 
-import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { pick } from '@react-native-documents/picker';
 import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
 import { useRoute } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import { downloadProductionReport } from '../../utils/serverProductionReport';
+import { hasPermission } from '../../utils/permissions';
+import usePersistentFormDraft from '../../hooks/usePersistentFormDraft';
 const emptyForm = {
   challan_no: '',
   party_name: '',
@@ -48,12 +50,29 @@ const emptyForm = {
 export default function ProductionPlanningScreen({ navigation }) {
   const queryClient = useQueryClient();
   const { contentMaxWidth } = useResponsive();
+  const loggedUser = useSelector(state => state.auth.user);
+  const canManagePlanning = hasPermission(loggedUser, 'planning.manage');
+  const canImportPlanning = hasPermission(loggedUser, 'planning.import_pdf');
+  const canGenerateReports = hasPermission(loggedUser, 'reports.generate');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [downloadingReportId, setDownloadingReportId] = useState(null);
+  const [planningDraftRestored, setPlanningDraftRestored] = useState(false);
+
+  const {
+    clearDraft: clearPlanningDraft,
+    loadDraft: loadPlanningDraft,
+    markChanged: markPlanningDraftChanged,
+    persistNow: persistPlanningDraft,
+  } = usePersistentFormDraft({
+    formName: 'add-planning',
+    userId: loggedUser?.id,
+    values: form,
+    enabled: modalVisible && !editingId,
+  });
 
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['production-planning', statusFilter],
@@ -68,6 +87,7 @@ export default function ProductionPlanningScreen({ navigation }) {
 
     if (extracted) {
       setEditingId(null);
+      markPlanningDraftChanged();
 
       setForm(prev => ({
         ...prev,
@@ -82,26 +102,7 @@ export default function ProductionPlanningScreen({ navigation }) {
 
       setModalVisible(true);
     }
-  }, [route.params?.extractedPdfData]);
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handlePlanningUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['production-planning'] });
-      queryClient.invalidateQueries({
-        queryKey: ['available-production-planning'],
-      });
-    };
-
-    socket.on('production_planning_updated', handlePlanningUpdated);
-
-    return () => {
-      socket.off('production_planning_updated', handlePlanningUpdated);
-    };
-  }, [queryClient]);
+  }, [markPlanningDraftChanged, route.params?.extractedPdfData]);
 
   const saveMutation = useMutation({
     mutationFn: payload => {
@@ -114,7 +115,7 @@ export default function ProductionPlanningScreen({ navigation }) {
 
       return createProductionPlanningApi(payload);
     },
-    onSuccess: res => {
+    onSuccess: async res => {
       queryClient.invalidateQueries({ queryKey: ['production-planning'] });
       queryClient.invalidateQueries({
         queryKey: ['available-production-planning'],
@@ -136,6 +137,7 @@ export default function ProductionPlanningScreen({ navigation }) {
       }
 
       Alert.alert('Success', res?.message || 'Saved successfully');
+      if (!editingId) await clearPlanningDraft();
       closeModal();
     },
     onError: error => {
@@ -165,6 +167,7 @@ export default function ProductionPlanningScreen({ navigation }) {
         material_description:
           extracted.material_description || prev.material_description,
       }));
+      if (!editingId) markPlanningDraftChanged();
 
       Alert.alert('Success', 'PDF data extracted successfully');
     } catch (error) {
@@ -194,20 +197,24 @@ export default function ProductionPlanningScreen({ navigation }) {
   });
 
   const updateForm = (key, value) => {
+    if (!editingId) markPlanningDraftChanged();
     setForm(prev => ({
       ...prev,
       [key]: value,
     }));
   };
 
-  const openAddModal = () => {
+  const openAddModal = async () => {
     setEditingId(null);
-    setForm(emptyForm);
+    const draft = await loadPlanningDraft();
+    setForm(draft ? { ...emptyForm, ...draft, status: 'pending' } : emptyForm);
+    setPlanningDraftRestored(Boolean(draft));
     setModalVisible(true);
   };
 
   const openEditModal = item => {
     setEditingId(item.id);
+    setPlanningDraftRestored(false);
 
     setForm({
       challan_no: item.challan_no || '',
@@ -226,9 +233,11 @@ export default function ProductionPlanningScreen({ navigation }) {
   };
 
   const closeModal = () => {
+    if (!editingId) persistPlanningDraft().catch(() => {});
     setModalVisible(false);
     setEditingId(null);
     setForm(emptyForm);
+    setPlanningDraftRestored(false);
   };
 
   const handleSave = () => {
@@ -308,13 +317,15 @@ export default function ProductionPlanningScreen({ navigation }) {
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.addBtn}
-              activeOpacity={0.85}
-              onPress={openAddModal}
-            >
-              <Plus size={24} color={COLORS.white} />
-            </TouchableOpacity>
+            {canManagePlanning && (
+              <TouchableOpacity
+                style={styles.addBtn}
+                activeOpacity={0.85}
+                onPress={openAddModal}
+              >
+                <Plus size={24} color={COLORS.white} />
+              </TouchableOpacity>
+            )}
           </View>
 
           <View
@@ -362,9 +373,13 @@ export default function ProductionPlanningScreen({ navigation }) {
                   item={item}
                   reportLoading={downloadingReportId === item.id}
                   reportDisabled={downloadingReportId != null}
-                  onReport={() => handleGenerateReport(item)}
-                  onEdit={() => openEditModal(item)}
-                  onDelete={() => handleDelete(item)}
+                  onReport={
+                    canGenerateReports
+                      ? () => handleGenerateReport(item)
+                      : null
+                  }
+                  onEdit={canManagePlanning ? () => openEditModal(item) : null}
+                  onDelete={canManagePlanning ? () => handleDelete(item) : null}
                 />
               ))
             )}
@@ -377,10 +392,11 @@ export default function ProductionPlanningScreen({ navigation }) {
         editingId={editingId}
         form={form}
         loading={saveMutation.isPending}
+        draftRestored={planningDraftRestored}
         onChange={updateForm}
         onClose={closeModal}
         onSave={handleSave}
-        pickAndExtractPdf={pickAndExtractPdf}
+        pickAndExtractPdf={canImportPlanning ? pickAndExtractPdf : null}
       />
     </>
   );
@@ -436,26 +452,29 @@ function PlanningCard({
         </Text>
       )}
 
-      <TouchableOpacity
-        style={[
-          styles.reportBtn,
-          reportDisabled && styles.reportBtnDisabled,
-        ]}
-        activeOpacity={0.85}
-        disabled={reportDisabled}
-        onPress={onReport}
-      >
-        {reportLoading ? (
-          <ActivityIndicator size="small" color={COLORS.white} />
-        ) : (
-          <FileDown size={17} color={COLORS.white} />
-        )}
-        <Text style={styles.reportBtnText}>
-          {reportLoading ? 'GENERATING...' : 'GENERATE REPORT'}
-        </Text>
-      </TouchableOpacity>
+      {onReport && (
+        <TouchableOpacity
+          style={[
+            styles.reportBtn,
+            reportDisabled && styles.reportBtnDisabled,
+          ]}
+          activeOpacity={0.85}
+          disabled={reportDisabled}
+          onPress={onReport}
+        >
+          {reportLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <FileDown size={17} color={COLORS.white} />
+          )}
+          <Text style={styles.reportBtnText}>
+            {reportLoading ? 'GENERATING...' : 'GENERATE REPORT'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      <View style={styles.actionRow}>
+      {(onEdit || onDelete) && <View style={styles.actionRow}>
+        {onEdit && (
         <TouchableOpacity
           style={styles.editBtn}
           activeOpacity={0.8}
@@ -464,7 +483,9 @@ function PlanningCard({
           <Edit3 size={16} color={COLORS.primary} />
           <Text style={styles.editText}>EDIT</Text>
         </TouchableOpacity>
+        )}
 
+        {onDelete && (
         <TouchableOpacity
           style={styles.deleteBtn}
           activeOpacity={0.8}
@@ -473,7 +494,8 @@ function PlanningCard({
           <Trash2 size={16} color={COLORS.danger} />
           <Text style={styles.deleteText}>DELETE</Text>
         </TouchableOpacity>
-      </View>
+        )}
+      </View>}
     </View>
   );
 }
@@ -499,6 +521,7 @@ function PlanningModal({
   editingId,
   form,
   loading,
+  draftRestored,
   onChange,
   onClose,
   onSave,
@@ -507,7 +530,11 @@ function PlanningModal({
   const { formMaxWidth } = useResponsive();
 
   return (
-    <Modal visible={visible} animationType="slide">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={styles.modalSafe}>
         <View style={styles.modalHeader}>
           <View>
@@ -524,20 +551,25 @@ function PlanningModal({
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.extractWrap, centeredContent(formMaxWidth)]}>
-          <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
-            <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.orDivider}>
-          -- OR --
-        </Text>
+        {pickAndExtractPdf && (
+          <>
+            <View style={[styles.extractWrap, centeredContent(formMaxWidth)]}>
+              <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
+                <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.orDivider}>-- OR --</Text>
+          </>
+        )}
         <ScrollView
           contentContainerStyle={[
             styles.modalBody,
             centeredContent(formMaxWidth),
           ]}
         >
+          {draftRestored && !editingId && (
+            <Text style={styles.draftNotice}>Saved draft restored</Text>
+          )}
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Planning Details</Text>
 
@@ -897,6 +929,18 @@ const styles = StyleSheet.create({
   modalBody: {
     paddingBottom: 40,
     paddingHorizontal: 16,
+  },
+  draftNotice: {
+    color: COLORS.primary,
+    backgroundColor: COLORS.surfaceMuted,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 14,
+    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   extractWrap: { padding: 15 },
   orDivider: {

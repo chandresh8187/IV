@@ -5,10 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { navigationRef } from './navigationRef';
 import LoginScreen from '../screens/auth/LoginScreen';
 
-import SuperAdminTabs from './SuperAdminTabs';
-import AdminTabs from './AdminTabs';
-import SupervisorTabs from './SupervisorTabs';
-import PlantManagerTabs from './PlantManagerTabs';
+import AccessTabs from './AccessTabs';
 
 import { getStoredAuth } from '../api/authApi';
 import { setAuth, stopLoading } from '../redux/slices/authSlice';
@@ -16,6 +13,7 @@ import { COLORS, UI } from './../assets/Colors';
 import { getSharedPdf, clearSharedPdf } from '../native/ShareIntent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { extractPlanningPdfApi } from '../api/productionPlanningApi';
+import { hasPermission } from '../utils/permissions';
 
 const APP_NAVIGATION_THEME = {
   ...DefaultTheme,
@@ -47,14 +45,15 @@ export default function RootNavigator() {
           return;
         }
 
+        if (!hasPermission(user, 'planning.import_pdf')) {
+          return;
+        }
+
         const res = await extractPlanningPdfApi(file);
 
         navigationRef.current?.reset({
-          index: 1,
+          index: 0,
           routes: [
-            {
-              name: 'Dashboard',
-            },
             {
               name: 'Production',
               state: {
@@ -115,20 +114,8 @@ export default function RootNavigator() {
       .toLowerCase()
       .trim();
 
-    if (role === 'superadmin') {
-      return SuperAdminTabs;
-    }
-
-    if (role === 'plant_manager') {
-      return PlantManagerTabs;
-    }
-
-    if (role === 'admin') {
-      return AdminTabs;
-    }
-
-    if (role === 'supervisor') {
-      return SupervisorTabs;
+    if (['superadmin', 'plant_manager', 'admin', 'supervisor'].includes(role)) {
+      return AccessTabs;
     }
 
     return LoginScreen;

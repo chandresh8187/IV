@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -14,15 +14,16 @@ import { useSelector } from 'react-redux';
 import { Clock, Factory, Moon, Sun } from 'lucide-react-native';
 
 import { getShiftStatusApi, toggleShiftApi } from '../../api/shiftApi';
-import { socket } from '../../socket/socket';
 import { COLORS } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import moment from 'moment';
+import { hasPermission } from '../../utils/permissions';
 
 export default function ShiftScreen() {
   const queryClient = useQueryClient();
   const { contentMaxWidth } = useResponsive();
   const user = useSelector(state => state.auth.user);
+  const canManageShifts = hasPermission(user, 'shifts.manage');
   const assigned = user?.assigned_shift || 'both';
   const [selectedShift, setSelectedShift] = useState(
     assigned === 'night' ? 'night' : 'day',
@@ -33,26 +34,6 @@ export default function ShiftScreen() {
     queryFn: getShiftStatusApi,
     refetchInterval: 60 * 1000,
   });
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const refresh = () => {
-      queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-
-    socket.on('shift_updated', refresh);
-    socket.on('plant_status_updated', refresh);
-
-    return () => {
-      socket.off('shift_updated', refresh);
-      socket.off('plant_status_updated', refresh);
-    };
-  }, [queryClient]);
 
   const payload = data?.data || {};
   const active = !!payload.is_shift_active;
@@ -189,7 +170,7 @@ export default function ShiftScreen() {
         </Text>
       </View>
 
-      <View style={styles.controlCard}>
+      {canManageShifts && <View style={styles.controlCard}>
         <Text style={styles.plantTitle}>Manual Shift Control</Text>
         <Text style={styles.noteText}>Assigned shift: {assigned.toUpperCase()}</Text>
         {!active && (
@@ -216,7 +197,7 @@ export default function ShiftScreen() {
             {payload.automatic ? 'AUTOMATIC SHIFTS ENABLED' : active ? 'END SHIFT' : 'START SHIFT'}
           </Text>
         </TouchableOpacity>
-      </View>
+      </View>}
     </ScrollView>
   );
 }

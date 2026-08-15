@@ -18,6 +18,7 @@ import {
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { COLORS, UI } from '../../assets/Colors';
 import { useSelector } from 'react-redux';
+import { hasPermission } from '../../utils/permissions';
 
 const PRODUCTION_MENUS = [
   {
@@ -25,30 +26,35 @@ const PRODUCTION_MENUS = [
     desc: 'Add and view current shift production',
     icon: Factory,
     screen: 'LiveProduction',
+    permission: 'production.view',
   },
   {
     title: 'Shift Status',
     desc: 'Start and end day/night shift',
     icon: Settings2,
     screen: 'ShiftControl',
+    permission: 'shifts.view',
   },
   {
     title: 'Production History',
     desc: 'Date and shift wise production reports',
     icon: History,
     screen: 'ProductionHistory',
+    permission: 'history.view',
   },
   {
     title: 'Production Planning',
     desc: 'Manage challan wise production planning',
     icon: ClipboardList,
     screen: 'ProductionPlanning',
+    permission: 'planning.view',
   },
   {
     title: 'Coating Test Certificate',
     desc: 'Generate galvanizing coating test certificate',
     icon: FileCheck2,
     screen: 'GenerateCertificate',
+    permission: 'certificates.view',
   },
 ];
 
@@ -57,21 +63,17 @@ const CONTROL_PANEL_MENU = {
   desc: 'Monthly alerts, shift settings and audit log',
   icon: SlidersHorizontal,
   screen: 'ControlPanel',
+  permissions: ['settings.manage', 'app_updates.manage'],
 };
 
 export default function ProductionMenuScreen({ navigation }) {
   const { isTablet, wideMaxWidth } = useResponsive();
   const loggedUser = useSelector(state => state.auth.user);
-  const role = String(loggedUser?.role || '')
-    .toLowerCase()
-    .trim();
-
-  const menus =
-    role === 'admin'
-      ? PRODUCTION_MENUS.slice(0, 3)
-      : role === 'superadmin'
-      ? [...PRODUCTION_MENUS, CONTROL_PANEL_MENU]
-      : PRODUCTION_MENUS;
+  const menus = [...PRODUCTION_MENUS, CONTROL_PANEL_MENU].filter(item =>
+    (item.permissions || [item.permission]).some(permission =>
+      hasPermission(loggedUser, permission),
+    ),
+  );
 
   return (
     <ScrollView

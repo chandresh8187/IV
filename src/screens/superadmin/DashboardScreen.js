@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CalendarDays,
@@ -10,7 +10,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react-native';
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -23,11 +23,9 @@ import {
 import moment from 'moment';
 import { getDashboardApi } from '../../api/dashboardApi';
 import { COLORS, UI } from '../../assets/Colors';
-import { socket } from '../../socket/socket';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function DashboardScreen() {
-  const queryClient = useQueryClient();
   const { isTablet, wideMaxWidth } = useResponsive();
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
@@ -35,34 +33,6 @@ export default function DashboardScreen() {
     queryFn: getDashboardApi,
     refetchInterval: 10000,
   });
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleProductionUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-
-    const handleShiftUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-
-    const handlePlantStatusUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    };
-
-    socket.on('production_updated', handleProductionUpdated);
-    socket.on('shift_updated', handleShiftUpdated);
-    socket.on('plant_status_updated', handlePlantStatusUpdated);
-
-    return () => {
-      socket.off('production_updated', handleProductionUpdated);
-      socket.off('shift_updated', handleShiftUpdated);
-      socket.off('plant_status_updated', handlePlantStatusUpdated);
-    };
-  }, [queryClient]);
 
   if (isLoading) {
     return (

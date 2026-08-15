@@ -2,6 +2,7 @@ import messaging from '@react-native-firebase/messaging';
 import { Alert } from 'react-native';
 
 import { saveFcmTokenApi } from '../api/notificationApi';
+import { shouldDisplayNotification } from '../utils/notificationDeduper';
 
 export const registerFcmRefreshListener = () => {
   return messaging().onTokenRefresh(async refreshedToken => {
@@ -21,7 +22,10 @@ export const registerForegroundMessageListener = () =>
     const title = remoteMessage?.notification?.title;
     const body = remoteMessage?.notification?.body;
 
-    if (title || body) {
+    if (
+      (title || body) &&
+      shouldDisplayNotification(remoteMessage?.data?.notification_key)
+    ) {
       Alert.alert(title || 'Production Notification', body || '');
     }
   });

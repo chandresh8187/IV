@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -23,18 +24,22 @@ import {
   ShieldCheck,
   X,
   LockKeyhole,
+  KeyRound,
+  RotateCcw,
 } from 'lucide-react-native';
 
 import {
   getActiveSupervisorsApi,
   getUsersApi,
+  getUserPermissionsApi,
   registerUserApi,
   setUserStatusApi,
+  updateUserPermissionsApi,
   updateUserApi,
 } from '../../api/userApi';
-import { socket } from '../../socket/socket';
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { hasPermission } from '../../utils/permissions';
 
 const emptyForm = {
   name: '',
@@ -57,10 +62,14 @@ export default function UsersScreen() {
     String(loggedUser?.role || '')
       .toLowerCase()
       .trim() === 'superadmin';
+  const canManageUsers = hasPermission(loggedUser, 'users.manage');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [permissionUser, setPermissionUser] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState('active');
 
   const {
     data: usersData,
@@ -108,24 +117,8 @@ export default function UsersScreen() {
       ),
   });
 
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const handleShiftUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['active-supervisors'] });
-    };
-
-    socket.on('shift_updated', handleShiftUpdate);
-
-    return () => {
-      socket.off('shift_updated', handleShiftUpdate);
-    };
-  }, [queryClient]);
-
   const admins = usersData?.data?.admins || [];
+  const superadmins = usersData?.data?.superadmins || [];
   const plantManagers =
     usersData?.data?.plant_managers ||
     usersData?.data?.plantManagers ||
@@ -133,6 +126,32 @@ export default function UsersScreen() {
     [];
   const supervisors = usersData?.data?.supervisors || [];
   const activeSupervisors = activeData?.data || [];
+  const allUsers = usersData?.data?.users || [
+    ...superadmins,
+    ...plantManagers,
+    ...admins,
+    ...supervisors,
+  ];
+  const normalizedSearch = searchText.trim().toLowerCase();
+  const filterUsers = items =>
+    items.filter(item => {
+      const matchesStatus =
+        statusFilter === 'all' || item.status === statusFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        [item.name, item.email, item.role, item.assigned_shift]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(normalizedSearch));
+      return matchesStatus && matchesSearch;
+    });
+  const filteredSuperadmins = filterUsers(superadmins);
+  const filteredPlantManagers = filterUsers(plantManagers);
+  const filteredAdmins = filterUsers(admins);
+  const filteredSupervisors = filterUsers(supervisors);
+  const activeAccountCount = allUsers.filter(item => item.status === 'active').length;
+  const inactiveAccountCount = allUsers.filter(
+    item => item.status === 'inactive',
+  ).length;
 
   const closeModal = () => {
     setModalVisible(false);
@@ -185,12 +204,14 @@ export default function UsersScreen() {
             <Text style={styles.title}>Users</Text>
             <Text style={styles.description}>
               {isSuperAdmin
-                ? 'Manage plant managers, admins and supervisors'
-                : 'View supervisors'}
+                ? 'View active staff and manage feature access'
+                : canManageUsers
+                  ? 'View active staff and manage accounts'
+                  : 'View supervisors'}
             </Text>
           </View>
 
-          {isSuperAdmin && (
+          {canManageUsers && (
             <TouchableOpacity
               style={styles.addBtn}
               activeOpacity={0.85}
@@ -240,21 +261,83 @@ export default function UsersScreen() {
           ))
         )}
 
-        {isSuperAdmin && (
+        <View style={styles.summaryGrid}>
+          <SummaryCard label="Enabled" value={activeAccountCount} tone="green" />
+          <SummaryCard label="Inactive" value={inactiveAccountCount} tone="gray" />
+          <SummaryCard label="On shift" value={activeSupervisors.length} tone="blue" />
+        </View>
+
+        <View style={styles.directoryTools}>
+          <Text style={styles.directoryTitle}>User Directory</Text>
+          <TextInput
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search name, email, role or shift"
+            mode="outlined"
+            dense
+            style={styles.searchInput}
+            outlineColor={COLORS.inputBorder}
+            activeOutlineColor={COLORS.accent}
+            textColor={COLORS.text}
+            cursorColor={COLORS.accent}
+            theme={PAPER_THEME}
+            left={<TextInput.Icon icon="magnify" color={COLORS.gray} />}
+          />
+          <View style={styles.filterRow}>
+            {[
+              ['active', 'Enabled'],
+              ['inactive', 'Inactive'],
+              ['all', 'All'],
+            ].map(([value, label]) => (
+              <TouchableOpacity
+                key={value}
+                style={[
+                  styles.filterBtn,
+                  statusFilter === value && styles.filterBtnActive,
+                ]}
+                onPress={() => setStatusFilter(value)}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    statusFilter === value && styles.filterTextActive,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {canManageUsers && (
           <>
+            <Text style={styles.sectionTitle}>Superadmins</Text>
+
+            {isLoading ? (
+              <Loader />
+            ) : filteredSuperadmins.length === 0 ? (
+              <Empty text="No superadmins match this filter" />
+            ) : (
+              filteredSuperadmins.map(item => (
+                <UserCard key={item.id} item={item} type="superadmin" />
+              ))
+            )}
+
             <Text style={styles.sectionTitle}>Plant Managers</Text>
 
             {isLoading ? (
               <Loader />
-            ) : plantManagers.length === 0 ? (
-              <Empty text="No plant managers found" />
+            ) : filteredPlantManagers.length === 0 ? (
+              <Empty text="No plant managers match this filter" />
             ) : (
-              plantManagers.map(item => (
+              filteredPlantManagers.map(item => (
                 <UserCard
                   key={item.id}
                   item={item}
                   type="plant_manager"
                   onEdit={() => openEdit(item)}
+                  onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
@@ -267,21 +350,22 @@ export default function UsersScreen() {
           </>
         )}
 
-        {isSuperAdmin && (
+        {canManageUsers && (
           <>
             <Text style={styles.sectionTitle}>Admins</Text>
 
             {isLoading ? (
               <Loader />
-            ) : admins.length === 0 ? (
-              <Empty text="No admin users found" />
+            ) : filteredAdmins.length === 0 ? (
+              <Empty text="No admins match this filter" />
             ) : (
-              admins.map(item => (
+              filteredAdmins.map(item => (
                 <UserCard
                   key={item.id}
                   item={item}
                   type="admin"
                   onEdit={() => openEdit(item)}
+                  onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
@@ -298,17 +382,18 @@ export default function UsersScreen() {
 
         {isLoading ? (
           <Loader />
-        ) : supervisors.length === 0 ? (
-          <Empty text="No supervisors found" />
+        ) : filteredSupervisors.length === 0 ? (
+          <Empty text="No supervisors match this filter" />
         ) : (
-          supervisors.map(item => (
+          filteredSupervisors.map(item => (
             <UserCard
               key={item.id}
               item={item}
               type="supervisor"
-              onEdit={isSuperAdmin ? () => openEdit(item) : null}
+              onEdit={canManageUsers ? () => openEdit(item) : null}
+              onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
               onStatus={
-                isSuperAdmin
+                canManageUsers
                   ? () =>
                       statusMutation.mutate({
                         id: item.id,
@@ -322,29 +407,37 @@ export default function UsersScreen() {
         )}
       </ScrollView>
 
+      {canManageUsers && (
+          <RegisterModal
+            visible={modalVisible}
+            editingId={editingId}
+            onClose={closeModal}
+            form={form}
+            updateForm={updateForm}
+            loading={registerMutation.isPending}
+            onSubmit={handleRegister}
+          />
+      )}
       {isSuperAdmin && (
-        <RegisterModal
-          visible={modalVisible}
-          editingId={editingId}
-          onClose={closeModal}
-          form={form}
-          updateForm={updateForm}
-          loading={registerMutation.isPending}
-          onSubmit={handleRegister}
-        />
+          <PermissionModal
+            user={permissionUser}
+            onClose={() => setPermissionUser(null)}
+          />
       )}
     </View>
   );
 }
 
-function UserCard({ item, type, onEdit, onStatus }) {
+function UserCard({ item, type, onEdit, onStatus, onAccess }) {
   const isAdmin = type === 'admin';
   const isPlantManager = type === 'plant_manager';
+  const isSuperAdmin = type === 'superadmin';
+  const isManagement = isAdmin || isPlantManager || isSuperAdmin;
 
   return (
     <View style={styles.userCard}>
       <View style={styles.avatar}>
-        {isAdmin || isPlantManager ? (
+        {isManagement ? (
           <ShieldCheck size={22} color={COLORS.primary} />
         ) : (
           <Users size={22} color={COLORS.primary} />
@@ -358,9 +451,45 @@ function UserCard({ item, type, onEdit, onStatus }) {
         <Text style={styles.shiftText}>
           Role: {item.role?.replaceAll('_', ' ')}
         </Text>
-        {isAdmin && <Text style={styles.grayText}>Admin user</Text>}
-        {isPlantManager ? (
-          <Text style={styles.grayText}>Manager user</Text>
+        <View style={styles.accountMetaRow}>
+          <View
+            style={[
+              styles.accountDot,
+              item.status === 'inactive' && styles.accountDotInactive,
+            ]}
+          />
+          <Text
+            style={[
+              styles.accountStatusText,
+              item.status === 'inactive' && styles.accountStatusTextInactive,
+            ]}
+          >
+            {item.status === 'inactive' ? 'Inactive account' : 'Enabled account'}
+          </Text>
+        </View>
+        {item.created_at && (
+          <Text style={styles.grayText}>Joined: {formatUserDate(item.created_at)}</Text>
+        )}
+        <Text
+          style={
+            Number(item.notifications_registered) === 1
+              ? styles.greenText
+              : styles.grayText
+          }
+        >
+          Notifications:{' '}
+          {Number(item.notifications_registered) === 1
+            ? 'Registered'
+            : 'Not registered'}
+        </Text>
+        {isManagement ? (
+          <Text style={styles.grayText}>
+            {isSuperAdmin
+              ? 'Protected superadmin account'
+              : isPlantManager
+                ? 'Manager user'
+                : 'Admin user'}
+          </Text>
         ) : (
           <>
             <Text style={styles.shiftText}>
@@ -377,19 +506,237 @@ function UserCard({ item, type, onEdit, onStatus }) {
           </>
         )}
       </View>
-      {onEdit && (
+      {(onEdit || onStatus || onAccess) && (
         <View style={styles.userActions}>
+          {onAccess && (
+            <TouchableOpacity style={styles.userAccessBtn} onPress={onAccess}>
+              <KeyRound size={14} color={COLORS.accent} />
+              <Text style={styles.userAccessText}>ACCESS</Text>
+            </TouchableOpacity>
+          )}
+          {onEdit && (
           <TouchableOpacity style={styles.userEditBtn} onPress={onEdit}>
             <Text style={styles.userEditText}>EDIT</Text>
           </TouchableOpacity>
+          )}
+          {onStatus && (
           <TouchableOpacity style={styles.userStatusBtn} onPress={onStatus}>
             <Text style={styles.userStatusText}>
               {item.status === 'inactive' ? 'ACTIVATE' : 'DEACTIVATE'}
             </Text>
           </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
+  );
+}
+
+function SummaryCard({ label, value, tone }) {
+  const toneStyle = {
+    green: { backgroundColor: '#DCFCE7', color: COLORS.green },
+    gray: { backgroundColor: '#F1F5F9', color: COLORS.gray },
+    blue: { backgroundColor: COLORS.lightBlue, color: COLORS.primary },
+  }[tone];
+
+  return (
+    <View style={styles.summaryCard}>
+      <View style={[styles.summaryIcon, { backgroundColor: toneStyle.backgroundColor }]}>
+        <Users size={18} color={toneStyle.color} />
+      </View>
+      <Text style={[styles.summaryValue, { color: toneStyle.color }]}>
+        {value}
+      </Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function formatUserDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function PermissionModal({ user, onClose }) {
+  const queryClient = useQueryClient();
+  const { formMaxWidth } = useResponsive();
+  const [draft, setDraft] = useState({});
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['user-permissions', user?.id],
+    queryFn: () => getUserPermissionsApi(user.id),
+    enabled: Boolean(user?.id),
+  });
+
+  const permissions = useMemo(
+    () => data?.data?.permissions || [],
+    [data?.data?.permissions],
+  );
+
+  useEffect(() => {
+    if (!user) {
+      setDraft({});
+      return;
+    }
+
+    if (permissions.length) {
+      setDraft(
+        Object.fromEntries(
+          permissions.map(permission => [permission.key, permission.override]),
+        ),
+      );
+    }
+  }, [permissions, user]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      updateUserPermissionsApi({
+        id: user.id,
+        overrides: permissions.map(permission => ({
+          key: permission.key,
+          allowed: draft[permission.key] ?? null,
+        })),
+      }),
+    onSuccess: response => {
+      Alert.alert('Access Updated', response?.message || 'Permissions saved');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions', user.id] });
+      onClose();
+    },
+    onError: error =>
+      Alert.alert(
+        'Error',
+        error?.response?.data?.message || 'Could not update user access',
+      ),
+  });
+
+  const groupedPermissions = permissions.reduce((groups, permission) => {
+    if (!groups[permission.group]) groups[permission.group] = [];
+    groups[permission.group].push(permission);
+    return groups;
+  }, {});
+
+  const effectiveAllowed = permission => {
+    const override = draft[permission.key];
+    return override == null ? permission.default_allowed : override;
+  };
+
+  return (
+    <Modal
+      visible={Boolean(user)}
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <SafeAreaView style={styles.modalSafe}>
+        <View style={styles.modalHeader}>
+          <View style={styles.modalTitleRow}>
+            <View style={styles.modalIconBox}>
+              <KeyRound size={22} color={COLORS.primary} />
+            </View>
+            <View style={styles.modalTitleText}>
+              <Text style={styles.modalTitle}>Feature Access</Text>
+              <Text style={styles.modalDesc}>
+                {user?.name} · {String(user?.role || '').replaceAll('_', ' ')}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <X size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {isLoading ? (
+          <Loader />
+        ) : isError ? (
+          <Empty text="Could not load this user's access" />
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.permissionBody,
+              centeredContent(formMaxWidth),
+            ]}
+          >
+            <View style={styles.permissionIntro}>
+              <Text style={styles.permissionIntroTitle}>Role defaults + custom access</Text>
+              <Text style={styles.permissionIntroText}>
+                Switches show effective access. Changes here override only this user.
+              </Text>
+              <TouchableOpacity
+                style={styles.resetAccessBtn}
+                onPress={() =>
+                  setDraft(
+                    Object.fromEntries(
+                      permissions.map(permission => [permission.key, null]),
+                    ),
+                  )
+                }
+              >
+                <RotateCcw size={15} color={COLORS.primary} />
+                <Text style={styles.resetAccessText}>USE ROLE DEFAULTS</Text>
+              </TouchableOpacity>
+            </View>
+
+            {Object.entries(groupedPermissions).map(([group, items]) => (
+              <View key={group} style={styles.permissionGroup}>
+                <Text style={styles.permissionGroupTitle}>{group}</Text>
+                {items.map(permission => {
+                  const allowed = effectiveAllowed(permission);
+                  const customized = draft[permission.key] != null;
+                  return (
+                    <View key={permission.key} style={styles.permissionRow}>
+                      <View style={styles.permissionCopy}>
+                        <View style={styles.permissionLabelRow}>
+                          <Text style={styles.permissionLabel}>{permission.label}</Text>
+                          {customized && (
+                            <Text style={styles.customBadge}>CUSTOM</Text>
+                          )}
+                        </View>
+                        <Text style={styles.permissionDescription}>
+                          {permission.description}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={allowed}
+                        onValueChange={value =>
+                          setDraft(current => ({
+                            ...current,
+                            [permission.key]: value,
+                          }))
+                        }
+                        trackColor={{ false: COLORS.borderStrong, true: COLORS.accent }}
+                        thumbColor={COLORS.white}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.saveBtn, saveMutation.isPending && styles.disabled]}
+              disabled={saveMutation.isPending}
+              onPress={() => saveMutation.mutate()}
+            >
+              {saveMutation.isPending ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <>
+                  <KeyRound size={20} color={COLORS.white} />
+                  <Text style={styles.saveText}>SAVE FEATURE ACCESS</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -734,6 +1081,78 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  summaryGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  summaryCard: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 12,
+    elevation: 2,
+  },
+  summaryIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  summaryValue: { fontSize: 21, fontWeight: '900' },
+  summaryLabel: { color: COLORS.gray, fontSize: 11, fontWeight: '700' },
+
+  directoryTools: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 18,
+    elevation: 2,
+  },
+  directoryTitle: {
+    color: COLORS.primary,
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  searchInput: { backgroundColor: COLORS.white, fontSize: 13 },
+  filterRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  filterBtn: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.bg,
+  },
+  filterBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterText: { color: COLORS.gray, fontSize: 12, fontWeight: '800' },
+  filterTextActive: { color: COLORS.white },
+
+  accountMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  accountDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.green,
+    marginRight: 5,
+  },
+  accountDotInactive: { backgroundColor: COLORS.gray },
+  accountStatusText: { color: COLORS.green, fontSize: 11, fontWeight: '800' },
+  accountStatusTextInactive: { color: COLORS.gray },
+
   emptyCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
@@ -877,6 +1296,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   userActions: { alignItems: 'stretch', gap: 6, marginLeft: 8 },
+  userAccessBtn: {
+    minWidth: 72,
+    minHeight: 34,
+    borderRadius: 9,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  userAccessText: { color: COLORS.accent, fontSize: 9, fontWeight: '900' },
   userEditBtn: {
     minWidth: 72,
     minHeight: 34,
@@ -896,4 +1326,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   userStatusText: { color: COLORS.danger, fontSize: 8.5, fontWeight: '800' },
+
+  permissionBody: { padding: 16, paddingBottom: 36 },
+  permissionIntro: {
+    backgroundColor: COLORS.lightBlue,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  permissionIntroTitle: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  permissionIntroText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 5,
+  },
+  resetAccessBtn: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.white,
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    marginTop: 12,
+  },
+  resetAccessText: { color: COLORS.primary, fontSize: 10, fontWeight: '900' },
+  permissionGroup: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    marginBottom: 14,
+    elevation: 2,
+  },
+  permissionGroupTitle: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  permissionRow: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingVertical: 12,
+  },
+  permissionCopy: { flex: 1 },
+  permissionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  permissionLabel: { color: COLORS.text, fontSize: 14, fontWeight: '800' },
+  customBadge: {
+    color: COLORS.accent,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  permissionDescription: {
+    color: COLORS.gray,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+  },
 });

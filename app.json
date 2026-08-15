@@ -14,7 +14,11 @@
         "projectId": "fbac882c-cd9f-4890-80a8-690688aaddb5"
       }
     },
-    "android": {},
+    "android": {
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
     "ios": {},
     "plugins": [
       "expo-sharing"

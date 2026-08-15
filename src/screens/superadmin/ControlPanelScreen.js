@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { pick } from '@react-native-documents/picker';
@@ -13,6 +13,8 @@ import {
 import { COLORS, PAPER_THEME } from '../../assets/Colors';
 import { socket } from '../../socket/socket';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { useSelector } from 'react-redux';
+import { hasPermission } from '../../utils/permissions';
 
 const defaults = {
   zinc_alert_threshold: { enabled: true, percentage: '7.50' },
@@ -35,6 +37,9 @@ const Input = props => <TextInput {...props} mode="outlined" style={styles.input
 
 export default function ControlPanelScreen() {
   const { contentMaxWidth } = useResponsive();
+  const user = useSelector(state => state.auth.user);
+  const canManageSettings = hasPermission(user, 'settings.manage');
+  const canManageAppUpdates = hasPermission(user, 'app_updates.manage');
   const [settings, setSettings] = useState(defaults);
   const [logs, setLogs] = useState([]);
   const [release, setRelease] = useState(emptyRelease);
@@ -43,37 +48,41 @@ export default function ControlPanelScreen() {
   const [saving, setSaving] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const [settingResponse, auditResponse, releaseResponse] = await Promise.all([
-        getControlPanelSettingsApi(),
-        getAuditLogsApi(50),
-        getAndroidReleaseApi(),
+        canManageSettings ? getControlPanelSettingsApi() : null,
+        canManageSettings ? getAuditLogsApi(50) : null,
+        canManageAppUpdates ? getAndroidReleaseApi() : null,
       ]);
-      const server = settingResponse?.data || {};
-      setSettings({
-        zinc_alert_threshold: { ...defaults.zinc_alert_threshold, ...server.zinc_alert_threshold, percentage: String(server.zinc_alert_threshold?.percentage ?? '7.50') },
-        shift_schedule: { ...defaults.shift_schedule, ...server.shift_schedule },
-        maintenance_mode: { ...defaults.maintenance_mode, ...server.maintenance_mode },
-      });
-      setLogs(Array.isArray(auditResponse?.data) ? auditResponse.data : []);
-      setRelease({
-        ...emptyRelease,
-        ...(releaseResponse || {}),
-        latestVersionCode: String(releaseResponse?.latestVersionCode || ''),
-        minimumVersionCode: String(releaseResponse?.minimumVersionCode || '0'),
-      });
+      if (canManageSettings) {
+        const server = settingResponse?.data || {};
+        setSettings({
+          zinc_alert_threshold: { ...defaults.zinc_alert_threshold, ...server.zinc_alert_threshold, percentage: String(server.zinc_alert_threshold?.percentage ?? '7.50') },
+          shift_schedule: { ...defaults.shift_schedule, ...server.shift_schedule },
+          maintenance_mode: { ...defaults.maintenance_mode, ...server.maintenance_mode },
+        });
+        setLogs(Array.isArray(auditResponse?.data) ? auditResponse.data : []);
+      }
+      if (canManageAppUpdates) {
+        setRelease({
+          ...emptyRelease,
+          ...(releaseResponse || {}),
+          latestVersionCode: String(releaseResponse?.latestVersionCode || ''),
+          minimumVersionCode: String(releaseResponse?.minimumVersionCode || '0'),
+        });
+      }
     } catch (error) {
       Alert.alert('Error', error?.response?.data?.message || 'Unable to load control panel');
     } finally { setLoading(false); setRefreshing(false); }
-  };
+  }, [canManageAppUpdates, canManageSettings]);
 
   useEffect(() => {
     load();
     const refresh = () => load();
     socket.on('app_setting_changed', refresh);
     return () => socket.off('app_setting_changed', refresh);
-  }, []);
+  }, [load]);
 
   const update = (group, key, value) => setSettings(current => ({ ...current, [group]: { ...current[group], [key]: value } }));
   const updateRelease = (key, value) => setRelease(current => ({ ...current, [key]: value }));
@@ -155,8 +164,8 @@ export default function ControlPanelScreen() {
       contentContainerStyle={[styles.container, centeredContent(contentMaxWidth)]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
     >
-      <View style={styles.headerCard}><Text style={styles.title}>Control Panel</Text><Text style={styles.subtitle}>Global app settings and audit activity</Text></View>
-      <SettingCard title="Native Android Update" subtitle="Upload an APK and publish the same native update used by the web control panel.">
+      <View style={styles.headerCard}><Text style={styles.title}>Control Panel</Text><Text style={styles.subtitle}>Authorized app settings and release controls</Text></View>
+      {canManageAppUpdates && <SettingCard title="Native Android Update" subtitle="Upload an APK and publish the same native update used by the web control panel.">
         <SwitchRow label="Enable native update" value={release.enabled} onChange={value => updateRelease('enabled', value)} />
         <SwitchRow label="Mandatory update" value={release.mandatory} onChange={value => updateRelease('mandatory', value)} />
         <Input label="Version Name" value={release.latestVersionName} onChangeText={value => updateRelease('latestVersionName', value)} />
@@ -170,7 +179,8 @@ export default function ControlPanelScreen() {
         <Input label="SHA-256" value={release.sha256} onChangeText={value => updateRelease('sha256', value)} autoCapitalize="none" />
         <Input label="Release Notes" multiline numberOfLines={4} value={release.releaseNotes} onChangeText={value => updateRelease('releaseNotes', value)} />
         <SaveButton loading={saving === 'android-release'} onPress={saveRelease} />
-      </SettingCard>
+      </SettingCard>}
+      {canManageSettings && <>
       <SettingCard title="Monthly Zinc Consumption Alert" subtitle="Planning targets are managed separately per challan.">
         <SwitchRow label="Enable monthly alert" value={settings.zinc_alert_threshold.enabled} onChange={value => update('zinc_alert_threshold', 'enabled', value)} />
         <Input label="Alert Percentage" keyboardType="decimal-pad" value={settings.zinc_alert_threshold.percentage} onChangeText={value => update('zinc_alert_threshold', 'percentage', value)} />
@@ -197,6 +207,7 @@ export default function ControlPanelScreen() {
           </View>
         )) : <Text style={styles.empty}>No audit activity found.</Text>}
       </View>
+      </>}
     </ScrollView>
   );
 }
