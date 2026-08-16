@@ -22,19 +22,19 @@ export const requestNotificationPermission = async () => {
 };
 
 export const getFCMToken = async () => {
-  try {
-    const permissionGranted = await requestNotificationPermission();
+  const permissionGranted = await requestNotificationPermission();
 
-    if (!permissionGranted) return null;
+  if (!permissionGranted) return null;
 
-    if (!messaging().isDeviceRegisteredForRemoteMessages) {
-      await messaging().registerDeviceForRemoteMessages();
-    }
-
-    const token = await messaging().getToken();
-
-    return token;
-  } catch (error) {
-    return null;
+  if (!messaging().isDeviceRegisteredForRemoteMessages) {
+    await messaging().registerDeviceForRemoteMessages();
   }
+
+  const token = await messaging().getToken();
+
+  if (!token) {
+    throw new Error('Firebase did not return a notification token');
+  }
+
+  return token;
 };

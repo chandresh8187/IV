@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,11 +14,13 @@ import { TextInput } from 'react-native-paper';
 import { useSelector } from 'react-redux';
 
 import {
+  saveFcmTokenApi,
   sendTestNotificationApi,
   testLatestProductionZincApi,
 } from '../../api/notificationApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { getFCMToken } from '../../services/firebaseService';
 
 const DEFAULT_TITLE = 'IV Production Notification Test';
 const DEFAULT_BODY = 'Backend notification delivery is working for this device.';
@@ -31,6 +34,8 @@ export default function NotificationTestScreen() {
   const [delivery, setDelivery] = useState(null);
   const [checkingZinc, setCheckingZinc] = useState(false);
   const [zincCheck, setZincCheck] = useState(null);
+  const [registeringDevice, setRegisteringDevice] = useState(false);
+  const [deviceRegistration, setDeviceRegistration] = useState(null);
   const isSuperadmin =
     String(user?.role || '').toLowerCase().trim() === 'superadmin';
 
@@ -56,6 +61,31 @@ export default function NotificationTestScreen() {
       );
     } finally {
       setSending(false);
+    }
+  };
+
+  const registerThisDevice = async () => {
+    setRegisteringDevice(true);
+    setDeviceRegistration(null);
+    try {
+      const fcmToken = await getFCMToken();
+      if (!fcmToken) {
+        throw new Error('Android notification permission is not granted.');
+      }
+      const response = await saveFcmTokenApi({
+        fcm_token: fcmToken,
+        device_type: Platform.OS,
+      });
+      setDeviceRegistration(response?.data || { registered: true });
+    } catch (error) {
+      Alert.alert(
+        'Device registration failed',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Could not register this device for notifications.',
+      );
+    } finally {
+      setRegisteringDevice(false);
     }
   };
 
@@ -107,6 +137,37 @@ export default function NotificationTestScreen() {
             are excluded.
           </Text>
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>This device registration</Text>
+        <Text style={styles.resultMessage}>
+          Requests an FCM token from Firebase and saves it to the live backend
+          for the currently signed-in user.
+        </Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Register this device for notifications"
+          activeOpacity={0.8}
+          disabled={registeringDevice}
+          onPress={registerThisDevice}
+          style={[styles.zincButton, registeringDevice && styles.buttonDisabled]}
+        >
+          {registeringDevice ? (
+            <ActivityIndicator color={COLORS.primary} />
+          ) : (
+            <Text style={styles.zincButtonText}>REGISTER THIS DEVICE</Text>
+          )}
+        </TouchableOpacity>
+        {deviceRegistration ? (
+          <View style={styles.zincResult}>
+            <Text style={styles.zincResultTitle}>REGISTERED</Text>
+            <Text style={styles.detailText}>
+              Device: {deviceRegistration.device_type || Platform.OS} · Token
+              ending: {deviceRegistration.token_suffix || 'saved'}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -196,8 +257,8 @@ export default function NotificationTestScreen() {
         <Text style={styles.cardTitle}>Production zinc trigger</Text>
         <Text style={styles.resultMessage}>
           Evaluates the latest saved production entry against its linked
-          planning challan target. If it qualifies and was not already sent,
-          this also triggers the real alert.
+          planning challan target. If it qualifies, this replays the real alert
+          with a fresh notification key even when it was previously sent.
         </Text>
         <TouchableOpacity
           accessibilityRole="button"

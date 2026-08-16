@@ -1,5 +1,5 @@
 import messaging from '@react-native-firebase/messaging';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { saveFcmTokenApi } from '../api/notificationApi';
 import { shouldDisplayNotification } from '../utils/notificationDeduper';
@@ -9,10 +9,13 @@ export const registerFcmRefreshListener = () => {
     try {
       await saveFcmTokenApi({
         fcm_token: refreshedToken,
-        device_type: 'android',
+        device_type: Platform.OS,
       });
     } catch (error) {
-      console.log(error);
+      console.warn(
+        'Refreshed notification token could not be saved:',
+        error?.response?.data?.message || error?.message,
+      );
     }
   });
 };

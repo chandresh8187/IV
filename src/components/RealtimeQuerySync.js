@@ -87,6 +87,11 @@ export default function RealtimeQuerySync() {
       }
     };
 
+    let notificationSyncPromise = null;
+    let notificationRetryTimer = null;
+    let notificationRetryAttempt = 0;
+    const retryDelays = [5000, 30000, 120000];
+
     const syncNotificationToken = async () => {
       const fcmToken = await getFCMToken();
 
@@ -95,10 +100,40 @@ export default function RealtimeQuerySync() {
           fcm_token: fcmToken,
           device_type: Platform.OS,
         });
+        notificationRetryAttempt = 0;
       }
     };
 
-    syncNotificationToken().catch(() => {});
+    const requestNotificationSync = () => {
+      if (!notificationSyncPromise) {
+        notificationSyncPromise = syncNotificationToken()
+          .catch(error => {
+            console.warn(
+              'Notification token sync failed:',
+              error?.response?.data?.message || error?.message,
+            );
+
+            if (
+              active &&
+              !notificationRetryTimer &&
+              notificationRetryAttempt < retryDelays.length
+            ) {
+              const delay = retryDelays[notificationRetryAttempt];
+              notificationRetryAttempt += 1;
+              notificationRetryTimer = setTimeout(() => {
+                notificationRetryTimer = null;
+                requestNotificationSync();
+              }, delay);
+            }
+          })
+          .finally(() => {
+            notificationSyncPromise = null;
+          });
+      }
+      return notificationSyncPromise;
+    };
+
+    requestNotificationSync();
     requestAccessSync().catch(() => {});
 
     const invalidateKeys = keys =>
@@ -214,7 +249,7 @@ export default function RealtimeQuerySync() {
     const handleConnected = () => {
       invalidateAllRealtimeData();
       requestAccessSync().catch(() => {});
-      syncNotificationToken().catch(() => {});
+      requestNotificationSync();
       syncOfflineProduction().catch(() => {});
     };
 
@@ -277,7 +312,7 @@ export default function RealtimeQuerySync() {
           if (!socket.connected) socket.connect();
           invalidateAllRealtimeData();
           requestAccessSync().catch(() => {});
-          syncNotificationToken().catch(() => {});
+          requestNotificationSync();
           NetInfo.fetch()
             .then(syncOfflineProduction)
             .catch(() => {});
@@ -287,6 +322,7 @@ export default function RealtimeQuerySync() {
 
     return () => {
       active = false;
+      if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
       socket.off('production_updated', invalidateProductionData);
       socket.off('production_planning_updated', invalidatePlanningData);
       socket.off('production_edit_grant_updated', invalidateProductionData);
