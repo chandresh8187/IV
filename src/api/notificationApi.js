@@ -17,3 +17,9 @@ export const sendTestNotificationApi = async payload => {
 
   return response.data;
 };
+
+export const testLatestProductionZincApi = async () => {
+  const response = await apiClient.post('/notifications/test-zinc');
+
+  return response.data;
+};

@@ -12,7 +12,10 @@ import { BellRing, Radio, Smartphone, Users } from 'lucide-react-native';
 import { TextInput } from 'react-native-paper';
 import { useSelector } from 'react-redux';
 
-import { sendTestNotificationApi } from '../../api/notificationApi';
+import {
+  sendTestNotificationApi,
+  testLatestProductionZincApi,
+} from '../../api/notificationApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -26,6 +29,8 @@ export default function NotificationTestScreen() {
   const [body, setBody] = useState(DEFAULT_BODY);
   const [sending, setSending] = useState(false);
   const [delivery, setDelivery] = useState(null);
+  const [checkingZinc, setCheckingZinc] = useState(false);
+  const [zincCheck, setZincCheck] = useState(null);
   const isSuperadmin =
     String(user?.role || '').toLowerCase().trim() === 'superadmin';
 
@@ -51,6 +56,23 @@ export default function NotificationTestScreen() {
       );
     } finally {
       setSending(false);
+    }
+  };
+
+  const testLatestZinc = async () => {
+    setCheckingZinc(true);
+    setZincCheck(null);
+    try {
+      const response = await testLatestProductionZincApi();
+      setZincCheck(response?.data || null);
+    } catch (error) {
+      Alert.alert(
+        'Zinc trigger test failed',
+        error?.response?.data?.message ||
+          'The backend could not evaluate the latest production entry.',
+      );
+    } finally {
+      setCheckingZinc(false);
     }
   };
 
@@ -170,6 +192,45 @@ export default function NotificationTestScreen() {
         </View>
       )}
 
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Production zinc trigger</Text>
+        <Text style={styles.resultMessage}>
+          Evaluates the latest saved production entry against its linked
+          planning challan target. If it qualifies and was not already sent,
+          this also triggers the real alert.
+        </Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Test latest production zinc trigger"
+          activeOpacity={0.8}
+          disabled={checkingZinc}
+          onPress={testLatestZinc}
+          style={[styles.zincButton, checkingZinc && styles.buttonDisabled]}
+        >
+          {checkingZinc ? (
+            <ActivityIndicator color={COLORS.primary} />
+          ) : (
+            <Text style={styles.zincButtonText}>CHECK LATEST ZINC ENTRY</Text>
+          )}
+        </TouchableOpacity>
+
+        {zincCheck ? (
+          <View style={styles.zincResult}>
+            <Text style={styles.zincResultTitle}>
+              {zincCheck.result?.reason || 'UNKNOWN'}
+            </Text>
+            <Text style={styles.detailText}>
+              Challan: {zincCheck.entry?.challan_no || '-'} · SR:{' '}
+              {zincCheck.entry?.sr_no || '-'}
+            </Text>
+            <Text style={styles.detailText}>
+              Entry zinc: {zincCheck.result?.zinc ?? zincCheck.entry?.zinc_percentage ?? '-'}% · Target:{' '}
+              {zincCheck.result?.target ?? zincCheck.entry?.target_zinc_percentage ?? '-'}%
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
       <View style={styles.helpCard}>
         <Text style={styles.helpTitle}>How to read the result</Text>
         <Text style={styles.helpText}>
@@ -253,6 +314,29 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.7 },
   sendButtonText: { color: COLORS.white, fontSize: 13, fontWeight: '800' },
+  zincButton: {
+    minHeight: 50,
+    marginTop: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lightBlue,
+  },
+  zincButtonText: { color: COLORS.primary, fontSize: 13, fontWeight: '800' },
+  zincResult: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  zincResultTitle: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
   resultMessage: {
     color: COLORS.gray,
     fontSize: 13,
