@@ -149,6 +149,11 @@ export default function ProductionScreen() {
     loggedUser,
     'production.manage_all',
   );
+  // Editing existing rows is permission-driven, but choosing an SR for a new
+  // entry is a superadmin-only workflow. Granting a supervisor edit access
+  // must not turn their auto-generated SR field into a manual input.
+  const canEnterSrManually =
+    String(loggedUser?.role || '').toLowerCase().trim() === 'superadmin';
   const [planningOpen, setPlanningOpen] = useState(false);
   const [showProductionTimePicker, setShowProductionTimePicker] =
     useState(false);
@@ -347,8 +352,8 @@ export default function ProductionScreen() {
   });
 
   const hasEditableRow = useMemo(
-    () => rows.some(canEditProductionRow),
-    [rows],
+    () => canManageAllProduction || rows.some(canEditProductionRow),
+    [canManageAllProduction, rows],
   );
 
   const openEntryModal = async () => {
@@ -358,7 +363,7 @@ export default function ProductionScreen() {
     );
     const initialForm = {
       ...emptyFullForm,
-      sr_no: canManageAllProduction ? '' : String(nextSrNo),
+      sr_no: canEnterSrManually ? '' : String(nextSrNo),
       planning_id: defaultPlan ? String(defaultPlan.id) : '',
       challan_no: defaultPlan?.challan_no || '',
       party_name: defaultPlan?.party_name || '',
@@ -374,7 +379,7 @@ export default function ProductionScreen() {
         ? {
             ...initialForm,
             ...draft,
-            sr_no: canManageAllProduction
+            sr_no: canEnterSrManually
               ? draftSrIsNowUsed
                 ? ''
                 : draft.sr_no || ''
@@ -473,8 +478,8 @@ export default function ProductionScreen() {
     }
   };
 
-  const openGrantedEditModal = item => {
-    if (!canEditProductionRow(item)) return;
+  const openEditModal = item => {
+    if (!canManageAllProduction && !canEditProductionRow(item)) return;
     setProductionDraftRestored(false);
     fillFromSrNo(item.sr_no);
     setModalType('Full');
@@ -664,15 +669,28 @@ export default function ProductionScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerCard}>
-        <View>
+        <View style={styles.headerCopy}>
           <Text style={styles.title}>Live Production</Text>
           <Text style={styles.description}>Sr No wise production table</Text>
         </View>
 
-        <AnimatedRefreshButton
-          refreshing={isFetching}
-          onPress={handleRefresh}
-        />
+        <View style={styles.headerActions}>
+          {canManageProduction && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Add production entry"
+              activeOpacity={0.8}
+              onPress={openEntryModal}
+              style={styles.headerAddBtn}
+            >
+              <Plus size={24} color={COLORS.white} />
+            </TouchableOpacity>
+          )}
+          <AnimatedRefreshButton
+            refreshing={isFetching}
+            onPress={handleRefresh}
+          />
+        </View>
       </View>
       <View
         style={[
@@ -734,9 +752,13 @@ export default function ProductionScreen() {
             rows={rows}
             scrollRows
             renderAction={
-              canGrantProductionEdit
+              canGrantProductionEdit || hasEditableRow
                 ? item => (
+                  <View style={styles.rowActions}>
+                    {canGrantProductionEdit && (
                     <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel={`Manage edit access for production SR ${item.sr_no}`}
                       style={styles.rowIconBtn}
                       onPress={() => {
                         setGrantRow(item);
@@ -745,34 +767,24 @@ export default function ProductionScreen() {
                     >
                       <LockKeyhole size={17} color={COLORS.primary} />
                     </TouchableOpacity>
-                  )
-                : hasEditableRow
-                ? item =>
-                    canEditProductionRow(item) ? (
+                    )}
+                    {(canManageAllProduction || canEditProductionRow(item)) && (
                       <TouchableOpacity
                         accessibilityRole="button"
                         accessibilityLabel={`Edit production SR ${item.sr_no}`}
                         style={[styles.rowIconBtn, styles.rowEditBtn]}
-                        onPress={() => openGrantedEditModal(item)}
+                        onPress={() => openEditModal(item)}
                       >
                         <Pencil size={17} color={COLORS.primary} />
                       </TouchableOpacity>
-                    ) : null
+                    )}
+                  </View>
+                )
                 : undefined
             }
           />
         )}
       </View>
-
-      {canManageProduction && (
-        <TouchableOpacity
-          style={styles.fab}
-          activeOpacity={0.85}
-          onPress={openEntryModal}
-        >
-          <Plus size={28} color={COLORS.white} />
-        </TouchableOpacity>
-      )}
 
       <Modal
         visible={modalType === 'Full'}
@@ -814,13 +826,13 @@ export default function ProductionScreen() {
             <FormCard title="Production Details">
               <FormInput
                 label={
-                  formExistingEntry || canManageAllProduction
+                  formExistingEntry || canEnterSrManually
                     ? 'Sr No'
                     : 'Sr No (auto)'
                 }
                 value={fullForm.sr_no}
                 keyboardType="numeric"
-                editable={canManageAllProduction}
+                editable={canEnterSrManually}
                 onChangeText={v => {
                   markProductionDraftChanged();
                   setFullForm(prev => ({ ...prev, sr_no: v }));
@@ -828,13 +840,15 @@ export default function ProductionScreen() {
                 }}
               />
 
-              {!canManageAllProduction && formExistingEntry && (
+              {!canEnterSrManually && formExistingEntry && (
                 <Text style={styles.srHint}>
-                  This SR is unlocked for one edit. Access closes after a successful save.
+                  {canManageAllProduction
+                    ? 'SR No stays fixed while you edit this production entry.'
+                    : 'This SR is unlocked for one edit. Access closes after a successful save.'}
                 </Text>
               )}
 
-              {canManageAllProduction && (
+              {canEnterSrManually && (
                 <Text style={styles.srHint}>
                   Type an existing Sr No to load that entry for update.
                 </Text>
@@ -1198,6 +1212,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 10,
+  },
+
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  headerAddBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+
   title: { fontSize: 25, fontWeight: '800', color: COLORS.primary },
   description: { fontSize: 13, color: COLORS.gray, marginTop: 4 },
 
@@ -1211,19 +1247,6 @@ const styles = StyleSheet.create({
   },
 
   loaderBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
-  fab: {
-    position: 'absolute',
-    right: 22,
-    bottom: 24,
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-  },
 
   modalSafe: { flex: 1, backgroundColor: COLORS.bg },
 
@@ -1480,12 +1503,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   rowIconBtn: {
-    width: 54,
+    width: 42,
     height: 34,
     borderRadius: 9,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  rowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   rowEditBtn: {
     backgroundColor: COLORS.tealSoft,

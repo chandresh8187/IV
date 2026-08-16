@@ -27,6 +27,12 @@ import {
   flushOfflineProductions,
   getOfflineProductionQueueStats,
 } from '../src/utils/offlineProductionQueue';
+import {
+  canOpenProductionWorkspace,
+  shouldOpenLiveProductionDirectly,
+  shouldShowShiftInProductionMenu,
+  shouldShowShiftTab,
+} from '../src/utils/accessNavigation';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -103,6 +109,42 @@ describe('feature access', () => {
     expect(hasPermission({ role: 'superadmin', permissions: [] }, 'users.manage')).toBe(
       true,
     );
+  });
+
+  test('routes a live-production-only supervisor directly to the table', () => {
+    const supervisor = {
+      role: 'supervisor',
+      permissions: ['production.view'],
+    };
+
+    expect(canOpenProductionWorkspace(supervisor)).toBe(true);
+    expect(shouldOpenLiveProductionDirectly(supervisor)).toBe(true);
+    expect(shouldShowShiftTab(supervisor)).toBe(false);
+    expect(shouldShowShiftInProductionMenu(supervisor)).toBe(false);
+  });
+
+  test('keeps supervisor shift access in a tab and other roles in the menu', () => {
+    const supervisor = {
+      role: 'supervisor',
+      permissions: ['production.view', 'shifts.view'],
+    };
+    const admin = { role: 'admin', permissions: ['shifts.view'] };
+
+    expect(shouldOpenLiveProductionDirectly(supervisor)).toBe(true);
+    expect(shouldShowShiftTab(supervisor)).toBe(true);
+    expect(shouldShowShiftInProductionMenu(supervisor)).toBe(false);
+    expect(shouldShowShiftTab(admin)).toBe(false);
+    expect(shouldShowShiftInProductionMenu(admin)).toBe(true);
+    expect(canOpenProductionWorkspace(admin)).toBe(true);
+  });
+
+  test('uses the Production menu when a supervisor has another module', () => {
+    expect(
+      shouldOpenLiveProductionDirectly({
+        role: 'supervisor',
+        permissions: ['production.view', 'history.view'],
+      }),
+    ).toBe(false);
   });
 });
 

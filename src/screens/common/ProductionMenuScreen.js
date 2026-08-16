@@ -12,6 +12,7 @@ import {
   Factory,
   FileCheck2,
   History,
+  BellRing,
   Settings2,
   SlidersHorizontal,
 } from 'lucide-react-native';
@@ -19,6 +20,7 @@ import { centeredContent, useResponsive } from '../../utils/responsive';
 import { COLORS, UI } from '../../assets/Colors';
 import { useSelector } from 'react-redux';
 import { hasPermission } from '../../utils/permissions';
+import { shouldShowShiftInProductionMenu } from '../../utils/accessNavigation';
 
 const PRODUCTION_MENUS = [
   {
@@ -66,14 +68,34 @@ const CONTROL_PANEL_MENU = {
   permissions: ['settings.manage', 'app_updates.manage'],
 };
 
+const NOTIFICATION_TEST_MENU = {
+  title: 'Test Notifications',
+  desc: 'Trigger and diagnose backend notification delivery',
+  icon: BellRing,
+  screen: 'NotificationTest',
+  superadminOnly: true,
+};
+
 export default function ProductionMenuScreen({ navigation }) {
   const { isTablet, wideMaxWidth } = useResponsive();
   const loggedUser = useSelector(state => state.auth.user);
-  const menus = [...PRODUCTION_MENUS, CONTROL_PANEL_MENU].filter(item =>
-    (item.permissions || [item.permission]).some(permission =>
+  const menus = [
+    ...PRODUCTION_MENUS,
+    CONTROL_PANEL_MENU,
+    NOTIFICATION_TEST_MENU,
+  ].filter(item => {
+    if (item.superadminOnly) {
+      return (
+        String(loggedUser?.role || '').toLowerCase().trim() === 'superadmin'
+      );
+    }
+    if (item.screen === 'ShiftControl') {
+      return shouldShowShiftInProductionMenu(loggedUser);
+    }
+    return (item.permissions || [item.permission]).some(permission =>
       hasPermission(loggedUser, permission),
-    ),
-  );
+    );
+  });
 
   return (
     <ScrollView

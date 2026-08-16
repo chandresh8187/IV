@@ -18,6 +18,10 @@ import ProfileScreen from '../screens/superadmin/ProfileScreen';
 import UsersScreen from '../screens/superadmin/UsersScreen';
 import ShiftScreen from '../screens/supervisor/ShiftScreen';
 import { hasPermission } from '../utils/permissions';
+import {
+  canOpenProductionWorkspace,
+  shouldShowShiftTab,
+} from '../utils/accessNavigation';
 
 const Tab = createBottomTabNavigator();
 
@@ -31,25 +35,11 @@ const IconByRoute = {
 };
 
 const screenOptions = createTabScreenOptions(IconByRoute);
-const PRODUCTION_PERMISSIONS = [
-  'production.view',
-  'history.view',
-  'planning.view',
-  'certificates.view',
-  'settings.manage',
-  'app_updates.manage',
-];
-
 export default function AccessTabs() {
   const user = useSelector(state => state.auth.user);
-  const role = String(user?.role || '').toLowerCase().trim();
   const canDashboard = hasPermission(user, 'dashboard.view');
-  const canProduction = PRODUCTION_PERMISSIONS.some(key =>
-    hasPermission(user, key),
-  );
-  const canShift = hasPermission(user, 'shifts.view');
-  const showShiftTab =
-    canShift && !['admin', 'plant_manager', 'superadmin'].includes(role);
+  const canProduction = canOpenProductionWorkspace(user);
+  const showShiftTab = shouldShowShiftTab(user);
   const canUsers = hasPermission(user, 'users.view');
   const canPlantControl = hasPermission(user, 'plant.view');
   const initialRouteName = canDashboard

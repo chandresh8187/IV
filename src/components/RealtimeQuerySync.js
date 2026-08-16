@@ -225,6 +225,16 @@ export default function RealtimeQuerySync() {
     };
 
     const handleProductionAlert = event => {
+      const alertType = String(event?.type || '');
+      const userRole = String(user?.role || '').toLowerCase().trim();
+
+      if (
+        userRole === 'supervisor' &&
+        ['planning_zinc_alert', 'notification_test'].includes(alertType)
+      ) {
+        return;
+      }
+
       if (shouldDisplayNotification(event?.notification_key)) {
         Alert.alert(
           event?.title || 'Production Notification',
@@ -249,6 +259,7 @@ export default function RealtimeQuerySync() {
     socket.on('profile_updated', handleProfileUpdate);
     socket.on('planning_zinc_alert', handleProductionAlert);
     socket.on('monthly_zinc_alert', handleProductionAlert);
+    socket.on('notification_test', handleProductionAlert);
     socket.on('connect', handleConnected);
     socket.connect();
 
@@ -289,12 +300,13 @@ export default function RealtimeQuerySync() {
       socket.off('profile_updated', handleProfileUpdate);
       socket.off('planning_zinc_alert', handleProductionAlert);
       socket.off('monthly_zinc_alert', handleProductionAlert);
+      socket.off('notification_test', handleProductionAlert);
       socket.off('connect', handleConnected);
       networkSubscription();
       appStateSubscription.remove();
       socket.disconnect();
     };
-  }, [dispatch, queryClient, token, user?.id]);
+  }, [dispatch, queryClient, token, user?.id, user?.role]);
 
   return null;
 }

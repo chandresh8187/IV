@@ -29,7 +29,6 @@ import {
 } from 'lucide-react-native';
 
 import {
-  getActiveSupervisorsApi,
   getUsersApi,
   getUserPermissionsApi,
   registerUserApi,
@@ -81,18 +80,12 @@ export default function UsersScreen() {
     queryFn: getUsersApi,
   });
 
-  const { data: activeData } = useQuery({
-    queryKey: ['active-supervisors'],
-    queryFn: getActiveSupervisorsApi,
-  });
-
   const registerMutation = useMutation({
     mutationFn: body =>
       editingId ? updateUserApi({ id: editingId, body }) : registerUserApi(body),
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'User registered successfully');
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['active-supervisors'] });
       closeModal();
     },
     onError: error => {
@@ -108,7 +101,6 @@ export default function UsersScreen() {
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'User status updated');
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['active-supervisors'] });
     },
     onError: error =>
       Alert.alert(
@@ -125,7 +117,11 @@ export default function UsersScreen() {
     usersData?.data?.users?.filter(item => item.role === 'plant_manager') ||
     [];
   const supervisors = usersData?.data?.supervisors || [];
-  const activeSupervisors = activeData?.data || [];
+  const activeSupervisors = supervisors.filter(
+    item =>
+      String(item.status || '').toLowerCase() === 'active' &&
+      Number(item.is_shift_active) === 1,
+  );
   const allUsers = usersData?.data?.users || [
     ...superadmins,
     ...plantManagers,
@@ -233,24 +229,27 @@ export default function UsersScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
       >
-        <Text style={styles.sectionTitle}>Active Supervisors</Text>
+        <Text style={styles.sectionTitle}>Supervisors On Current Shift</Text>
 
         {activeSupervisors.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>No active supervisor right now</Text>
+            <Text style={styles.emptyText}>
+              No enabled supervisor is assigned to the current shift
+            </Text>
           </View>
         ) : (
           activeSupervisors.map(item => (
-            <View key={item.shift_id} style={styles.activeCard}>
+            <View key={item.id} style={styles.activeCard}>
               <View style={styles.avatar}>
                 <Users size={22} color={COLORS.primary} />
               </View>
 
               <View style={styles.flex}>
-                <Text style={styles.userName}>{item.supervisor_name}</Text>
-                <Text style={styles.userEmail}>{item.supervisor_email}</Text>
+                <Text style={styles.userName}>{item.name}</Text>
+                <Text style={styles.userEmail}>{item.email}</Text>
                 <Text style={styles.shiftText}>
-                  {item.shift_name?.toUpperCase()} shift • {item.shift_date}
+                  {item.active_shift_name?.toUpperCase()} shift •{' '}
+                  {formatUserDate(item.active_shift_date)}
                 </Text>
               </View>
 

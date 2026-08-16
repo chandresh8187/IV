@@ -11,3 +11,9 @@ export const removeFcmTokenApi = async payload => {
 
   return response.data;
 };
+
+export const sendTestNotificationApi = async payload => {
+  const response = await apiClient.post('/notifications/test', payload);
+
+  return response.data;
+};

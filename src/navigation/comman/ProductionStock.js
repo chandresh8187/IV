@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import { useSelector } from 'react-redux';
 import AppHeader from '../../components/AppHeader';
 import ProductionScreen from '../../screens/superadmin/ProductionScreen';
 import ShiftScreen from '../../screens/supervisor/ShiftScreen';
@@ -8,15 +9,21 @@ import ProductionPlanningScreen from './../../screens/common/ProductionPlanningS
 import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';
 import HistoryStack from './HistoryStack';
 import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
+import NotificationTestScreen from '../../screens/superadmin/NotificationTestScreen';
 import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
 import { COLORS } from '../../assets/Colors';
+import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
 const renderHeader = props => <AppHeader {...props} />;
 
 export default function ProductionStack() {
+  const user = useSelector(state => state.auth.user);
+  const directLiveProduction = shouldOpenLiveProductionDirectly(user);
+
   return (
     <Stack.Navigator
-      initialRouteName="ProductionMenu"
+      key={directLiveProduction ? 'direct-live-production' : 'production-menu'}
+      initialRouteName={directLiveProduction ? 'LiveProduction' : 'ProductionMenu'}
       screenOptions={{
         header: renderHeader,
         contentStyle: { backgroundColor: COLORS.bg },
@@ -68,6 +75,11 @@ export default function ProductionStack() {
         name="ControlPanel"
         component={ControlPanelScreen}
         options={{ title: 'Control Panel' }}
+      />
+      <Stack.Screen
+        name="NotificationTest"
+        component={NotificationTestScreen}
+        options={{ title: 'Test Notifications' }}
       />
     </Stack.Navigator>
   );
