@@ -9,13 +9,26 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { LogOut, Mail, ShieldCheck, UserCircle2 } from 'lucide-react-native';
+import {
+  BellRing,
+  LogOut,
+  Mail,
+  ShieldCheck,
+  Smartphone,
+  UserCircle2,
+} from 'lucide-react-native';
 import messaging from '@react-native-firebase/messaging';
-import { removeFcmTokenApi } from '../../api/notificationApi';
+import {
+  getNotificationStatusApi,
+  removeFcmTokenApi,
+  scheduleBackgroundNotificationTestApi,
+} from '../../api/notificationApi';
 import { logoutApi } from '../../api/authApi';
 import { getMyProfileApi } from '../../api/profileApi';
 import { clearAuth, setAuth } from '../../redux/slices/authSlice';
+import { syncNotificationRegistration } from '../../services/notificationRegistrationService';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -25,6 +38,15 @@ export default function ProfileScreen() {
   const { contentMaxWidth } = useResponsive();
   const [profile, setProfile] = useState(storedUser);
   const [loading, setLoading] = useState(true);
+  const [notificationStatus, setNotificationStatus] = useState(null);
+  const [schedulingBackgroundTest, setSchedulingBackgroundTest] =
+    useState(false);
+
+  const loadNotificationStatus = useCallback(async () => {
+    await syncNotificationRegistration().catch(() => {});
+    const response = await getNotificationStatusApi();
+    setNotificationStatus(response?.data || null);
+  }, []);
 
   const applyUser = useCallback(
     async next => {
@@ -51,6 +73,12 @@ export default function ProfileScreen() {
       .finally(() => setLoading(false));
   }, [applyUser]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadNotificationStatus().catch(() => {});
+    }, [loadNotificationStatus]),
+  );
+
   useEffect(() => {
     if (storedUser) setProfile(storedUser);
   }, [storedUser]);
@@ -72,6 +100,25 @@ export default function ProfileScreen() {
         },
       },
     ]);
+
+  const testBackgroundNotification = async () => {
+    setSchedulingBackgroundTest(true);
+    try {
+      const response = await scheduleBackgroundNotificationTestApi();
+      Alert.alert(
+        'Close the app now',
+        response?.message ||
+          'The notification will be sent in 8 seconds. Close or minimize the app now.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Background test failed',
+        error?.response?.data?.message || 'Could not schedule the FCM test.',
+      );
+    } finally {
+      setSchedulingBackgroundTest(false);
+    }
+  };
 
   if (loading)
     return (
@@ -108,6 +155,49 @@ export default function ProfileScreen() {
           <ShieldCheck size={20} color={COLORS.primary} />
           <Text style={styles.infoText}>{profile?.role}</Text>
         </View>
+      </View>
+      <View style={styles.notificationCard}>
+        <View style={styles.notificationHeader}>
+          <View style={styles.notificationIcon}>
+            <BellRing size={22} color={COLORS.primary} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.notificationTitle}>Notification devices</Text>
+            <Text style={styles.notificationText}>
+              {notificationStatus?.device_count || 0} device
+              {Number(notificationStatus?.device_count) === 1 ? '' : 's'}{' '}
+              registered for this account
+            </Text>
+          </View>
+        </View>
+
+        {(notificationStatus?.devices || []).map(device => (
+          <View key={device.id} style={styles.deviceRow}>
+            <Smartphone size={17} color={COLORS.secondary} />
+            <Text style={styles.deviceText}>
+              {String(device.device_type || 'device').toUpperCase()} · token ending{' '}
+              {device.token_suffix}
+            </Text>
+          </View>
+        ))}
+
+        {String(profile?.role || '').toLowerCase().trim() !== 'supervisor' ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Test background notification"
+            style={styles.backgroundTestBtn}
+            disabled={schedulingBackgroundTest}
+            onPress={testBackgroundNotification}
+          >
+            {schedulingBackgroundTest ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.backgroundTestText}>
+                TEST BACKGROUND PUSH
+              </Text>
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <LogOut size={21} color={COLORS.white} />
@@ -172,6 +262,56 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   infoText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  flex: { flex: 1 },
+  notificationCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: UI.radius,
+    padding: 15,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  notificationIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lightBlue,
+  },
+  notificationTitle: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  notificationText: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  deviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  deviceText: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
+  backgroundTestBtn: {
+    minHeight: 48,
+    marginTop: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  backgroundTestText: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '800',
+  },
   logoutBtn: {
     marginTop: 16,
     minHeight: 52,

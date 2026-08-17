@@ -12,6 +12,26 @@ export const removeFcmTokenApi = async payload => {
   return response.data;
 };
 
+export const checkFcmTokenApi = async fcm_token => {
+  const response = await apiClient.post('/notifications/check-token', {
+    fcm_token,
+  });
+
+  return response.data;
+};
+
+export const getNotificationStatusApi = async () => {
+  const response = await apiClient.get('/notifications/status');
+
+  return response.data;
+};
+
+export const scheduleBackgroundNotificationTestApi = async () => {
+  const response = await apiClient.post('/notifications/test-background');
+
+  return response.data;
+};
+
 export const sendTestNotificationApi = async payload => {
   const response = await apiClient.post('/notifications/test', payload);
 

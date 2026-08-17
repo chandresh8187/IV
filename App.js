@@ -12,7 +12,6 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { store } from './src/redux/store';
 import {
   registerFcmRefreshListener,
-  registerForegroundMessageListener,
 } from './src/services/fcmListener';
 
 const queryClient = new QueryClient();
@@ -28,11 +27,9 @@ export default function App() {
       await BootSplash.hide({ fade: true });
     });
     const unsubscribeRefresh = registerFcmRefreshListener();
-    const unsubscribeForeground = registerForegroundMessageListener();
 
     return () => {
       unsubscribeRefresh();
-      unsubscribeForeground();
     };
   }, []);
   return (

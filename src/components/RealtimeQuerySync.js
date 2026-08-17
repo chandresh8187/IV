@@ -1,17 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { Alert, AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { getMyAccessApi } from '../api/authApi';
-import { saveFcmTokenApi } from '../api/notificationApi';
 import { saveProductionApi } from '../api/productionApi';
 import { mergeUser, setUserAccess } from '../redux/slices/authSlice';
-import { getFCMToken } from '../services/firebaseService';
+import { syncNotificationRegistration } from '../services/notificationRegistrationService';
 import { socket } from '../socket/socket';
-import { shouldDisplayNotification } from '../utils/notificationDeduper';
 import { flushOfflineProductions } from '../utils/offlineProductionQueue';
 
 export default function RealtimeQuerySync() {
@@ -93,15 +91,9 @@ export default function RealtimeQuerySync() {
     const retryDelays = [5000, 30000, 120000];
 
     const syncNotificationToken = async () => {
-      const fcmToken = await getFCMToken();
-
-      if (active && fcmToken) {
-        await saveFcmTokenApi({
-          fcm_token: fcmToken,
-          device_type: Platform.OS,
-        });
-        notificationRetryAttempt = 0;
-      }
+      const result = await syncNotificationRegistration();
+      if (result?.registered) notificationRetryAttempt = 0;
+      return result;
     };
 
     const requestNotificationSync = () => {
@@ -259,19 +251,6 @@ export default function RealtimeQuerySync() {
       }
     };
 
-    const handleProductionAlert = event => {
-      const userRole = String(user?.role || '').toLowerCase().trim();
-
-      if (userRole === 'supervisor') return;
-
-      if (shouldDisplayNotification(event?.notification_key)) {
-        Alert.alert(
-          event?.title || 'Production Notification',
-          event?.body || '',
-        );
-      }
-    };
-
     socket.auth = { token };
     if (socket.connected) socket.disconnect();
 
@@ -286,9 +265,6 @@ export default function RealtimeQuerySync() {
     socket.on('user_permissions_updated', handlePermissionUpdate);
     socket.on('users_updated', handleUserUpdate);
     socket.on('profile_updated', handleProfileUpdate);
-    socket.on('planning_zinc_alert', handleProductionAlert);
-    socket.on('monthly_zinc_alert', handleProductionAlert);
-    socket.on('notification_test', handleProductionAlert);
     socket.on('connect', handleConnected);
     socket.connect();
 
@@ -328,15 +304,12 @@ export default function RealtimeQuerySync() {
       socket.off('user_permissions_updated', handlePermissionUpdate);
       socket.off('users_updated', handleUserUpdate);
       socket.off('profile_updated', handleProfileUpdate);
-      socket.off('planning_zinc_alert', handleProductionAlert);
-      socket.off('monthly_zinc_alert', handleProductionAlert);
-      socket.off('notification_test', handleProductionAlert);
       socket.off('connect', handleConnected);
       networkSubscription();
       appStateSubscription.remove();
       socket.disconnect();
     };
-  }, [dispatch, queryClient, token, user?.id, user?.role]);
+  }, [dispatch, queryClient, token, user?.id]);
 
   return null;
 }

@@ -1,5 +1,8 @@
 package com.ivsquare.production
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.res.Configuration
+import android.os.Build
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
 
@@ -29,8 +32,25 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    createProductionNotificationChannel()
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+  }
+
+  private fun createProductionNotificationChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+    val channel = NotificationChannel(
+      "iv_production_alerts",
+      "Production alerts",
+      NotificationManager.IMPORTANCE_HIGH,
+    ).apply {
+      description = "Production zinc consumption and operational alerts"
+      enableVibration(true)
+    }
+
+    getSystemService(NotificationManager::class.java)
+      .createNotificationChannel(channel)
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

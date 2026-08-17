@@ -14,7 +14,6 @@ import {
 } from '../src/utils/format';
 import { getCoatingRange } from '../src/utils/coatingRange';
 import { hasPermission } from '../src/utils/permissions';
-import { shouldDisplayNotification } from '../src/utils/notificationDeduper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildFormDraftKey,
@@ -145,18 +144,6 @@ describe('feature access', () => {
         permissions: ['production.view', 'history.view'],
       }),
     ).toBe(false);
-  });
-});
-
-describe('notification delivery', () => {
-  test('deduplicates the same foreground FCM and socket alert', () => {
-    const notificationKey = 'planning-zinc-test-entry-1';
-
-    expect(shouldDisplayNotification(notificationKey)).toBe(true);
-    expect(shouldDisplayNotification(notificationKey)).toBe(false);
-    expect(shouldDisplayNotification(`${notificationKey}-different`)).toBe(
-      true,
-    );
   });
 });
 
