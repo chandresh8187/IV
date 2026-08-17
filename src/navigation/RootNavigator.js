@@ -14,6 +14,7 @@ import { getSharedPdf, clearSharedPdf } from '../native/ShareIntent';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { extractPlanningPdfApi } from '../api/productionPlanningApi';
 import { hasPermission } from '../utils/permissions';
+import { syncNotificationRegistration } from '../services/notificationRegistrationService';
 
 const APP_NAVIGATION_THEME = {
   ...DefaultTheme,
@@ -88,6 +89,12 @@ export default function RootNavigator() {
 
         if (storedAuth.token && storedAuth.user) {
           dispatch(setAuth(storedAuth));
+          syncNotificationRegistration().catch(error => {
+            console.warn(
+              'Cold-start notification check failed:',
+              error?.response?.data?.message || error?.message,
+            );
+          });
         } else {
           dispatch(stopLoading());
         }

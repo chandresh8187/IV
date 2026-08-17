@@ -92,7 +92,10 @@ export default function RealtimeQuerySync() {
 
     const syncNotificationToken = async () => {
       const result = await syncNotificationRegistration();
-      if (result?.registered) notificationRetryAttempt = 0;
+      if (result?.registered) {
+        notificationRetryAttempt = 0;
+        console.info('Notification device check:', result.reason);
+      }
       return result;
     };
 
@@ -269,10 +272,24 @@ export default function RealtimeQuerySync() {
     socket.connect();
 
     const networkSubscription = NetInfo.addEventListener(networkState => {
+      if (
+        networkState?.isConnected !== false &&
+        networkState?.isInternetReachable !== false
+      ) {
+        requestNotificationSync();
+      }
       syncOfflineProduction(networkState).catch(() => {});
     });
     NetInfo.fetch()
-      .then(syncOfflineProduction)
+      .then(networkState => {
+        if (
+          networkState?.isConnected !== false &&
+          networkState?.isInternetReachable !== false
+        ) {
+          requestNotificationSync();
+        }
+        return syncOfflineProduction(networkState);
+      })
       .catch(() => {});
 
     const appStateSubscription = AppState.addEventListener(

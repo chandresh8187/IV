@@ -28,7 +28,10 @@ import {
 import { logoutApi } from '../../api/authApi';
 import { getMyProfileApi } from '../../api/profileApi';
 import { clearAuth, setAuth } from '../../redux/slices/authSlice';
-import { syncNotificationRegistration } from '../../services/notificationRegistrationService';
+import {
+  getNotificationInstallationId,
+  syncNotificationRegistration,
+} from '../../services/notificationRegistrationService';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -91,8 +94,10 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
+            const installationId = await getNotificationInstallationId();
             await removeFcmTokenApi({
               fcm_token: await messaging().getToken(),
+              installation_id: installationId,
             });
           } catch {}
           await logoutApi();
@@ -177,6 +182,9 @@ export default function ProfileScreen() {
             <Text style={styles.deviceText}>
               {String(device.device_type || 'device').toUpperCase()} · token ending{' '}
               {device.token_suffix}
+              {device.installation_suffix
+                ? ` · device ${device.installation_suffix}`
+                : ''}
             </Text>
           </View>
         ))}

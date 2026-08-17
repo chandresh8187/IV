@@ -1,33 +1,42 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import {
-  checkFcmTokenApi,
-  removeFcmTokenApi,
-  saveFcmTokenApi,
-} from '../api/notificationApi';
+import { checkFcmTokenApi, saveFcmTokenApi } from '../api/notificationApi';
 import { getFCMToken } from './firebaseService';
 
 let activeSync = null;
-const DEVICE_TOKEN_STORAGE_KEY = 'registered_notification_device_token';
+const INSTALLATION_ID_STORAGE_KEY = 'notification_installation_id';
+
+const createInstallationId = () => {
+  const randomPart = () => Math.random().toString(36).slice(2, 12);
+  return `${Platform.OS}_${Date.now().toString(36)}_${randomPart()}_${randomPart()}`;
+};
+
+export const getNotificationInstallationId = async () => {
+  const storedId = await AsyncStorage.getItem(INSTALLATION_ID_STORAGE_KEY);
+  if (storedId) return storedId;
+
+  const installationId = createInstallationId();
+  await AsyncStorage.setItem(INSTALLATION_ID_STORAGE_KEY, installationId);
+  return installationId;
+};
 
 const persistDeviceToken = async fcmToken => {
-  const previousToken = await AsyncStorage.getItem(DEVICE_TOKEN_STORAGE_KEY);
-  const status = await checkFcmTokenApi(fcmToken);
+  const installationId = await getNotificationInstallationId();
+  const status = await checkFcmTokenApi({
+    fcm_token: fcmToken,
+    installation_id: installationId,
+  });
   let savedData = null;
 
   if (!status?.data?.registered) {
     const saved = await saveFcmTokenApi({
       fcm_token: fcmToken,
       device_type: Platform.OS,
+      installation_id: installationId,
     });
     savedData = saved?.data;
   }
-
-  if (previousToken && previousToken !== fcmToken) {
-    await removeFcmTokenApi({ fcm_token: previousToken }).catch(() => {});
-  }
-  await AsyncStorage.setItem(DEVICE_TOKEN_STORAGE_KEY, fcmToken);
 
   return {
     registered: true,

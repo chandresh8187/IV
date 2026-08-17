@@ -12,10 +12,8 @@ export const removeFcmTokenApi = async payload => {
   return response.data;
 };
 
-export const checkFcmTokenApi = async fcm_token => {
-  const response = await apiClient.post('/notifications/check-token', {
-    fcm_token,
-  });
+export const checkFcmTokenApi = async payload => {
+  const response = await apiClient.post('/notifications/check-token', payload);
 
   return response.data;
 };

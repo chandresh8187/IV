@@ -20,6 +20,7 @@ import { setAuth } from '../../redux/slices/authSlice';
 import { IVSnackbar } from './../../components/IVSnackbar';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { syncNotificationRegistration } from '../../services/notificationRegistrationService';
 
 export default function LoginScreen() {
   const dispatch = useDispatch();
@@ -70,6 +71,12 @@ export default function LoginScreen() {
             user: res.user,
           }),
         );
+        syncNotificationRegistration().catch(error => {
+          console.warn(
+            'Login notification check failed:',
+            error?.response?.data?.message || error?.message,
+          );
+        });
       } else {
         Alert.alert('Login Failed', res?.message || 'Invalid login details.');
       }
