@@ -245,6 +245,10 @@ export default function NotificationTestScreen() {
             Device tokens: {delivery.tokenCount || 0} · Push failures:{' '}
             {delivery.failureCount || 0}
           </Text>
+          <Text style={styles.detailText}>
+            Superadmins: {delivery.roleStats?.superadmin?.registeredUserCount || 0}
+            /{delivery.roleStats?.superadmin?.eligibleUserCount || 0} registered
+          </Text>
           {delivery.pushErrorCode ? (
             <Text style={styles.errorText}>
               Firebase error: {delivery.pushErrorCode}

@@ -260,15 +260,9 @@ export default function RealtimeQuerySync() {
     };
 
     const handleProductionAlert = event => {
-      const alertType = String(event?.type || '');
       const userRole = String(user?.role || '').toLowerCase().trim();
 
-      if (
-        userRole === 'supervisor' &&
-        ['planning_zinc_alert', 'notification_test'].includes(alertType)
-      ) {
-        return;
-      }
+      if (userRole === 'supervisor') return;
 
       if (shouldDisplayNotification(event?.notification_key)) {
         Alert.alert(
