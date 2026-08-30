@@ -66,6 +66,9 @@ export default function ShiftScreen() {
   const shiftDate = payload.shift_date || activeShift.shift_date || '-';
   const plantStatus = payload.plant_status || 'running';
   const productionAllowed = payload.production_allowed !== false;
+  const automaticShifts = payload.automatic === true;
+  const canStartManualShift =
+    String(plantStatus).toLowerCase().trim() === 'running';
   const availableShifts = ['day', 'night'].filter(
     shift => assigned === 'both' || assigned === shift,
   );
@@ -94,9 +97,13 @@ export default function ShiftScreen() {
     >
       <View style={styles.headerCard}>
         <View>
-          <Text style={styles.title}>Automatic Shift</Text>
+          <Text style={styles.title}>
+            {automaticShifts ? 'Automatic Shift' : 'Manual Shift'}
+          </Text>
           <Text style={styles.description}>
-            Shift is selected automatically from server time
+            {automaticShifts
+              ? 'Shift is selected automatically from server time'
+              : 'Start and end the assigned shift manually'}
           </Text>
         </View>
         <View style={styles.headerIcon}>
@@ -189,12 +196,20 @@ export default function ShiftScreen() {
           </View>
         )}
         <TouchableOpacity
-          style={[styles.toggleBtn, active && styles.endBtn, (payload.automatic || toggleMutation.isPending) && styles.disabledBtn]}
-          disabled={payload.automatic || toggleMutation.isPending || (!active && !productionAllowed)}
+          style={[styles.toggleBtn, active && styles.endBtn, (automaticShifts || toggleMutation.isPending || (!active && !canStartManualShift)) && styles.disabledBtn]}
+          disabled={
+            automaticShifts ||
+            toggleMutation.isPending ||
+            (!active && !canStartManualShift)
+          }
           onPress={confirmToggle}
         >
           <Text style={styles.toggleText}>
-            {payload.automatic ? 'AUTOMATIC SHIFTS ENABLED' : active ? 'END SHIFT' : 'START SHIFT'}
+            {automaticShifts
+              ? 'AUTOMATIC SHIFTS ENABLED'
+              : active
+                ? 'END SHIFT'
+                : 'START SHIFT'}
           </Text>
         </TouchableOpacity>
       </View>}
