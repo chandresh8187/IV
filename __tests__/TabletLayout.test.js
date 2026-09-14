@@ -4,6 +4,9 @@ import { Text, View, useWindowDimensions } from 'react-native';
 import { getGridColumns, useResponsive } from '../src/utils/responsive';
 import ResponsiveGrid from '../src/components/ResponsiveGrid';
 import { createTabScreenOptions } from '../src/navigation/tabOptions';
+jest.mock('@react-navigation/elements', () => ({
+  PlatformPressable: 'PlatformPressable',
+}));
 
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   __esModule: true,
@@ -19,6 +22,32 @@ describe('tablet responsive layouts', () => {
   let tree;
   afterEach(() => {
     if (tree) act(() => tree.unmount());
+  });
+  test('sidebar uses a bounded violet ripple and preserves navigation handlers', () => {
+    const options = createTabScreenOptions(
+      {},
+      true,
+    )({ route: { name: 'Production' } });
+    const onPress = jest.fn();
+    act(() => {
+      tree = renderer.create(
+        options.tabBarButton({
+          onPress,
+          'aria-selected': true,
+          android_ripple: { borderless: true },
+        }),
+      );
+    });
+    const button = tree.root.findByType('PlatformPressable');
+    expect(button.props.android_ripple.borderless).toBe(false);
+    expect(button.props.android_ripple.color).toBe('rgba(101,84,192,0.10)');
+    expect(button.props['aria-selected']).toBe(true);
+    act(() => button.props.onPress());
+    expect(onPress).toHaveBeenCalled();
+    expect(
+      createTabScreenOptions({}, false)({ route: { name: 'Production' } })
+        .tabBarButton,
+    ).toBeUndefined();
   });
   test.each([
     [393, 852, 1, false, false],

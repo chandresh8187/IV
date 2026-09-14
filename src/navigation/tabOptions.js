@@ -1,6 +1,20 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../assets/Colors';
+import { PlatformPressable } from '@react-navigation/elements';
+
+function SidebarTabButton(props) {
+  return (
+    <PlatformPressable
+      {...props}
+      android_ripple={{ borderless: false, color: 'rgba(101,84,192,0.10)' }}
+      pressColor="rgba(101,84,192,0.10)"
+      hoverEffect={{ color: COLORS.accent }}
+      style={[props.style, styles.railPressable]}
+    />
+  );
+}
+const renderSidebarTabButton = props => <SidebarTabButton {...props} />;
 
 function TabIcon({ icon: Icon, focused, color }) {
   if (!Icon) {
@@ -49,6 +63,10 @@ export function createTabScreenOptions(iconByRoute, useNavigationRail = false) {
     tabBarLabelStyle: useNavigationRail ? styles.railLabel : styles.label,
     tabBarActiveTintColor: COLORS.accent,
     tabBarInactiveTintColor: COLORS.gray,
+    tabBarActiveBackgroundColor: useNavigationRail
+      ? COLORS.accentSoft
+      : 'transparent',
+    tabBarButton: useNavigationRail ? renderSidebarTabButton : undefined,
     headerShown: false,
     tabBarIcon: ({ focused, color }) => (
       <TabIcon icon={iconByRoute[route.name]} focused={focused} color={color} />
@@ -57,6 +75,7 @@ export function createTabScreenOptions(iconByRoute, useNavigationRail = false) {
 }
 
 const styles = StyleSheet.create({
+  railPressable: { borderRadius: 12, overflow: 'hidden' },
   rail: {
     width: 180,
     paddingHorizontal: 10,
