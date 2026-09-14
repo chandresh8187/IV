@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { navigationRef } from './navigationRef';
@@ -21,6 +21,10 @@ const APP_NAVIGATION_THEME = {
   colors: {
     ...DefaultTheme.colors,
     background: COLORS.bg,
+    card: COLORS.white,
+    text: COLORS.text,
+    primary: COLORS.accent,
+    border: COLORS.border,
   },
 };
 
@@ -143,6 +147,7 @@ export default function RootNavigator() {
   return (
     <NavigationContainer ref={navigationRef} theme={APP_NAVIGATION_THEME}>
       <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" />
         <MainComponent />
       </SafeAreaView>
     </NavigationContainer>
@@ -166,6 +171,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.white,
   },
 });

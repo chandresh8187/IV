@@ -10,7 +10,7 @@ export const TABLET_MIN_DIMENSION = 600;
  * split-screen resizes (a static Dimensions.get would go stale).
  */
 export function useResponsive() {
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
 
   const isTablet = Math.min(width, height) >= TABLET_MIN_DIMENSION;
   const isLandscape = width > height;
@@ -19,14 +19,35 @@ export function useResponsive() {
     width,
     height,
     isTablet,
+    fontScale,
     isLandscape,
     // Readable line-length caps for different kinds of content. Phones get
     // no cap (undefined maxWidth is ignored by RN styles).
-    formMaxWidth: isTablet ? 560 : undefined,
-    contentMaxWidth: isTablet ? 760 : undefined,
-    wideMaxWidth: isTablet ? 1000 : undefined,
+    formMaxWidth: isTablet ? 680 : undefined,
+    workspaceFormMaxWidth: isTablet ? 1120 : undefined,
+    contentMaxWidth: isTablet ? (isLandscape ? 1120 : 920) : undefined,
+    wideMaxWidth: isTablet ? 1440 : undefined,
+    useNavigationRail:
+      isTablet && width >= 1100 && isLandscape && fontScale <= 1.3,
   };
 }
+
+export const getGridColumns = (
+  width,
+  fontScale = 1,
+  minColumnWidth = 340,
+  maxColumns = 2,
+  gap = 16,
+) =>
+  Math.max(
+    1,
+    Math.min(
+      maxColumns,
+      Math.floor(
+        (width + gap) / (minColumnWidth * Math.max(1, fontScale) + gap),
+      ),
+    ),
+  );
 
 /**
  * Style fragment that keeps a block phone-full-width but caps and centers

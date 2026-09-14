@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Clock, Factory, Moon, Sun } from 'lucide-react-native';
+import React from 'react';
+import { useSelector } from 'react-redux';
+import ShiftCorrectionControls from '../../components/ShiftCorrectionControls';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -6,50 +10,20 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSelector } from 'react-redux';
-import { Clock, Factory, Moon, Sun } from 'lucide-react-native';
 
-import { getShiftStatusApi, toggleShiftApi } from '../../api/shiftApi';
-import { COLORS } from '../../assets/Colors';
+import { getShiftStatusApi } from '../../api/shiftApi';
+import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
-import moment from 'moment';
-import { hasPermission } from '../../utils/permissions';
 
 export default function ShiftScreen() {
-  const queryClient = useQueryClient();
-  const { contentMaxWidth } = useResponsive();
   const user = useSelector(state => state.auth.user);
-  const canManageShifts = hasPermission(user, 'shifts.manage');
-  const assigned = user?.assigned_shift || 'both';
-  const [selectedShift, setSelectedShift] = useState(
-    assigned === 'night' ? 'night' : 'day',
-  );
-
+  const canManageCorrection = ['superadmin', 'plant_manager'].includes(String(user?.role || '').trim().toLowerCase());
+  const { contentMaxWidth } = useResponsive();
   const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['shift-status'],
     queryFn: getShiftStatusApi,
     refetchInterval: 60 * 1000,
-  });
-
-  const payload = data?.data || {};
-  const active = !!payload.is_shift_active;
-  const toggleMutation = useMutation({
-    mutationFn: toggleShiftApi,
-    onSuccess: async res => {
-      Alert.alert('Success', res?.message || 'Shift updated');
-      await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-      queryClient.invalidateQueries({ queryKey: ['productions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-    onError: error =>
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Unable to update shift',
-      ),
   });
 
   if (isLoading) {
@@ -61,29 +35,13 @@ export default function ShiftScreen() {
     );
   }
 
+  const payload = data?.data || {};
   const activeShift = payload.active_shift || {};
   const shiftName = payload.current_shift || activeShift.shift_name || '-';
-  const shiftDate = payload.shift_date || activeShift.shift_date || '-';
   const plantStatus = payload.plant_status || 'running';
   const productionAllowed = payload.production_allowed !== false;
-  const automaticShifts = payload.automatic === true;
-  const canStartManualShift =
-    String(plantStatus).toLowerCase().trim() === 'running';
-  const availableShifts = ['day', 'night'].filter(
-    shift => assigned === 'both' || assigned === shift,
-  );
-
-  const confirmToggle = () => {
-    const action = active ? 'end' : 'start';
-    Alert.alert(
-      `${active ? 'End' : 'Start'} Shift`,
-      `Are you sure you want to ${action} this shift?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes', onPress: () => toggleMutation.mutate({ shift_name: selectedShift }) },
-      ],
-    );
-  };
+  const ShiftIcon = shiftName === 'day' ? Sun : Moon;
+  const shiftColor = COLORS.accent;
 
   return (
     <ScrollView
@@ -95,55 +53,28 @@ export default function ShiftScreen() {
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
       }
     >
-      <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.title}>
-            {automaticShifts ? 'Automatic Shift' : 'Manual Shift'}
-          </Text>
-          <Text style={styles.description}>
-            {automaticShifts
-              ? 'Shift is selected automatically from server time'
-              : 'Start and end the assigned shift manually'}
-          </Text>
-        </View>
+      <View style={styles.pageHeader}>
         <View style={styles.headerIcon}>
-          <Clock size={24} color={COLORS.primary} />
+          <Clock size={22} color={COLORS.accent} />
+        </View>
+        <View style={styles.headerCopy}>
+          <Text style={styles.title}>Automatic Shift</Text>
+          <Text style={styles.description}>
+            Day and night shifts rotate automatically every 12 hours.
+          </Text>
         </View>
       </View>
 
+      <ShiftCorrectionControls status={payload} canManage={canManageCorrection} />
       <View style={styles.statusCard}>
         <View style={styles.shiftIconBox}>
-          {shiftName === 'day' ? (
-            <Sun size={54} color={COLORS.orange} />
-          ) : (
-            <Moon size={54} color={COLORS.primary} />
-          )}
+          <ShiftIcon size={32} color={shiftColor} />
         </View>
 
         <Text style={styles.shiftLabel}>Current Shift</Text>
         <Text style={styles.shiftName}>{String(shiftName).toUpperCase()}</Text>
-
-        <View style={styles.infoBox}>
-          <InfoLine
-            label="Shift Date"
-            value={moment(shiftDate).format('DD MMM YYYY')}
-          />
-          <InfoLine
-            label="Start Time"
-            value={
-              moment(activeShift.start_time || payload.shift_start).format(
-                'hh:mm A',
-              ) || '-'
-            }
-          />
-          <InfoLine
-            label="End Time"
-            value={
-              moment(payload.shift_end || activeShift.end_time).format(
-                'hh:mm A',
-              ) || '-'
-            }
-          />
+        <View style={styles.automaticBadge}>
+          <Text style={styles.automaticText}>AUTOMATIC · 12 HOURS</Text>
         </View>
       </View>
 
@@ -172,161 +103,125 @@ export default function ShiftScreen() {
         <Text style={styles.noteText}>
           {productionAllowed
             ? 'Production entry is currently allowed.'
-            : payload?.plant_notice &&
-              'Production entry is temporarily blocked by the Plant Manager.'}
+            : payload?.plant_notice
+              ? 'Production entry is temporarily blocked by the Plant Manager.'
+              : 'Production entry is temporarily unavailable.'}
         </Text>
       </View>
-
-      {canManageShifts && <View style={styles.controlCard}>
-        <Text style={styles.plantTitle}>Manual Shift Control</Text>
-        <Text style={styles.noteText}>Assigned shift: {assigned.toUpperCase()}</Text>
-        {!active && (
-          <View style={styles.selectorRow}>
-            {availableShifts.map(value => (
-              <TouchableOpacity
-                key={value}
-                style={[styles.shiftChoice, selectedShift === value && styles.shiftChoiceActive]}
-                onPress={() => setSelectedShift(value)}
-              >
-                <Text style={[styles.shiftChoiceText, selectedShift === value && styles.shiftChoiceTextActive]}>
-                  {value.toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <TouchableOpacity
-          style={[styles.toggleBtn, active && styles.endBtn, (automaticShifts || toggleMutation.isPending || (!active && !canStartManualShift)) && styles.disabledBtn]}
-          disabled={
-            automaticShifts ||
-            toggleMutation.isPending ||
-            (!active && !canStartManualShift)
-          }
-          onPress={confirmToggle}
-        >
-          <Text style={styles.toggleText}>
-            {automaticShifts
-              ? 'AUTOMATIC SHIFTS ENABLED'
-              : active
-                ? 'END SHIFT'
-                : 'START SHIFT'}
-          </Text>
-        </TouchableOpacity>
-      </View>}
     </ScrollView>
   );
 }
 
-function InfoLine({ label, value }) {
-  return (
-    <View style={styles.infoLine}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 32 },
+  container: {
+    flexGrow: 1,
+    padding: UI.pagePadding,
+    paddingBottom: 40,
+    backgroundColor: COLORS.bg,
+  },
   center: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  loadingText: { marginTop: 10, color: COLORS.gray, fontWeight: '700' },
-  headerCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 2,
+  loadingText: {
+    marginTop: 10,
+    color: COLORS.gray,
+    fontWeight: '600',
+  },
+  pageHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  title: { color: COLORS.primary, fontSize: 27, fontWeight: '800' },
-  description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
+  headerCopy: { flex: 1, marginLeft: 12 },
+  title: { color: COLORS.text, fontSize: 22, fontWeight: '700' },
+  description: {
+    color: COLORS.gray,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 2,
+  },
   headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lightBlue,
   },
   statusCard: {
-    marginTop: 16,
+    alignItems: 'flex-start',
+    padding: 24,
+    marginTop: 20,
+    borderRadius: UI.radiusLarge,
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 22,
-    alignItems: 'center',
-    elevation: 2,
+    ...UI.shadow,
   },
   shiftIconBox: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    backgroundColor: COLORS.lightBlue,
+    width: 56,
+    height: 56,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
   },
-  shiftLabel: { marginTop: 15, color: COLORS.gray, fontWeight: '700' },
+  shiftLabel: {
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginTop: 18,
+    textTransform: 'uppercase',
+  },
   shiftName: {
-    marginTop: 4,
+    color: COLORS.text,
+    fontSize: 34,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  automaticBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 3,
+    marginTop: 12,
+    backgroundColor: COLORS.accentSoft,
+  },
+  automaticText: {
     color: COLORS.primary,
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  infoBox: {
-    width: '100%',
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  infoLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  infoLabel: { color: COLORS.gray, fontWeight: '700' },
-  infoValue: { color: COLORS.text, fontWeight: '800' },
   plantCard: {
-    marginTop: 16,
     padding: 18,
+    marginTop: 14,
+    borderRadius: UI.radiusLarge,
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    elevation: 2,
   },
-  plantTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  plantTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '800' },
+  plantTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  plantTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
   statusBadge: {
     alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 11,
     paddingVertical: 7,
-    marginTop: 14,
+    borderRadius: 3,
+    marginTop: 15,
   },
-  runningBadge: { backgroundColor: '#DCFCE7' },
-  blockedBadge: { backgroundColor: '#FEE2E2' },
-  statusText: { fontSize: 12, fontWeight: '800' },
+  runningBadge: { backgroundColor: COLORS.tealSoft },
+  blockedBadge: { backgroundColor: COLORS.dangerSoft },
+  statusText: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
   runningText: { color: COLORS.success },
   blockedText: { color: COLORS.danger },
   noteText: {
-    marginTop: 12,
     color: COLORS.gray,
-    lineHeight: 20,
+    fontSize: 13,
     fontWeight: '600',
+    lineHeight: 19,
+    marginTop: 12,
   },
-  controlCard: { marginTop: 16, padding: 18, backgroundColor: COLORS.white, borderRadius: 12, elevation: 2 },
-  selectorRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  shiftChoice: { flex: 1, minHeight: 46, borderRadius: 12, backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-  shiftChoiceActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  shiftChoiceText: { color: COLORS.gray, fontWeight: '800' },
-  shiftChoiceTextActive: { color: COLORS.white },
-  toggleBtn: { minHeight: 52, borderRadius: 12, backgroundColor: COLORS.success, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-  endBtn: { backgroundColor: COLORS.danger },
-  disabledBtn: { opacity: 0.55 },
-  toggleText: { color: COLORS.white, fontSize: 13, fontWeight: '800' },
 });

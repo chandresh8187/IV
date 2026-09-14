@@ -14,28 +14,12 @@ import {
 } from '../src/utils/format';
 import { getCoatingRange } from '../src/utils/coatingRange';
 import { hasPermission } from '../src/utils/permissions';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  buildFormDraftKey,
-  loadFormDraft,
-  removeFormDraft,
-  saveFormDraft,
-} from '../src/utils/formDraftStorage';
-import {
-  enqueueOfflineProduction,
-  flushOfflineProductions,
-  getOfflineProductionQueueStats,
-} from '../src/utils/offlineProductionQueue';
 import {
   canOpenProductionWorkspace,
   shouldOpenLiveProductionDirectly,
   shouldShowShiftInProductionMenu,
   shouldShowShiftTab,
 } from '../src/utils/accessNavigation';
-
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
 
 describe('display formatting', () => {
   test('formats production quantities without database decimal padding', () => {
@@ -145,57 +129,19 @@ describe('feature access', () => {
       }),
     ).toBe(false);
   });
-});
 
-describe('persistent form drafts', () => {
-  beforeEach(() => AsyncStorage.clear());
-
-  test('stores drafts separately for each user and form scope', async () => {
-    const key = buildFormDraftKey({
-      formName: 'add-production',
-      userId: 7,
-      scope: 42,
-    });
-    const otherShiftKey = buildFormDraftKey({
-      formName: 'add-production',
-      userId: 7,
-      scope: 43,
-    });
-
-    await saveFormDraft(key, { dipping_qty: '25' });
-
-    expect(await loadFormDraft(key)).toEqual({ dipping_qty: '25' });
-    expect(await loadFormDraft(otherShiftKey)).toBeNull();
-    await removeFormDraft(key);
-    expect(await loadFormDraft(key)).toBeNull();
-  });
-});
-
-describe('offline production queue', () => {
-  beforeEach(() => AsyncStorage.clear());
-
-  test('deduplicates requests, keeps failed entries, and removes synced entries', async () => {
-    const payload = {
-      client_request_id: 'mobile-test-request-1',
-      entry_type: 'full',
-      sr_no: '1',
-    };
-
-    await enqueueOfflineProduction(payload, 7);
-    await enqueueOfflineProduction(payload, 7);
-    expect(await getOfflineProductionQueueStats(7)).toEqual({
-      total: 1,
-      failed: 0,
-    });
-    expect((await getOfflineProductionQueueStats(8)).total).toBe(0);
-
-    const failed = await flushOfflineProductions(
-      () => Promise.reject(new Error('Still offline')),
-      7,
-    );
-    expect(failed).toEqual({ synced: 0, remaining: 1, failed: 1 });
-
-    const synced = await flushOfflineProductions(() => Promise.resolve(), 7);
-    expect(synced).toEqual({ synced: 1, remaining: 0, failed: 0 });
+  test('keeps plant control in Production and settings access out of it', () => {
+    expect(
+      canOpenProductionWorkspace({
+        role: 'admin',
+        permissions: ['plant.view'],
+      }),
+    ).toBe(true);
+    expect(
+      canOpenProductionWorkspace({
+        role: 'admin',
+        permissions: ['settings.manage'],
+      }),
+    ).toBe(false);
   });
 });

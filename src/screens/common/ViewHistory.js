@@ -8,7 +8,7 @@ import {
 import React from 'react';
 import { getProductionHistoryApi } from './../../api/historyApi';
 import { useQuery } from '@tanstack/react-query';
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -121,18 +121,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  summaryCard: {
+  summaryCard: { borderWidth: 0, borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 15,
-    elevation: 2,
+    elevation: 1,
   },
 
   summaryTitle: { color: COLORS.gray, fontSize: 12, fontWeight: '700' },
-  summaryValue: {
+  summaryValue: { fontVariant: ['tabular-nums'],
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 6,
   },
 
@@ -140,11 +140,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
 
-  buttonCard: {
+  buttonCard: { borderWidth: 0, borderColor: COLORS.border,
     width: '100%',
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: UI.radius,
+    elevation: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -155,6 +155,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

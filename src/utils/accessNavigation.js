@@ -5,8 +5,7 @@ const PRODUCTION_WORKSPACE_PERMISSIONS = [
   'history.view',
   'planning.view',
   'certificates.view',
-  'settings.manage',
-  'app_updates.manage',
+  'plant.view',
 ];
 
 const NON_LIVE_PRODUCTION_PERMISSIONS = PRODUCTION_WORKSPACE_PERMISSIONS.filter(
@@ -15,6 +14,9 @@ const NON_LIVE_PRODUCTION_PERMISSIONS = PRODUCTION_WORKSPACE_PERMISSIONS.filter(
 
 export const normalizeUserRole = user =>
   String(user?.role || '').toLowerCase().trim();
+
+export const shouldShowSettingsTab = user =>
+  ['superadmin', 'plant_manager'].includes(normalizeUserRole(user));
 
 export const canOpenProductionWorkspace = user =>
   PRODUCTION_WORKSPACE_PERMISSIONS.some(key => hasPermission(user, key)) ||

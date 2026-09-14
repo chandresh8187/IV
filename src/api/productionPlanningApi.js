@@ -25,6 +25,12 @@ export const getAvailablePlanningApi = async () => {
   return response.data;
 };
 
+export const downloadProductionPlanningFileApi = async id => {
+  return apiClient.get(`/production-planning/${id}/pdf`, {
+    responseType: 'arraybuffer',
+  });
+};
+
 export const extractPlanningPdfApi = async file => {
   const formData = new FormData();
 

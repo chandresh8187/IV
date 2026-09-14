@@ -106,17 +106,24 @@ export default function LoginScreen() {
         contentInsetAdjustmentBehavior="always"
       >
         <View style={[styles.card, isTablet && centeredContent(480)]}>
-          <View style={styles.brandMark}>
-            <Image
-              source={require('../../assets/Image/IV_logo.png')}
-              style={styles.logo}
-            />
+          <View style={styles.identity}>
+            <View style={styles.brandMark}>
+              <Image
+                source={require('../../assets/Image/IV_logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.identityCopy}>
+              <Text style={styles.eyebrow}>IV PRODUCTION</Text>
+              <Text style={styles.identityText}>PLANT OPERATIONS SYSTEM</Text>
+            </View>
           </View>
-          <Text style={styles.eyebrow}>IV PRODUCTION</Text>
-          <Text style={styles.title}>Welcome back.</Text>
+          <Text style={styles.title}>Welcome back</Text>
 
           <Text style={styles.description}>
-            Sign in to continue managing your plant operations.
+            Sign in with your assigned plant account to access production and
+            shift records.
           </Text>
 
           <TextInput
@@ -132,7 +139,7 @@ export default function LoginScreen() {
             activeOutlineColor={COLORS.accent}
             textColor={COLORS.text}
             theme={PAPER_THEME}
-            error={Error.email}
+            error={Boolean(Error.email)}
             left={<TextInput.Icon icon="email-outline" />}
           />
 
@@ -148,7 +155,7 @@ export default function LoginScreen() {
             textColor={COLORS.text}
             theme={PAPER_THEME}
             left={<TextInput.Icon icon="lock-outline" />}
-            error={Error.password}
+            error={Boolean(Error.password)}
             right={
               <TextInput.Icon
                 icon={secureText ? 'eye-outline' : 'eye-off-outline'}
@@ -158,6 +165,7 @@ export default function LoginScreen() {
           />
 
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.loginBtn, loading && styles.disabledBtn]}
             disabled={loading}
             onPress={handleLogin}
@@ -165,7 +173,7 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.loginText}>Sign in</Text>
+              <Text style={styles.loginText}>Sign in to operations</Text>
             )}
           </TouchableOpacity>
 
@@ -193,49 +201,67 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: COLORS.bg,
+    backgroundColor: COLORS.hero,
   },
 
   card: {
     backgroundColor: COLORS.white,
     borderRadius: UI.radiusLarge,
-    padding: 26,
+    padding: 22,
+    borderTopWidth: 0,
     ...UI.shadow,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: COLORS.border,
   },
 
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingBottom: 24,
+    marginBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  identityCopy: { flex: 1 },
+  identityText: {
+    color: COLORS.gray,
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 16,
+  },
   brandMark: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   logo: {
-    height: 60,
-    width: 60,
+    height: 48,
+    width: 48,
   },
 
   eyebrow: {
     color: COLORS.accent,
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2.2,
-    marginBottom: 9,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 5,
   },
 
   title: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 30,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.8,
   },
 
@@ -253,8 +279,9 @@ const styles = StyleSheet.create({
   },
 
   loginBtn: {
-    height: 54,
-    backgroundColor: COLORS.accent,
+    minHeight: 54,
+    paddingVertical: 12,
+    backgroundColor: COLORS.coral,
     borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
@@ -268,7 +295,7 @@ const styles = StyleSheet.create({
   loginText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   secureNote: {
@@ -283,7 +310,8 @@ const styles = StyleSheet.create({
   },
 
   secureNoteText: {
-    color: COLORS.muted,
+    flex: 1,
+    color: COLORS.gray,
     fontSize: 12,
     fontWeight: '600',
   },

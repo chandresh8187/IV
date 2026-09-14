@@ -1,6 +1,6 @@
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useState } from 'react';
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { Maximize2, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import HistoryTable from '../../components/HistoryTable';
@@ -71,9 +71,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightBlue,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
   },
-  fullBtnText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
+  fullBtnText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
   fullSafe: { flex: 1, backgroundColor: COLORS.bg },
   fullHeader: {
     backgroundColor: COLORS.white,
@@ -84,12 +84,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  fullTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
+  fullTitle: { color: COLORS.text, fontSize: 22, fontWeight: '700' },
   fullBody: { flex: 1, padding: 10, backgroundColor: COLORS.bg },
   closeBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   blockTitleNoMargin: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

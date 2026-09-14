@@ -21,7 +21,7 @@ import {
   Trash2,
 } from 'lucide-react-native';
 
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import {
   createCertificateApi,
   getCertificateReadingsApi,
@@ -110,7 +110,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   // pre-selects the challan dropdown now instead of being mandatory.
   const initialPlanning = route?.params?.planning || null;
 
-  const { contentMaxWidth } = useResponsive();
+  const { formMaxWidth: contentMaxWidth } = useResponsive();
 
   /* ------------------------------ form state ----------------------------- */
   const certificateType = 'auto';
@@ -649,7 +649,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
                   style={styles.removeRowBtn}
                   onPress={() => removeManualRow(row.id)}
                 >
-                  <Trash2 size={16} color="#B91C1C" />
+                  <Trash2 size={16} color={COLORS.danger} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -748,48 +748,48 @@ function ReadingPreviewRow({ row, position }) {
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 40 },
 
-  headerCard: {
+  headerCard: { borderWidth: 0, borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 16,
-    elevation: 2,
+    elevation: 1,
     marginBottom: 12,
   },
 
-  title: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
+  title: { color: COLORS.text, fontSize: 22, fontWeight: '700' },
   description: {
     color: COLORS.gray,
     fontSize: 13,
     marginTop: 4,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
-  formCard: {
+  formCard: { borderWidth: 0, borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 16,
-    elevation: 2,
+    elevation: 1,
     marginBottom: 12,
   },
   dropdownFormCard: { zIndex: 3000 },
 
   formTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 12,
   },
 
   fieldLabel: {
     color: COLORS.gray,
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 6,
   },
 
   dropdown: {
     borderColor: COLORS.inputBorder,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     marginBottom: 14,
     minHeight: 48,
   },
@@ -801,9 +801,9 @@ const styles = StyleSheet.create({
   input: { backgroundColor: COLORS.white, marginBottom: 12 },
 
   rangeTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 2,
     marginBottom: 9,
   },
@@ -819,8 +819,8 @@ const styles = StyleSheet.create({
 
   rangeHelp: {
     color: COLORS.gray,
-    fontSize: 11.5,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     lineHeight: 17,
     marginTop: -3,
   },
@@ -835,17 +835,17 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     padding: 12,
     marginBottom: 12,
     backgroundColor: COLORS.white,
   },
 
-  dateLabel: { color: COLORS.gray, fontSize: 11, fontWeight: '800' },
-  dateValue: {
+  dateLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  dateValue: { fontVariant: ['tabular-nums'],
     color: COLORS.text,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 2,
   },
 
@@ -859,8 +859,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  fixedLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '800' },
-  fixedValue: {
+  fixedLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  fixedValue: { fontVariant: ['tabular-nums'],
     color: COLORS.text,
     fontSize: 12,
     fontWeight: '700',
@@ -870,24 +870,24 @@ const styles = StyleSheet.create({
 
   readingsInfo: {
     backgroundColor: COLORS.lightBlue,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#D8ECFA',
+    borderColor: COLORS.border,
     alignItems: 'center',
   },
 
   readingsText: {
     color: COLORS.primary,
     fontSize: 12.5,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
   },
 
   reshuffleBtn: {
-    height: 38,
-    borderRadius: 10,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 14,
     flexDirection: 'row',
@@ -900,16 +900,16 @@ const styles = StyleSheet.create({
 
   reshuffleText: {
     color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
     letterSpacing: 0.4,
   },
 
   readingPreviewCard: {
     width: '100%',
     backgroundColor: COLORS.white,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: UI.radius,
+    borderWidth: 0,
     borderColor: COLORS.border,
     padding: 10,
     marginTop: 9,
@@ -917,8 +917,8 @@ const styles = StyleSheet.create({
 
   readingPreviewMeta: {
     color: COLORS.primary,
-    fontSize: 10.5,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 7,
   },
 
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     backgroundColor: COLORS.surfaceMuted,
-    borderRadius: 7,
+    borderRadius: UI.radiusSmall,
     paddingVertical: 6,
     alignItems: 'center',
   },
@@ -940,16 +940,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accentSoft,
   },
 
-  readingValueLabel: {
+  readingValueLabel: { fontVariant: ['tabular-nums'],
     color: COLORS.gray,
-    fontSize: 8,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
   },
 
-  readingValueText: {
+  readingValueText: { fontVariant: ['tabular-nums'],
     color: COLORS.primary,
-    fontSize: 10.5,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     marginTop: 2,
   },
 
@@ -965,14 +965,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     paddingHorizontal: 12,
-    height: 34,
+    height: 44,
   },
 
   addRowBtnDisabled: { opacity: 0.5 },
 
-  addRowText: { color: COLORS.white, fontSize: 11, fontWeight: '800' },
+  addRowText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
 
   manualRow: {
     flexDirection: 'row',
@@ -985,17 +985,17 @@ const styles = StyleSheet.create({
     width: 18,
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     textAlign: 'center',
   },
 
   manualInput: { flex: 1, backgroundColor: COLORS.white, height: 42 },
 
   removeRowBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: '#FEE2E2',
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1010,14 +1010,14 @@ const styles = StyleSheet.create({
   checklistLabel: {
     color: COLORS.primary,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     marginBottom: 8,
   },
 
   generateBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
   generateText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.8,
   },
 

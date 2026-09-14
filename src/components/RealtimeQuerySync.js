@@ -6,11 +6,9 @@ import NetInfo from '@react-native-community/netinfo';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { getMyAccessApi } from '../api/authApi';
-import { saveProductionApi } from '../api/productionApi';
 import { mergeUser, setUserAccess } from '../redux/slices/authSlice';
 import { syncNotificationRegistration } from '../services/notificationRegistrationService';
 import { socket } from '../socket/socket';
-import { flushOfflineProductions } from '../utils/offlineProductionQueue';
 
 export default function RealtimeQuerySync() {
   const queryClient = useQueryClient();
@@ -34,7 +32,10 @@ export default function RealtimeQuerySync() {
       const userAccess = {
         permissions,
         ...(access?.role && { role: access.role }),
-        ...(Object.prototype.hasOwnProperty.call(access || {}, 'assigned_shift') && {
+        ...(Object.prototype.hasOwnProperty.call(
+          access || {},
+          'assigned_shift',
+        ) && {
           assigned_shift: access.assigned_shift,
         }),
       };
@@ -132,18 +133,18 @@ export default function RealtimeQuerySync() {
     requestAccessSync().catch(() => {});
 
     const invalidateKeys = keys =>
-      keys.forEach(key =>
-        queryClient.invalidateQueries({ queryKey: [key] }),
-      );
+      keys.forEach(key => queryClient.invalidateQueries({ queryKey: [key] }));
 
     const invalidateProductionData = () => {
       invalidateKeys([
+        'correction-planning-items',
         'productions',
         'production-history',
         'history-dates',
         'history-date-summary',
         'history-shift-table',
         'history-material-summary',
+        'history-party-summary',
         'history-planning-summary',
         'certificate-readings',
         'certificates',
@@ -160,12 +161,16 @@ export default function RealtimeQuerySync() {
         'default-production-challan',
         'history-planning-summary',
         'dashboard',
+        'history-party-summary',
         'certificate-readings',
       ]);
     };
 
     const invalidateShiftData = () =>
       invalidateKeys([
+        'correction-planning-items',
+        'correction-shifts',
+        'available-production-planning',
         'shift-status',
         'productions',
         'dashboard',
@@ -190,33 +195,12 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
+      invalidateKeys(['financial-years', 'current-financial-year']);
       invalidateProductionData();
       invalidatePlanningData();
       invalidateShiftData();
       invalidatePlantData();
       invalidateUserData();
-    };
-
-    let offlineSyncPromise = null;
-    const syncOfflineProduction = async networkState => {
-      if (
-        networkState?.isConnected === false ||
-        networkState?.isInternetReachable === false ||
-        !user?.id
-      ) {
-        return;
-      }
-      if (offlineSyncPromise) return offlineSyncPromise;
-
-      offlineSyncPromise = flushOfflineProductions(
-        saveProductionApi,
-        user.id,
-      ).finally(() => {
-        offlineSyncPromise = null;
-      });
-      const result = await offlineSyncPromise;
-      if (result.synced) invalidateProductionData();
-      return result;
     };
 
     const handlePermissionUpdate = event => {
@@ -228,6 +212,18 @@ export default function RealtimeQuerySync() {
         requestAccessSync().catch(() => {});
       }
     };
+
+    const invalidateFinancialYears = () => {
+      invalidateKeys([
+        'financial-years',
+        'current-financial-year',
+        'production-planning',
+      ]);
+      queryClient.resetQueries({
+        predicate: query => String(query.queryKey[0]).startsWith('history-'),
+      });
+    };
+    socket.on('financial_years_updated', invalidateFinancialYears);
 
     const handleUserUpdate = event => {
       invalidateUserData();
@@ -245,7 +241,6 @@ export default function RealtimeQuerySync() {
       invalidateAllRealtimeData();
       requestAccessSync().catch(() => {});
       requestNotificationSync();
-      syncOfflineProduction().catch(() => {});
     };
 
     const handleProfileUpdate = event => {
@@ -278,7 +273,6 @@ export default function RealtimeQuerySync() {
       ) {
         requestNotificationSync();
       }
-      syncOfflineProduction(networkState).catch(() => {});
     });
     NetInfo.fetch()
       .then(networkState => {
@@ -288,7 +282,6 @@ export default function RealtimeQuerySync() {
         ) {
           requestNotificationSync();
         }
-        return syncOfflineProduction(networkState);
       })
       .catch(() => {});
 
@@ -300,9 +293,6 @@ export default function RealtimeQuerySync() {
           invalidateAllRealtimeData();
           requestAccessSync().catch(() => {});
           requestNotificationSync();
-          NetInfo.fetch()
-            .then(syncOfflineProduction)
-            .catch(() => {});
         }
       },
     );
@@ -311,6 +301,7 @@ export default function RealtimeQuerySync() {
       active = false;
       if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
       socket.off('production_updated', invalidateProductionData);
+      socket.off('financial_years_updated', invalidateFinancialYears);
       socket.off('production_planning_updated', invalidatePlanningData);
       socket.off('production_edit_grant_updated', invalidateProductionData);
       socket.off('production_preference_updated', invalidatePlanningData);

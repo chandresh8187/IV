@@ -7,7 +7,7 @@ import {
   restoreLogin,
   finishAuthLoading,
 } from '../redux/features/auth/authSlice';
-import { COLORS } from '../assets/Colors';
+import { COLORS, UI } from '../assets/Colors';
 
 export default function AuthLoader() {
   const dispatch = useDispatch();
@@ -60,11 +60,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   InnerContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.white,
     height: 100,
     width: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
   },
 });

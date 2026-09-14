@@ -28,7 +28,7 @@ import {
   getPlantStatusHistoryApi,
 } from '../../api/plantStatusApi';
 import { getShiftStatusApi } from '../../api/shiftApi';
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { parseDateForPicker } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
@@ -37,19 +37,19 @@ const STATUS_META = {
   running: {
     label: 'Running',
     color: COLORS.success,
-    background: '#DCFCE7',
+    background: COLORS.tealSoft,
     icon: PlayCircle,
   },
   maintenance: {
     label: 'Maintenance',
     color: COLORS.warning,
-    background: '#FEF3C7',
+    background: COLORS.warningSoft,
     icon: Settings,
   },
   stopped: {
     label: 'Stopped',
     color: COLORS.danger,
-    background: '#FEE2E2',
+    background: COLORS.dangerSoft,
     icon: Square,
   },
 };
@@ -488,42 +488,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.bg,
   },
-  headerCard: {
+  headerCard: { borderWidth: 0, borderColor: COLORS.border,
     padding: 18,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     backgroundColor: COLORS.white,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
+    elevation: 1,
   },
-  title: { color: COLORS.primary, fontSize: 27, fontWeight: '800' },
+  title: { color: COLORS.text, fontSize: 27, fontWeight: '700' },
   description: { color: COLORS.gray, marginTop: 4 },
   headerIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  currentCard: {
+  currentCard: { borderWidth: 0, borderColor: COLORS.border,
     marginTop: 16,
     padding: 22,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     backgroundColor: COLORS.white,
     alignItems: 'center',
-    elevation: 2,
+    elevation: 1,
   },
   currentIcon: {
     width: 78,
     height: 78,
-    borderRadius: 39,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { marginTop: 12, color: COLORS.gray, fontWeight: '700' },
-  currentStatus: { marginTop: 4, fontSize: 28, fontWeight: '800' },
+  label: { marginTop: 12, color: COLORS.gray, fontWeight: '600' },
+  currentStatus: { marginTop: 4, fontSize: 28, fontWeight: '600' },
   currentMessage: {
     marginTop: 8,
     color: COLORS.gray,
@@ -543,26 +543,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  infoLabel: { color: COLORS.gray, fontWeight: '700' },
-  infoValue: { color: COLORS.text, fontWeight: '800' },
-  controlCard: {
+  infoLabel: { color: COLORS.gray, fontWeight: '600' },
+  infoValue: { color: COLORS.text, fontWeight: '700' },
+  controlCard: { borderWidth: 0, borderColor: COLORS.border,
     marginTop: 16,
     padding: 18,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     backgroundColor: COLORS.white,
-    elevation: 2,
+    elevation: 1,
   },
   sectionTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 12,
   },
   statusRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
   selectedStatusHint: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: 6,
     marginBottom: 16,
     textAlign: 'center',
@@ -570,13 +570,13 @@ const styles = StyleSheet.create({
 
   selectedStatusValue: {
     color: COLORS.primary,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   statusChoice: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
@@ -585,13 +585,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightBlue,
     borderColor: COLORS.accent,
   },
-  statusChoiceText: { color: COLORS.gray, fontWeight: '800' },
+  statusChoiceText: { color: COLORS.gray, fontWeight: '600' },
   statusChoiceTextActive: { color: COLORS.primary },
   input: { marginTop: 12, backgroundColor: COLORS.white },
   actionButton: {
     minHeight: 52,
     marginTop: 16,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -600,21 +600,21 @@ const styles = StyleSheet.create({
   runningButton: {
     minHeight: 52,
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.success,
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionText: { color: COLORS.white, fontWeight: '800' },
+  actionText: { color: COLORS.white, fontWeight: '600' },
   disabled: { opacity: 0.6 },
-  historyCard: {
+  historyCard: { borderWidth: 0, borderColor: COLORS.border,
     marginTop: 16,
     padding: 18,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     backgroundColor: COLORS.white,
-    elevation: 2,
+    elevation: 1,
   },
   historyRow: {
     flexDirection: 'row',
@@ -623,9 +623,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  historyTitle: { color: COLORS.text, fontWeight: '800' },
+  historyTitle: { color: COLORS.text, fontWeight: '700' },
   historyMessage: { color: COLORS.gray, marginTop: 3 },
-  historyStatus: { color: COLORS.primary, fontSize: 11, fontWeight: '800' },
+  historyStatus: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
   emptyText: { color: COLORS.gray, paddingVertical: 12 },
 
   messageInput: {
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   },
   clearDateText: {
     color: COLORS.danger,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -5,7 +5,6 @@ const ROLE_DEFAULTS = {
   'production.grant_edit': ['superadmin'],
   'production.manage_all': ['superadmin'],
   'shifts.view': ['superadmin', 'plant_manager', 'admin', 'supervisor'],
-  'shifts.manage': ['superadmin', 'supervisor'],
   'history.view': ['superadmin', 'plant_manager', 'admin', 'supervisor'],
   'reports.generate': ['superadmin'],
   'planning.view': ['superadmin', 'plant_manager', 'admin'],

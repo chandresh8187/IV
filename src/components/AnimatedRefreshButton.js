@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { RefreshCw } from 'lucide-react-native';
-import { COLORS } from '../assets/Colors';
+import { COLORS, UI } from '../assets/Colors';
 
 export default function AnimatedRefreshButton({
   refreshing,
@@ -44,6 +44,9 @@ export default function AnimatedRefreshButton({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Refresh production"
+      accessibilityState={{ disabled: refreshing, busy: refreshing }}
       activeOpacity={0.8}
       disabled={refreshing}
       onPress={onPress}
@@ -54,7 +57,7 @@ export default function AnimatedRefreshButton({
           transform: [{ rotate: spin }],
         }}
       >
-        <RefreshCw size={size} color={COLORS.white} strokeWidth={2.5} />
+        <RefreshCw size={size} color={COLORS.primary} strokeWidth={2.5} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -64,12 +67,14 @@ const styles = StyleSheet.create({
   button: {
     width: 46,
     height: 46,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
 
     justifyContent: 'center',
     alignItems: 'center',
 
-    elevation: 3,
+    elevation: 0,
   },
 });

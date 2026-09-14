@@ -150,19 +150,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   filename: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   pageText: {
     color: COLORS.gray,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     marginTop: 3,
   },
   shareButton: {
     minWidth: 92,
-    height: 42,
+    height: 44,
     paddingHorizontal: 13,
     borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.accent,
@@ -173,8 +173,8 @@ const styles = StyleSheet.create({
   },
   shareText: {
     color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '600',
     letterSpacing: 0.4,
   },
   viewerCard: {
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: 10,
   },
   messageBox: {
@@ -209,9 +209,9 @@ const styles = StyleSheet.create({
     padding: 28,
   },
   errorTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 14,
   },
   errorText: {

@@ -10,7 +10,7 @@ import {
 import { useSelector } from 'react-redux';
 
 import { getHistoryShiftTableApi } from '../../api/historyApi';
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import ProductionTable from '../../components/ProductionTable';
 
 export default function HistoryFullTableScreen({ route, navigation }) {
@@ -54,6 +54,7 @@ export default function HistoryFullTableScreen({ route, navigation }) {
     <View style={styles.screen}>
       <ProductionTable
         rows={tableData}
+        shiftName={shift_name}
         renderAction={renderAction}
         scrollRows
         emptyMessage="No production found"
@@ -76,15 +77,15 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     width: 64,
-    height: 34,
-    borderRadius: 9,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editBtnText: {
     color: COLORS.white,
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -8,27 +8,12 @@ import {
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {
-  CalendarDays,
-  Filter,
-  Search,
-  Sun,
-  Moon,
-} from 'lucide-react-native';
+import { CalendarDays, Filter, Search, Sun, Moon } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-import { COLORS } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { formatDateForApi, parseDateForPicker } from '../../utils/format';
-
-const PAPER_THEME = {
-  colors: {
-    primary: COLORS.accent,
-    onSurfaceVariant: COLORS.primary,
-    background: COLORS.white,
-  },
-  roundness: 14,
-};
 
 export default function HistoryScreen() {
   const navigation = useNavigation();
@@ -219,10 +204,12 @@ const styles = StyleSheet.create({
   },
 
   headerCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 18,
-    elevation: 2,
+    elevation: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -231,20 +218,22 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  title: { color: COLORS.primary, fontSize: 26, fontWeight: '800' },
+  title: { color: COLORS.text, fontSize: 26, fontWeight: '700' },
   description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
 
   filterCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 16,
-    elevation: 2,
+    elevation: 1,
     marginTop: 14,
   },
 
@@ -255,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  sectionTitle: { color: COLORS.primary, fontSize: 18, fontWeight: '800' },
+  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
   input: { backgroundColor: COLORS.white, marginBottom: 12 },
 
   shiftRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
@@ -263,7 +252,7 @@ const styles = StyleSheet.create({
   shiftBtn: {
     flex: 1,
     height: 46,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.bg,
@@ -278,7 +267,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
 
-  shiftBtnText: { color: COLORS.primary, fontWeight: '800', fontSize: 13 },
+  shiftBtnText: { color: COLORS.primary, fontWeight: '600', fontSize: 13 },
   shiftBtnTextActive: { color: COLORS.white },
 
   actionRow: { flexDirection: 'row', gap: 10 },
@@ -286,7 +275,7 @@ const styles = StyleSheet.create({
   searchBtn: {
     flex: 1,
     height: 52,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -294,17 +283,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  searchText: { color: COLORS.white, fontWeight: '800' },
+  searchText: { color: COLORS.white, fontWeight: '600' },
 
   clearBtn: {
     width: 110,
     height: 52,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  clearText: { color: COLORS.gray, fontWeight: '800' },
-
+  clearText: { color: COLORS.gray, fontWeight: '600' },
 });

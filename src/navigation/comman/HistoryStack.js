@@ -1,8 +1,11 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getCurrentFinancialYearApi } from '../../api/financialYearsApi';
 import HistoryDateDetailsScreen from '../../screens/History/HistoryDateDetailsScreen';
 import HistoryListScreen from '../../screens/History/HistoryListScreen';
 import HistoryMaterialSummaryScreen from '../../screens/History/HistoryMaterialSummaryScreen';
 import HistoryPlanningSummaryScreen from '../../screens/History/HistoryPlanningSummaryScreen';
+import HistoryPartySummaryScreen from '../../screens/History/HistoryPartySummaryScreen';
 import HistoryShiftTableScreen from '../../screens/History/HistoryShiftTableScreen';
 import AppHeader from '../../components/AppHeader';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -14,8 +17,16 @@ const Stack = createNativeStackNavigator();
 const renderHeader = props => <AppHeader {...props} />;
 
 const HistoryStack = () => {
+  const { data } = useQuery({
+    queryKey: ['current-financial-year'],
+    queryFn: getCurrentFinancialYearApi,
+    retry: false,
+  });
   return (
     <Stack.Navigator
+      key={`${data?.data?.id || 'unconfigured'}-${
+        data?.data?.financial_year || ''
+      }`}
       screenOptions={{
         header: renderHeader,
         contentStyle: { backgroundColor: COLORS.bg },
@@ -45,6 +56,11 @@ const HistoryStack = () => {
         name="HistoryPlanningSummary"
         options={{ title: 'Planning Summary' }}
         component={HistoryPlanningSummaryScreen}
+      />
+      <Stack.Screen
+        name="HistoryPartySummary"
+        component={HistoryPartySummaryScreen}
+        options={{ title: 'Party Summary' }}
       />
       <Stack.Screen
         name="HistoryFullTable"

@@ -1,8 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ClipboardList,
+  Edit3,
+  FileDown,
+  Package2,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react-native';
+import React, { useMemo, useState } from 'react';
+import DropDownPicker from 'react-native-dropdown-picker';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,39 +27,45 @@ import {
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ClipboardList,
-  Edit3,
-  FileDown,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react-native';
+import { useSelector } from 'react-redux';
+
+import { getCurrentFinancialYearApi } from '../../api/financialYearsApi';
+import { getItemsApi } from '../../api/itemsApi';
 import {
   createProductionPlanningApi,
   deleteProductionPlanningApi,
   getProductionPlanningApi,
   updateProductionPlanningApi,
 } from '../../api/productionPlanningApi';
-
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
-import { centeredContent, useResponsive } from '../../utils/responsive';
-import { pick } from '@react-native-documents/picker';
-import { extractPlanningPdfApi } from '../../api/productionPlanningApi';
-import { useRoute } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
-import { downloadProductionReport } from '../../utils/serverProductionReport';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
-import usePersistentFormDraft from '../../hooks/usePersistentFormDraft';
-const emptyForm = {
-  challan_no: '',
+import { centeredContent, useResponsive } from '../../utils/responsive';
+import ResponsiveGrid from '../../components/ResponsiveGrid';
+import { downloadProductionPlanningFile } from '../../utils/serverProductionReport';
+import { formatMaterialDescription } from '../../utils/format';
+
+const emptyForm = { items: [] };
+const emptyLine = {
+  challan_number: '',
+  challan_prefix: '',
   party_name: '',
-  material_description: '',
+  item_id: null,
+  material_detail: '',
   planned_qty: '',
-  third_party_name: '',
   target_zinc_percentage: '',
-  status: 'pending',
+};
+
+const formatQty = value =>
+  Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+const getChallanParts = challanNo => {
+  const value = String(challanNo || '');
+  const parts = value.split('/');
+  if (parts.length < 2) return { prefix: '', number: value };
+  return {
+    prefix: `${parts.slice(0, -1).join('/')}/`,
+    number: parts.at(-1) || '',
+  };
 };
 
 export default function ProductionPlanningScreen({ navigation }) {
@@ -52,960 +73,1203 @@ export default function ProductionPlanningScreen({ navigation }) {
   const { contentMaxWidth } = useResponsive();
   const loggedUser = useSelector(state => state.auth.user);
   const canManagePlanning = hasPermission(loggedUser, 'planning.manage');
-  const canImportPlanning = hasPermission(loggedUser, 'planning.import_pdf');
-  const canGenerateReports = hasPermission(loggedUser, 'reports.generate');
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
   const [statusFilter, setStatusFilter] = useState('pending');
-  const [downloadingReportId, setDownloadingReportId] = useState(null);
-  const [planningDraftRestored, setPlanningDraftRestored] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [line, setLine] = useState(emptyLine);
+  const [editingLineIndex, setEditingLineIndex] = useState(null);
+  const [materialOpen, setMaterialOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
-  const {
-    clearDraft: clearPlanningDraft,
-    loadDraft: loadPlanningDraft,
-    markChanged: markPlanningDraftChanged,
-    persistNow: persistPlanningDraft,
-  } = usePersistentFormDraft({
-    formName: 'add-planning',
-    userId: loggedUser?.id,
-    values: form,
-    enabled: modalVisible && !editingId,
-  });
-
-  const { data, isLoading, isRefetching, refetch } = useQuery({
+  const planningQuery = useQuery({
     queryKey: ['production-planning', statusFilter],
     queryFn: () => getProductionPlanningApi({ status: statusFilter }),
   });
+  const itemsQuery = useQuery({
+    queryKey: ['items'],
+    queryFn: getItemsApi,
+  });
+  const currentYearQuery = useQuery({
+    queryKey: ['current-financial-year'],
+    queryFn: getCurrentFinancialYearApi,
+    retry: false,
+  });
+  const planningList = Array.isArray(planningQuery.data?.data)
+    ? planningQuery.data.data
+    : [];
+  const itemRecords = useMemo(
+    () => (Array.isArray(itemsQuery.data?.data) ? itemsQuery.data.data : []),
+    [itemsQuery.data?.data],
+  );
+  const materialOptions = useMemo(
+    () =>
+      itemRecords.map(item => ({
+        label: item.item_name,
+        value: Number(item.id),
+      })),
+    [itemRecords],
+  );
 
-  const planningList = data?.data || [];
-
-  const route = useRoute();
-  useEffect(() => {
-    const extracted = route.params?.extractedPdfData;
-
-    if (extracted) {
-      setEditingId(null);
-      markPlanningDraftChanged();
-
-      setForm(prev => ({
-        ...prev,
-        challan_no: extracted.challan_no || '',
-        party_name: extracted.party_name || '',
-        material_description: extracted.material_description || '',
-        planned_qty: extracted.planned_qty || '',
-        third_party_name: extracted.third_party_name || '',
-        target_zinc_percentage: extracted.target_zinc_percentage || '',
-        status: 'pending',
-      }));
-
-      setModalVisible(true);
-    }
-  }, [markPlanningDraftChanged, route.params?.extractedPdfData]);
+  const refreshPlanningQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['production-planning'] });
+    queryClient.invalidateQueries({
+      queryKey: ['available-production-planning'],
+    });
+  };
 
   const saveMutation = useMutation({
-    mutationFn: payload => {
-      if (editingId) {
-        return updateProductionPlanningApi({
-          id: editingId,
-          body: payload,
-        });
-      }
-
-      return createProductionPlanningApi(payload);
-    },
-    onSuccess: async res => {
-      queryClient.invalidateQueries({ queryKey: ['production-planning'] });
-      queryClient.invalidateQueries({
-        queryKey: ['available-production-planning'],
-      });
-
-      if (editingId) {
-        [
-          'productions',
-          'production-history',
-          'history-date-summary',
-          'history-shift-table',
-          'history-material-summary',
-          'history-planning-summary',
-          'certificate-readings',
-          'dashboard',
-        ].forEach(key =>
-          queryClient.invalidateQueries({ queryKey: [key] }),
-        );
-      }
-
-      Alert.alert('Success', res?.message || 'Saved successfully');
-      if (!editingId) await clearPlanningDraft();
+    mutationFn: payload =>
+      editingPlan
+        ? updateProductionPlanningApi({ id: editingPlan.id, body: payload })
+        : createProductionPlanningApi(payload),
+    onSuccess: response => {
+      refreshPlanningQueries();
+      Alert.alert('Saved', response?.message || 'Production planning saved');
       closeModal();
     },
     onError: error => {
+      queryClient.invalidateQueries({ queryKey: ['current-financial-year'] });
       Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Something went wrong',
+        'Could not save planning',
+        error?.response?.data?.message ||
+          'Please check the details and try again.',
       );
     },
   });
-
-  const pickAndExtractPdf = async () => {
-    try {
-      const [file] = await pick({
-        type: ['application/pdf'],
-      });
-
-      const res = await extractPlanningPdfApi(file);
-
-      const extracted = res?.data || {};
-
-      setForm(prev => ({
-        ...prev,
-        challan_no: extracted.challan_no || prev.challan_no,
-        party_name: extracted.party_name || prev.party_name,
-        planned_qty: extracted.planned_qty || prev.planned_qty,
-        third_party_name: extracted.third_party_name || prev.third_party_name,
-        material_description:
-          extracted.material_description || prev.material_description,
-      }));
-      if (!editingId) markPlanningDraftChanged();
-
-      Alert.alert('Success', 'PDF data extracted successfully');
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'PDF extract failed',
-      );
-    }
-  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteProductionPlanningApi,
-    onSuccess: res => {
-      queryClient.invalidateQueries({ queryKey: ['production-planning'] });
-      queryClient.invalidateQueries({
-        queryKey: ['available-production-planning'],
-      });
-
-      Alert.alert('Success', res?.message || 'Planning cancelled');
-    },
-    onError: error => {
+    onSuccess: response => {
+      refreshPlanningQueries();
       Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Something went wrong',
+        'Deleted',
+        response?.message || 'Production planning deleted',
       );
     },
+    onError: error =>
+      Alert.alert(
+        'Could not delete planning',
+        error?.response?.data?.message || 'Please try again.',
+      ),
   });
 
-  const updateForm = (key, value) => {
-    if (!editingId) markPlanningDraftChanged();
-    setForm(prev => ({
-      ...prev,
-      [key]: value,
-    }));
+  const resetLine = () => {
+    setLine(emptyLine);
+    setEditingLineIndex(null);
+    setMaterialOpen(false);
   };
 
-  const openAddModal = async () => {
-    setEditingId(null);
-    const draft = await loadPlanningDraft();
-    setForm(draft ? { ...emptyForm, ...draft, status: 'pending' } : emptyForm);
-    setPlanningDraftRestored(Boolean(draft));
+  const openAddModal = () => {
+    setEditingPlan(null);
+    setForm(emptyForm);
+    resetLine();
     setModalVisible(true);
   };
 
-  const openEditModal = item => {
-    setEditingId(item.id);
-    setPlanningDraftRestored(false);
-
+  const openEditModal = plan => {
+    setEditingPlan(plan);
     setForm({
-      challan_no: item.challan_no || '',
-      party_name: item.party_name || '',
-      material_description: item.material_description || '',
-      planned_qty: String(item.planned_qty || ''),
-      third_party_name: item.third_party_name || '',
-      target_zinc_percentage:
-        item.target_zinc_percentage == null
-          ? ''
-          : String(item.target_zinc_percentage),
-      status: 'pending',
+      items: (plan.items || []).map(item => ({
+        id: Number(item.id),
+        challan_number: getChallanParts(item.challan_no).number,
+        challan_prefix: getChallanParts(item.challan_no).prefix,
+        challan_no: item.challan_no,
+        party_name: item.party_name || '',
+        item_id: item.item_id == null ? null : Number(item.item_id),
+        item_name: item.item_name || item.material_description,
+        material_detail: item.material_detail || '',
+        planned_qty: String(item.planned_qty || ''),
+        completed_qty: Number(item.completed_qty) || 0,
+        target_zinc_percentage: String(
+          item.target_zinc_percentage == null
+            ? ''
+            : item.target_zinc_percentage,
+        ),
+      })),
     });
-
+    resetLine();
     setModalVisible(true);
   };
 
   const closeModal = () => {
-    if (!editingId) persistPlanningDraft().catch(() => {});
     setModalVisible(false);
-    setEditingId(null);
+    setEditingPlan(null);
     setForm(emptyForm);
-    setPlanningDraftRestored(false);
+    resetLine();
   };
 
-  const handleSave = () => {
-    if (
-      !form.challan_no ||
-      !form.party_name ||
-      !form.material_description ||
-      !form.planned_qty
-    ) {
-      Alert.alert('Required', 'Please fill all required fields');
+  const addOrUpdateLine = () => {
+    const selectedItem = itemRecords.find(
+      item => Number(item.id) === Number(line.item_id),
+    );
+    const plannedQty = Number(line.planned_qty);
+    const zincTarget = Number(line.target_zinc_percentage);
+    const challanNumber = String(line.challan_number || '').trim();
+    const partyName = String(line.party_name || '').trim();
+    if (!/^\d+$/.test(challanNumber)) {
+      Alert.alert(
+        'Invalid challan',
+        'Enter only the numeric last part of the challan number.',
+      );
+      return;
+    }
+    if (!partyName) {
+      Alert.alert(
+        'Party name required',
+        'Enter the party name for this challan.',
+      );
+      return;
+    }
+    if (!selectedItem) {
+      Alert.alert('Select material', 'Choose a material from the Items list.');
+      return;
+    }
+    if (!Number.isInteger(plannedQty) || plannedQty <= 0) {
+      Alert.alert(
+        'Invalid quantity',
+        'Planned quantity must be a positive whole number.',
+      );
+      return;
+    }
+    if (!Number.isFinite(zincTarget) || zincTarget <= 0 || zincTarget > 100) {
+      Alert.alert(
+        'Invalid zinc target',
+        'Target zinc percentage must be between 0 and 100.',
+      );
+      return;
+    }
+    const duplicate = form.items.some(
+      (item, index) =>
+        index !== editingLineIndex &&
+        String(item.challan_number) === challanNumber,
+    );
+    if (duplicate) {
+      Alert.alert(
+        'Already added',
+        'This challan number is already in the production flow.',
+      );
       return;
     }
 
-    saveMutation.mutate({
-      challan_no: form.challan_no.trim(),
-      party_name: form.party_name.trim(),
-      material_description: form.material_description.trim(),
-      planned_qty: form.planned_qty,
-      third_party_name: form.third_party_name.trim(),
-      target_zinc_percentage: form.target_zinc_percentage || null,
-      status: form.status,
+    const previous =
+      editingLineIndex == null ? null : form.items[editingLineIndex];
+    const nextLine = {
+      ...(previous?.id ? { id: previous.id } : {}),
+      challan_number: challanNumber,
+      challan_prefix: previous?.challan_prefix || line.challan_prefix || '',
+      challan_no: `${
+        previous?.challan_prefix || line.challan_prefix || ''
+      }${challanNumber}`,
+      party_name: partyName,
+      item_id: Number(selectedItem.id),
+      item_name: selectedItem.item_name,
+      material_detail: String(line.material_detail || '').trim(),
+      planned_qty: String(plannedQty),
+      completed_qty: previous?.completed_qty || 0,
+      target_zinc_percentage: String(zincTarget),
+    };
+    setForm(previousForm => {
+      const nextItems = [...previousForm.items];
+      if (editingLineIndex == null) nextItems.push(nextLine);
+      else nextItems[editingLineIndex] = nextLine;
+      return { ...previousForm, items: nextItems };
+    });
+    resetLine();
+  };
+
+  const editLine = index => {
+    const item = form.items[index];
+    setEditingLineIndex(index);
+    setLine({
+      challan_number: item.challan_number,
+      challan_prefix:
+        item.challan_prefix || getChallanParts(item.challan_no).prefix,
+      party_name: item.party_name,
+      item_id: item.item_id,
+      material_detail: item.material_detail || '',
+      planned_qty: String(item.planned_qty),
+      target_zinc_percentage: String(item.target_zinc_percentage),
     });
   };
 
-  const handleDelete = item => {
+  const removeLine = index => {
+    const item = form.items[index];
+    if (Number(item.completed_qty) > 0) {
+      Alert.alert(
+        'Production already started',
+        `${
+          item.material_detail
+            ? `${item.item_name} ${item.material_detail}`
+            : item.item_name
+        } cannot be removed because ${formatQty(
+          item.completed_qty,
+        )} NOS is already completed.`,
+      );
+      return;
+    }
+    setForm(previous => ({
+      ...previous,
+      items: previous.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+    if (editingLineIndex === index) resetLine();
+  };
+
+  const savePlanning = () => {
+    if (!form.items.length) {
+      Alert.alert(
+        'Add material',
+        'Use the Add Item button to build the production flow first.',
+      );
+      return;
+    }
+    saveMutation.mutate({
+      ...(!editingPlan
+        ? { financial_year_id: currentYearQuery.data?.data?.id }
+        : {}),
+      items: form.items.map(item => ({
+        ...(item.id ? { id: Number(item.id) } : {}),
+        challan_number: item.challan_number,
+        party_name: item.party_name,
+        item_id: Number(item.item_id),
+        material_detail: item.material_detail || '',
+        planned_qty: Number(item.planned_qty),
+        target_zinc_percentage: Number(item.target_zinc_percentage),
+      })),
+    });
+  };
+
+  const confirmDelete = plan => {
     Alert.alert(
-      'Delete Planning',
-      `Delete challan ${item.challan_no}? It will be removed from planning lists, while existing production history remains safe.`,
+      'Delete production planning?',
+      `This ${
+        plan.item_count || plan.items?.length || 0
+      }-item production flow will be removed. Existing production history will remain safe.`,
       [
-        { text: 'No', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Yes, Delete',
+          text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteMutation.mutate(item.id),
+          onPress: () => deleteMutation.mutate(plan.id),
         },
       ],
     );
   };
 
-  const handleGenerateReport = async item => {
-    if (downloadingReportId != null) return;
-
-    setDownloadingReportId(item.id);
-
+  const openPlanningFile = async plan => {
+    if (downloadingId != null) return;
+    setDownloadingId(plan.id);
     try {
-      const pdf = await downloadProductionReport({
-        type: 'challan',
-        value: item.challan_no,
-        planning_id: item.id,
+      const pdf = await downloadProductionPlanningFile({
+        id: plan.id,
       });
-
       navigation.navigate('PdfViewer', {
         ...pdf,
-        title: `Challan ${item.challan_no}`,
+        title: `Production Flow ${plan.id}`,
       });
     } catch (error) {
       Alert.alert(
-        'Unable to generate report',
-        error?.response?.data?.message ||
-          error?.message ||
-          'Could not create the challan production report.',
+        'Could not open file',
+        error?.response?.data?.message || error?.message || 'Please try again.',
       );
     } finally {
-      setDownloadingReportId(null);
+      setDownloadingId(null);
     }
   };
 
   return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.headerWrap}>
-          <View style={[styles.headerCard, centeredContent(contentMaxWidth)]}>
-            <View style={styles.flex}>
-              <Text style={styles.title}>Production Planning</Text>
-              <Text style={styles.description}>
-                Challan wise production planning
-              </Text>
-            </View>
-
-            {canManagePlanning && (
-              <TouchableOpacity
-                style={styles.addBtn}
-                activeOpacity={0.85}
-                onPress={openAddModal}
-              >
-                <Plus size={24} color={COLORS.white} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View
-            style={[styles.filterCard, centeredContent(contentMaxWidth)]}
-          >
-            <FilterButton
-              label="Pending"
-              active={statusFilter === 'pending'}
-              onPress={() => setStatusFilter('pending')}
-            />
-            <FilterButton
-              label="Completed"
-              active={statusFilter === 'completed'}
-              onPress={() => setStatusFilter('completed')}
-            />
-          </View>
+    <View style={styles.screen}>
+      <View style={[styles.header, centeredContent(contentMaxWidth)]}>
+        <View style={styles.headerIcon}>
+          <ClipboardList size={23} color={COLORS.accent} />
         </View>
+        <View style={styles.headerCopy}>
+          <Text style={styles.title}>Planning register</Text>
+          <Text style={styles.subtitle}>
+            Ordered challans and material targets
+          </Text>
+        </View>
+        {canManagePlanning ? (
+          <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+            <Plus size={18} color={COLORS.white} />
+            <Text style={styles.addButtonText}>Add</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-        {isLoading ? (
-          <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.listContent,
-              centeredContent(contentMaxWidth),
+      <View style={[styles.filters, centeredContent(contentMaxWidth)]}>
+        {['pending', 'completed'].map(status => (
+          <TouchableOpacity
+            key={status}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: statusFilter === status }}
+            style={[
+              styles.filterButton,
+              statusFilter === status && styles.filterButtonActive,
             ]}
-            refreshControl={
-              <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-            }
+            onPress={() => setStatusFilter(status)}
           >
-            {planningList.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <ClipboardList size={34} color={COLORS.gray} />
-                <Text style={styles.emptyText}>
-                  No {statusFilter} planning found
-                </Text>
-              </View>
-            ) : (
-              planningList.map(item => (
+            <Text
+              style={[
+                styles.filterText,
+                statusFilter === status && styles.filterTextActive,
+              ]}
+            >
+              {status === 'pending' ? 'Pending' : 'Completed'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {planningQuery.isLoading ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+          <Text style={styles.stateText}>Loading production plans...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            centeredContent(contentMaxWidth),
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={planningQuery.isRefetching}
+              onRefresh={planningQuery.refetch}
+            />
+          }
+        >
+          <ResponsiveGrid minColumnWidth={400}>
+            {planningList.length ? (
+              planningList.map(plan => (
                 <PlanningCard
-                  key={item.id}
-                  item={item}
-                  reportLoading={downloadingReportId === item.id}
-                  reportDisabled={downloadingReportId != null}
-                  onReport={
-                    canGenerateReports
-                      ? () => handleGenerateReport(item)
-                      : null
-                  }
-                  onEdit={canManagePlanning ? () => openEditModal(item) : null}
-                  onDelete={canManagePlanning ? () => handleDelete(item) : null}
+                  key={plan.id}
+                  plan={plan}
+                  canManage={canManagePlanning}
+                  fileLoading={downloadingId === plan.id}
+                  fileDisabled={downloadingId != null}
+                  onFile={() => openPlanningFile(plan)}
+                  onEdit={() => openEditModal(plan)}
+                  onDelete={() => confirmDelete(plan)}
                 />
               ))
+            ) : (
+              <View style={styles.emptyCard}>
+                <Package2 size={32} color={COLORS.muted} />
+                <Text style={styles.emptyTitle}>No {statusFilter} plans</Text>
+                <Text style={styles.stateText}>
+                  {statusFilter === 'pending'
+                    ? 'Add a planning challan to start the next production flow.'
+                    : 'Completed production flows will appear here.'}
+                </Text>
+              </View>
             )}
-          </ScrollView>
-        )}
-      </View>
+          </ResponsiveGrid>
+        </ScrollView>
+      )}
 
       <PlanningModal
         visible={modalVisible}
-        editingId={editingId}
+        editingPlan={editingPlan}
         form={form}
-        loading={saveMutation.isPending}
-        draftRestored={planningDraftRestored}
-        onChange={updateForm}
-        onClose={closeModal}
-        onSave={handleSave}
-        pickAndExtractPdf={canImportPlanning ? pickAndExtractPdf : null}
+        line={line}
+        setLine={setLine}
+        editingLineIndex={editingLineIndex}
+        materialOpen={materialOpen}
+        setMaterialOpen={setMaterialOpen}
+        materialOptions={materialOptions}
+        itemsLoading={itemsQuery.isLoading}
+        currentYear={
+          currentYearQuery.isError
+            ? null
+            : currentYearQuery.data?.data?.financial_year
+        }
+        currentYearError={currentYearQuery.error?.response?.data?.message || ''}
+        saving={saveMutation.isPending}
+        onAddLine={addOrUpdateLine}
+        onEditLine={editLine}
+        onRemoveLine={removeLine}
+        onCancelLine={resetLine}
+        onClose={() => closeModal()}
+        onSave={savePlanning}
       />
-    </>
-  );
-}
-
-function FilterButton({ label, active, onPress }) {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      style={[styles.filterButton, active && styles.filterButtonActive]}
-      onPress={onPress}
-    >
-      <Text
-        style={[
-          styles.filterButtonText,
-          active && styles.filterButtonTextActive,
-        ]}
-      >
-        {label.toUpperCase()}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-function PlanningCard({
-  item,
-  reportLoading,
-  reportDisabled,
-  onReport,
-  onEdit,
-  onDelete,
-}) {
-  const partyText = item.third_party_name
-    ? `${item.party_name} (${item.third_party_name})`
-    : item.party_name;
-
-  return (
-    <View style={styles.planCard}>
-      <View style={styles.planTop}>
-        <View style={styles.flex}>
-          <Text style={styles.challanNo}>{item.challan_no}</Text>
-          <Text style={styles.partyName}>{partyText}</Text>
-        </View>
-
-        <StatusBadge status={item.status} />
-      </View>
-
-      <Text style={styles.materialDesc}>{item.material_description}</Text>
-
-      {item.target_zinc_percentage != null && (
-        <Text style={styles.targetText}>
-          Zinc alert target: {item.target_zinc_percentage}%
-        </Text>
-      )}
-
-      {onReport && (
-        <TouchableOpacity
-          style={[
-            styles.reportBtn,
-            reportDisabled && styles.reportBtnDisabled,
-          ]}
-          activeOpacity={0.85}
-          disabled={reportDisabled}
-          onPress={onReport}
-        >
-          {reportLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <FileDown size={17} color={COLORS.white} />
-          )}
-          <Text style={styles.reportBtnText}>
-            {reportLoading ? 'GENERATING...' : 'GENERATE REPORT'}
-          </Text>
-        </TouchableOpacity>
-      )}
-
-      {(onEdit || onDelete) && <View style={styles.actionRow}>
-        {onEdit && (
-        <TouchableOpacity
-          style={styles.editBtn}
-          activeOpacity={0.8}
-          onPress={onEdit}
-        >
-          <Edit3 size={16} color={COLORS.primary} />
-          <Text style={styles.editText}>EDIT</Text>
-        </TouchableOpacity>
-        )}
-
-        {onDelete && (
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          activeOpacity={0.8}
-          onPress={onDelete}
-        >
-          <Trash2 size={16} color={COLORS.danger} />
-          <Text style={styles.deleteText}>DELETE</Text>
-        </TouchableOpacity>
-        )}
-      </View>}
     </View>
   );
 }
 
-function StatusBadge({ status }) {
-  const lower = status || 'pending';
+function PlanningCard({
+  plan,
+  canManage,
+  fileLoading,
+  fileDisabled,
+  onFile,
+  onEdit,
+  onDelete,
+}) {
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  const progress = Number(plan.planned_qty)
+    ? Math.min(
+        100,
+        (Number(plan.completed_qty) / Number(plan.planned_qty)) * 100,
+      )
+    : 0;
 
   return (
-    <Text
-      style={[
-        styles.statusBadge,
-        lower === 'completed' && styles.completedBadge,
-        lower === 'canceled' && styles.canceledBadge,
-      ]}
-    >
-      {lower.toUpperCase()}
-    </Text>
+    <View style={styles.planCard}>
+      <View style={styles.planHeading}>
+        <View style={styles.planHeadingCopy}>
+          <Text style={styles.challan}>Production Flow #{plan.id}</Text>
+          <Text style={styles.planMeta}>
+            {items.length} {items.length === 1 ? 'item' : 'items'} ·{' '}
+            {formatQty(plan.planned_qty)} NOS planned
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            plan.status === 'completed' && styles.statusBadgeComplete,
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              plan.status === 'completed' && styles.statusTextComplete,
+            ]}
+          >
+            {plan.status === 'completed' ? 'COMPLETED' : 'ACTIVE'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+      </View>
+      <View style={styles.progressLabels}>
+        <Text style={styles.progressText}>
+          {formatQty(plan.completed_qty)} completed
+        </Text>
+        <Text style={styles.progressText}>
+          {formatQty(plan.remaining_qty)} remaining
+        </Text>
+      </View>
+
+      <View style={styles.flowList}>
+        {items.map((item, index) => (
+          <View key={item.id || `${plan.id}-${index}`} style={styles.flowRow}>
+            <View
+              style={[
+                styles.sequenceBadge,
+                item.status === 'completed' && styles.sequenceBadgeComplete,
+              ]}
+            >
+              <Text style={styles.sequenceText}>{index + 1}</Text>
+            </View>
+            <View style={styles.flowCopy}>
+              <Text style={styles.flowChallan}>{item.challan_no}</Text>
+              <Text style={styles.flowName}>
+                {formatMaterialDescription(
+                  item.material_description || item.item_name,
+                )}
+              </Text>
+              <Text style={styles.flowMeta}>
+                {item.party_name} · {formatQty(item.completed_qty)} /{' '}
+                {formatQty(item.planned_qty)} NOS · Zn{' '}
+                {formatQty(item.target_zinc_percentage)}%
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={[styles.fileButton, fileDisabled && styles.buttonDisabled]}
+          disabled={fileDisabled}
+          onPress={onFile}
+        >
+          {fileLoading ? (
+            <ActivityIndicator size="small" color={COLORS.accent} />
+          ) : (
+            <FileDown size={17} color={COLORS.accent} />
+          )}
+          <Text style={styles.fileButtonText}>View PDF</Text>
+        </TouchableOpacity>
+        {canManage ? (
+          <>
+            <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+              <Edit3 size={16} color={COLORS.accent} />
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+              <Trash2 size={16} color={COLORS.danger} />
+            </TouchableOpacity>
+          </>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
 function PlanningModal({
   visible,
-  editingId,
+  editingPlan,
   form,
-  loading,
-  draftRestored,
-  onChange,
+  line,
+  setLine,
+  editingLineIndex,
+  materialOpen,
+  setMaterialOpen,
+  materialOptions,
+  itemsLoading,
+  currentYear,
+  currentYearError,
+  saving,
+  onAddLine,
+  onEditLine,
+  onRemoveLine,
+  onCancelLine,
   onClose,
   onSave,
-  pickAndExtractPdf,
 }) {
-  const { formMaxWidth } = useResponsive();
+  const { workspaceFormMaxWidth } = useResponsive();
+  const prefix = line.challan_prefix
+    ? line.challan_prefix
+    : currentYear
+    ? `DC/${currentYear}/`
+    : 'DC/----/';
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalSafe}>
-        <View style={styles.modalHeader}>
-          <View>
-            <Text style={styles.modalTitle}>
-              {editingId ? 'Update Planning' : 'Add Planning'}
-            </Text>
-            <Text style={styles.modalDesc}>
-              Challan, party and quantity details
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <X size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-        </View>
-
-        {pickAndExtractPdf && (
-          <>
-            <View style={[styles.extractWrap, centeredContent(formMaxWidth)]}>
-              <TouchableOpacity style={styles.pdfBtn} onPress={pickAndExtractPdf}>
-                <Text style={styles.pdfBtnText}>EXTRACT FROM PDF</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.orDivider}>-- OR --</Text>
-          </>
-        )}
-        <ScrollView
-          contentContainerStyle={[
-            styles.modalBody,
-            centeredContent(formMaxWidth),
-          ]}
+        <KeyboardAvoidingView
+          style={styles.modalSafe}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {draftRestored && !editingId && (
-            <Text style={styles.draftNotice}>Saved draft restored</Text>
-          )}
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Planning Details</Text>
-
-            <AppInput
-              label="Challan No"
-              value={form.challan_no}
-              onChangeText={v => onChange('challan_no', v)}
-            />
-
-            <AppInput
-              label="Party Name"
-              value={form.party_name}
-              onChangeText={v => onChange('party_name', v)}
-            />
-
-            <AppInput
-              label="Material Description"
-              value={form.material_description}
-              multiline
-              numberOfLines={4}
-              onChangeText={v => onChange('material_description', v)}
-            />
-
-            <AppInput
-              label="Planned Qty NOS"
-              value={form.planned_qty}
-              keyboardType="numeric"
-              onChangeText={v => onChange('planned_qty', v)}
-            />
-
-            <AppInput
-              label="Third Party Name"
-              value={form.third_party_name}
-              onChangeText={v => onChange('third_party_name', v)}
-            />
-
-            <AppInput
-              label="Target Zinc Percentage (optional)"
-              value={form.target_zinc_percentage}
-              keyboardType="decimal-pad"
-              onChangeText={v => onChange('target_zinc_percentage', v)}
-            />
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderCopy}>
+              <Text style={styles.modalTitle}>
+                {editingPlan
+                  ? 'Edit production planning'
+                  : 'Add production planning'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                Build the item flow in production order
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <X size={21} color={COLORS.text} />
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
-            activeOpacity={0.85}
-            disabled={loading}
-            onPress={onSave}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            contentContainerStyle={[
+              styles.modalContent,
+              centeredContent(workspaceFormMaxWidth),
+            ]}
           >
-            <Text style={styles.saveText}>
-              {loading
-                ? 'Saving...'
-                : editingId
-                ? 'UPDATE PLANNING'
-                : 'SAVE PLANNING'}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {currentYearError && !editingPlan ? (
+              <Text style={styles.errorBanner}>{currentYearError}</Text>
+            ) : null}
+
+            <ResponsiveGrid minColumnWidth={400}>
+              <View style={styles.formCard}>
+                <View style={styles.sectionHeadingRow}>
+                  <View>
+                    <Text style={styles.sectionTitle}>
+                      {editingLineIndex == null ? 'Add an item' : 'Update item'}
+                    </Text>
+                    <Text style={styles.sectionHint}>
+                      Items run from top to bottom.
+                    </Text>
+                  </View>
+                  {editingLineIndex != null ? (
+                    <TouchableOpacity onPress={onCancelLine}>
+                      <Text style={styles.cancelEditText}>Cancel edit</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                <View style={styles.challanInputRow}>
+                  <View style={styles.prefixBox}>
+                    <Text style={styles.prefixText}>{prefix}</Text>
+                  </View>
+                  <TextInput
+                    label="Challan Number"
+                    value={line.challan_number}
+                    keyboardType="number-pad"
+                    onChangeText={value =>
+                      setLine(previous => ({
+                        ...previous,
+                        challan_number: value.replace(/\D/g, ''),
+                      }))
+                    }
+                    mode="outlined"
+                    style={styles.challanInput}
+                    outlineColor={COLORS.inputBorder}
+                    activeOutlineColor={COLORS.accent}
+                    textColor={COLORS.text}
+                    theme={PAPER_THEME}
+                  />
+                </View>
+
+                <TextInput
+                  label="Party Name"
+                  value={line.party_name}
+                  onChangeText={value =>
+                    setLine(previous => ({ ...previous, party_name: value }))
+                  }
+                  mode="outlined"
+                  style={[styles.input, styles.partyInput]}
+                  outlineColor={COLORS.inputBorder}
+                  activeOutlineColor={COLORS.accent}
+                  textColor={COLORS.text}
+                  theme={PAPER_THEME}
+                />
+
+                <View style={styles.dropdownWrap}>
+                  <DropDownPicker
+                    open={materialOpen}
+                    value={line.item_id}
+                    items={materialOptions}
+                    setOpen={setMaterialOpen}
+                    setValue={callback =>
+                      setLine(previous => ({
+                        ...previous,
+                        item_id: callback(previous.item_id),
+                      }))
+                    }
+                    listMode="MODAL"
+                    searchable
+                    searchPlaceholder="Search materials"
+                    loading={itemsLoading}
+                    placeholder={
+                      itemsLoading ? 'Loading materials...' : 'Select material'
+                    }
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                    textStyle={styles.dropdownText}
+                    placeholderStyle={styles.dropdownPlaceholder}
+                    modalTitle="Select material"
+                  />
+                </View>
+
+                <TextInput
+                  label="Material Description"
+                  value={line.material_detail}
+                  onChangeText={value =>
+                    setLine(previous => ({
+                      ...previous,
+                      material_detail: value,
+                    }))
+                  }
+                  mode="outlined"
+                  placeholder="Example: 1.7mm, L-4000mm"
+                  style={[styles.input, styles.materialDetailInput]}
+                  outlineColor={COLORS.inputBorder}
+                  activeOutlineColor={COLORS.accent}
+                  textColor={COLORS.text}
+                  theme={PAPER_THEME}
+                />
+
+                <View style={styles.twoColumns}>
+                  <TextInput
+                    label="Planned Qty"
+                    value={line.planned_qty}
+                    keyboardType="number-pad"
+                    onChangeText={value =>
+                      setLine(previous => ({
+                        ...previous,
+                        planned_qty: value.replace(/\D/g, ''),
+                      }))
+                    }
+                    mode="outlined"
+                    style={[styles.input, styles.columnInput]}
+                    outlineColor={COLORS.inputBorder}
+                    activeOutlineColor={COLORS.accent}
+                    textColor={COLORS.text}
+                    theme={PAPER_THEME}
+                  />
+                  <TextInput
+                    label="Target Zinc %"
+                    value={line.target_zinc_percentage}
+                    keyboardType="decimal-pad"
+                    onChangeText={value =>
+                      setLine(previous => ({
+                        ...previous,
+                        target_zinc_percentage: value.replace(/[^\d.]/g, ''),
+                      }))
+                    }
+                    mode="outlined"
+                    style={[styles.input, styles.columnInput]}
+                    outlineColor={COLORS.inputBorder}
+                    activeOutlineColor={COLORS.accent}
+                    textColor={COLORS.text}
+                    theme={PAPER_THEME}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.addLineButton}
+                  onPress={onAddLine}
+                >
+                  {editingLineIndex == null ? (
+                    <Plus size={18} color={COLORS.white} />
+                  ) : (
+                    <Save size={18} color={COLORS.white} />
+                  )}
+                  <Text style={styles.addLineText}>
+                    {editingLineIndex == null
+                      ? 'Add Item to Flow'
+                      : 'Update Item'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formCard}>
+                <View style={styles.flowHeader}>
+                  <Text style={styles.sectionTitle}>Production flow</Text>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countText}>{form.items.length}</Text>
+                  </View>
+                </View>
+                {form.items.length ? (
+                  form.items.map((item, index) => (
+                    <View
+                      key={item.id || `${item.item_id}-${index}`}
+                      style={styles.formFlowRow}
+                    >
+                      <View style={styles.formSequence}>
+                        <Text style={styles.formSequenceText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.formFlowCopy}>
+                        <Text style={styles.formFlowChallan}>
+                          {`${
+                            item.challan_prefix ||
+                            (currentYear ? `DC/${currentYear}/` : 'DC/----/')
+                          }${item.challan_number}`}
+                        </Text>
+                        <Text style={styles.formFlowName}>
+                          {item.material_detail
+                            ? `${item.item_name} ${item.material_detail}`
+                            : item.item_name}
+                        </Text>
+                        <Text style={styles.formFlowMeta}>
+                          {item.party_name} · {formatQty(item.planned_qty)} NOS
+                          · Zinc target {formatQty(item.target_zinc_percentage)}
+                          %
+                        </Text>
+                        {Number(item.completed_qty) > 0 ? (
+                          <Text style={styles.completedText}>
+                            {formatQty(item.completed_qty)} NOS already
+                            completed
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.lineAction}
+                        onPress={() => onEditLine(index)}
+                      >
+                        <Pencil size={16} color={COLORS.teal} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.lineAction, styles.lineDeleteAction]}
+                        onPress={() => onRemoveLine(index)}
+                      >
+                        <Trash2 size={16} color={COLORS.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyFlow}>
+                    <Package2 size={25} color={COLORS.muted} />
+                    <Text style={styles.emptyFlowText}>
+                      Added items will appear here in production order.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ResponsiveGrid>
+            <TouchableOpacity
+              style={[
+                styles.savePlanningButton,
+                (saving || (!editingPlan && !currentYear)) &&
+                  styles.buttonDisabled,
+              ]}
+              disabled={saving || (!editingPlan && !currentYear)}
+              onPress={onSave}
+            >
+              {saving ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <>
+                  <Save size={19} color={COLORS.white} />
+                  <Text style={styles.savePlanningText}>
+                    {editingPlan ? 'Update Planning' : 'Save Planning'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
 }
 
-function AppInput({ style, ...props }) {
-  return (
-    <TextInput
-      {...props}
-      mode="outlined"
-      style={[styles.input, style]}
-      outlineColor={COLORS.inputBorder}
-      activeOutlineColor={COLORS.accent}
-      textColor={COLORS.text}
-      placeholderTextColor={COLORS.gray}
-      theme={PAPER_THEME}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: {
-    flex: 1,
-    paddingTop: 15,
-  },
-
-  headerWrap: {
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-
-  headerCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 18,
-    elevation: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  title: {
-    color: COLORS.primary,
-    fontSize: 24,
-    fontWeight: '800',
-  },
-
-  description: {
-    color: COLORS.gray,
-    fontSize: 13,
-    marginTop: 4,
-    fontWeight: '700',
-  },
-
-  addBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-  },
-
-  filterCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
+  screen: { flex: 1, backgroundColor: COLORS.bg, paddingTop: 14 },
+  header: {
+    minHeight: 76,
+    marginHorizontal: UI.pagePadding,
+    padding: 14,
+    borderRadius: UI.radius,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 5,
-    marginTop: 10,
+    backgroundColor: COLORS.white,
     flexDirection: 'row',
-    gap: 6,
-    elevation: 1,
+    alignItems: 'center',
+    ...UI.shadow,
   },
-
+  headerIcon: {
+    width: 45,
+    height: 45,
+    borderRadius: UI.radiusSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
+  },
+  headerCopy: { flex: 1, minWidth: 0, marginHorizontal: 11 },
+  title: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
+  subtitle: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  addButton: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: UI.radiusSmall,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accent,
+  },
+  addButtonText: { color: COLORS.white, fontSize: 13, fontWeight: '600' },
+  filters: {
+    marginHorizontal: UI.pagePadding,
+    marginTop: 12,
+    padding: 4,
+    borderRadius: UI.radiusSmall,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    gap: 5,
+    backgroundColor: COLORS.white,
+  },
   filterButton: {
     flex: 1,
-    height: 42,
-    borderRadius: 9,
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceMuted,
   },
-
-  filterButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-
-  filterButtonText: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-
-  filterButtonTextActive: {
-    color: COLORS.white,
-  },
-
-  listContent: {
-    padding: 15,
-  },
-
-  loaderBox: {
+  filterButtonActive: { backgroundColor: COLORS.primary },
+  filterText: { color: COLORS.gray, fontSize: 12.5, fontWeight: '600' },
+  filterTextActive: { color: COLORS.white, fontWeight: '600' },
+  listContent: { padding: UI.pagePadding, paddingTop: 14, paddingBottom: 36 },
+  centerState: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.bg,
+    gap: 10,
   },
-
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 30,
-    alignItems: 'center',
-    marginTop: 20,
-    elevation: 2,
-  },
-
-  emptyText: {
+  stateText: {
     color: COLORS.gray,
-    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  emptyCard: {
+    minHeight: 220,
+    borderRadius: UI.radius,
+    borderWidth: 0,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 26,
+    backgroundColor: COLORS.white,
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
     marginTop: 10,
   },
-
   planCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    elevation: 2,
-    borderWidth: 1,
+    marginBottom: 13,
+    padding: 16,
+    borderRadius: UI.radius,
+    borderWidth: 0,
     borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    ...UI.shadow,
   },
-
-  planTop: {
+  planHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  planHeadingCopy: { flex: 1, minWidth: 0 },
+  challan: { color: COLORS.text, fontSize: 17, fontWeight: '600' },
+  planMeta: { color: COLORS.gray, fontSize: 12, marginTop: 4 },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.warningSoft,
+  },
+  statusBadgeComplete: { backgroundColor: COLORS.tealSoft },
+  statusText: { color: COLORS.warning, fontSize: 12, fontWeight: '600' },
+  statusTextComplete: { color: COLORS.teal },
+  progressTrack: {
+    height: 7,
+    marginTop: 15,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: COLORS.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: COLORS.teal,
+  },
+  progressLabels: {
+    marginTop: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 10,
   },
-
-  challanNo: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  partyName: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-
-  statusBadge: {
-    backgroundColor: '#FEF3C7',
-    color: '#92400E',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 99,
-    fontSize: 10,
-    fontWeight: '800',
-    overflow: 'hidden',
-  },
-
-  completedBadge: {
-    backgroundColor: '#DCFCE7',
-    color: '#166534',
-  },
-
-  canceledBadge: {
-    backgroundColor: '#FEE2E2',
-    color: '#991B1B',
-  },
-
-  materialDesc: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 12,
-    lineHeight: 20,
-  },
-
-  targetText: {
-    color: '#9A3412',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    alignSelf: 'flex-start',
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 12,
-  },
-
-  reportBtn: {
-    height: 46,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+  progressText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+  flowList: { marginTop: 13, borderTopWidth: 1, borderTopColor: COLORS.border },
+  flowRow: {
+    minHeight: 57,
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  sequenceBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 3,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 14,
+    backgroundColor: COLORS.accentSoft,
   },
-
-  reportBtnDisabled: {
-    opacity: 0.65,
-  },
-
-  reportBtnText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-
-  editBtn: {
+  sequenceBadgeComplete: { backgroundColor: COLORS.tealSoft },
+  sequenceText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
+  flowCopy: { flex: 1, minWidth: 0, marginLeft: 10 },
+  flowChallan: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
+  flowName: { color: COLORS.text, fontSize: 13.5, fontWeight: '700' },
+  flowMeta: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  cardActions: { marginTop: 14, flexDirection: 'row', gap: 8 },
+  fileButton: {
     flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     flexDirection: 'row',
     gap: 6,
-  },
-
-  editText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  deleteBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
+  },
+  fileButtonText: { color: COLORS.accent, fontSize: 12.5, fontWeight: '600' },
+  editButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
     flexDirection: 'row',
     gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
   },
-
-  deleteText: {
-    color: COLORS.danger,
-    fontSize: 13,
-    fontWeight: '800',
+  editButtonText: { color: COLORS.accent, fontSize: 12.5, fontWeight: '600' },
+  deleteButton: {
+    width: 44,
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.dangerSoft,
   },
-
-  modalSafe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
+  buttonDisabled: { opacity: 0.55 },
+  modalSafe: { flex: 1, backgroundColor: COLORS.bg },
   modalHeader: {
-    backgroundColor: COLORS.white,
-    padding: 16,
+    minHeight: 74,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: COLORS.white,
   },
-
-  modalTitle: {
-    color: COLORS.primary,
-    fontSize: 22,
-    fontWeight: '800',
+  modalHeaderCopy: { flex: 1, minWidth: 0 },
+  modalTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
+  modalSubtitle: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceMuted,
   },
-
-  modalDesc: {
-    color: COLORS.gray,
+  modalContent: { padding: 16, paddingBottom: 42 },
+  errorBanner: {
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: UI.radiusSmall,
+    color: COLORS.danger,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+    lineHeight: 18,
+    backgroundColor: COLORS.dangerSoft,
+  },
+  formCard: {
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: UI.radius,
+    borderWidth: 0,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    ...UI.shadow,
+  },
+  sectionTitle: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  sectionHint: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  challanInputRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  prefixBox: {
+    minHeight: 56,
+    paddingHorizontal: 11,
+    borderRadius: UI.radiusSmall,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  prefixText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+  challanInput: { flex: 1, backgroundColor: COLORS.white },
+  partyInput: { marginTop: 10 },
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cancelEditText: { color: COLORS.danger, fontSize: 12, fontWeight: '600' },
+  dropdownWrap: { marginTop: 14, zIndex: 20 },
+  dropdown: {
+    minHeight: 56,
+    borderRadius: UI.radiusSmall,
+    borderColor: COLORS.inputBorder,
+    backgroundColor: COLORS.white,
+  },
+  dropdownContainer: {
+    borderColor: COLORS.inputBorder,
+    borderRadius: UI.radiusSmall,
+  },
+  dropdownText: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
+  dropdownPlaceholder: { color: COLORS.gray },
+  materialDetailInput: { marginTop: 10 },
+  twoColumns: { marginTop: 8, flexDirection: 'row', gap: 9 },
+  input: { backgroundColor: COLORS.white },
+  columnInput: { flex: 1 },
+  addLineButton: {
+    minHeight: 50,
+    marginTop: 12,
+    borderRadius: UI.radiusSmall,
+    flexDirection: 'row',
+    gap: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accent,
+  },
+  addLineText: { color: COLORS.white, fontSize: 13.5, fontWeight: '600' },
+  flowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  countBadge: {
+    minWidth: 27,
+    height: 27,
+    paddingHorizontal: 8,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
+  },
+  countText: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
+  formFlowRow: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  formSequence: {
+    width: 30,
+    height: 30,
+    borderRadius: UI.radiusSmall,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
+  },
+  formSequenceText: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
+  formFlowCopy: { flex: 1, minWidth: 0, marginHorizontal: 10 },
+  formFlowChallan: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
+  formFlowName: { color: COLORS.text, fontSize: 13.5, fontWeight: '700' },
+  formFlowMeta: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  completedText: {
+    color: COLORS.teal,
+    fontSize: 12,
+    fontWeight: '600',
     marginTop: 3,
   },
-
-  closeBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: COLORS.bg,
+  lineAction: {
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.accentSoft,
   },
-
-  modalBody: {
-    paddingBottom: 40,
-    paddingHorizontal: 16,
+  lineDeleteAction: { marginLeft: 6, backgroundColor: COLORS.dangerSoft },
+  emptyFlow: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  draftNotice: {
-    color: COLORS.primary,
-    backgroundColor: COLORS.surfaceMuted,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginTop: 14,
-    marginBottom: 12,
-    fontSize: 13,
-    fontWeight: '800',
+  emptyFlowText: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'center',
+    marginTop: 7,
   },
-  extractWrap: { padding: 15 },
-  orDivider: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    fontWeight: '700',
-    textAlign: 'center',
-    width: '100%',
-    paddingBottom: 15,
-  },
-
-  formCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-    elevation: 2,
-  },
-
-  formTitle: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-
-  input: {
-    backgroundColor: COLORS.white,
-    marginBottom: 12,
-  },
-
-  saveBtn: {
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+  savePlanningButton: {
+    minHeight: 56,
+    borderRadius: UI.radiusSmall,
+    flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
+    backgroundColor: COLORS.accent,
+    ...UI.shadow,
   },
-
-  saveBtnDisabled: {
-    opacity: 0.7,
-  },
-
-  saveText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-
-  pdfBtn: {
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightBlue,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-
-  pdfBtnText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  savePlanningText: { color: COLORS.white, fontSize: 14.5, fontWeight: '600' },
 });

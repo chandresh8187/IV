@@ -10,15 +10,23 @@ import {
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { FileCheck2, Maximize2 } from 'lucide-react-native';
+import {
+  Boxes,
+  ClipboardList,
+  FileCheck2,
+  Maximize2,
+  ChevronRight,
+  Users,
+} from 'lucide-react-native';
 
 import { getHistoryShiftTableApi } from '../../api/historyApi';
 import ProductionTable from '../../components/ProductionTable';
 import { downloadProductionReport } from '../../utils/serverProductionReport';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
+import { formatQuantity, formatWeight } from '../../utils/format';
 
 export default function HistoryShiftTableScreen({ navigation, route }) {
   const { date, shift_name } = route.params;
@@ -80,21 +88,70 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
 
         <View style={styles.summaryGrid}>
           <SummaryBox
+            label="Produced Qty"
+            value={`${formatQuantity(summary.total_production_qty)} NOS`}
+          />
+          <SummaryBox
             label="MS Production"
-            value={`${summary.total_ms_production_kg || 0} KG`}
+            value={`${formatWeight(summary.total_ms_production_kg)} KG`}
           />
           <SummaryBox
             label="GI Production"
-            value={`${summary.total_gi_production_kg || 0} KG`}
+            value={`${formatWeight(summary.total_gi_production_kg)} KG`}
           />
           <SummaryBox
             label="Zinc Used"
-            value={`${summary.zink_used || 0} KG`}
+            value={`${formatWeight(summary.zink_used)} KG`}
           />
           <SummaryBox
             label="Zinc %"
-            value={`${summary.zinc_consumption || 0}%`}
+            value={`${formatWeight(summary.zinc_consumption)}%`}
           />
+        </View>
+      </View>
+
+      <View style={styles.breakdownCard}>
+        <Text style={styles.breakdownTitle}>Explore shift summaries</Text>
+        <View style={styles.breakdownButtons}>
+          {[
+            {
+              title: 'Material Summary',
+              description: 'Output and zinc usage by material',
+              route: 'HistoryMaterialSummary',
+              Icon: Boxes,
+            },
+            {
+              title: 'Planning Summary',
+              description: 'Challan progress and remaining quantity',
+              route: 'HistoryPlanningSummary',
+              Icon: ClipboardList,
+            },
+            {
+              title: 'Party Summary',
+              description: 'Material quantities produced for each party',
+              route: 'HistoryPartySummary',
+              Icon: Users,
+            },
+          ].map(({ title, description, route: screen, Icon }) => (
+            <TouchableOpacity
+              key={screen}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${title}`}
+              accessibilityHint="Opens details for this production date and shift"
+              activeOpacity={0.65}
+              style={styles.breakdownButton}
+              onPress={() => navigation.navigate(screen, { date, shift_name })}
+            >
+              <View style={styles.breakdownIcon}>
+                <Icon size={21} color={COLORS.accent} />
+              </View>
+              <View style={styles.breakdownCopy}>
+                <Text style={styles.breakdownText}>{title}</Text>
+                <Text style={styles.breakdownDescription}>{description}</Text>
+              </View>
+              <ChevronRight size={20} color={COLORS.accent} />
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -118,6 +175,7 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
 
         <ProductionTable
           rows={tableData}
+          shiftName={shift_name}
           rowLimit={8}
           emptyMessage="No production found"
           showsHorizontalScrollIndicator={false}
@@ -130,21 +188,23 @@ export default function HistoryShiftTableScreen({ navigation, route }) {
         )}
       </View>
 
-      {canGenerateReports && <TouchableOpacity
-        style={[styles.generateBtn, saving && styles.generateBtnDisabled]}
-        activeOpacity={0.85}
-        disabled={saving}
-        onPress={handleGenerate}
-      >
-        {saving ? (
-          <ActivityIndicator color={COLORS.white} />
-        ) : (
-          <>
-            <FileCheck2 size={20} color={COLORS.white} />
-            <Text style={styles.generateText}>GENERATE REPORT</Text>
-          </>
-        )}
-      </TouchableOpacity>}
+      {canGenerateReports && (
+        <TouchableOpacity
+          style={[styles.generateBtn, saving && styles.generateBtnDisabled]}
+          activeOpacity={0.85}
+          disabled={saving}
+          onPress={handleGenerate}
+        >
+          {saving ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <>
+              <FileCheck2 size={20} color={COLORS.white} />
+              <Text style={styles.generateText}>GENERATE REPORT</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -172,16 +232,18 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 15,
-    elevation: 2,
+    elevation: 1,
   },
 
   sectionTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   summaryGrid: {
@@ -191,32 +253,78 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
 
+  breakdownCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: UI.radius,
+    backgroundColor: COLORS.white,
+    ...UI.shadow,
+  },
+  breakdownTitle: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  breakdownButtons: { gap: 10, marginTop: 14 },
+  breakdownButton: {
+    minHeight: 82,
+    padding: 14,
+    flexDirection: 'row',
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  breakdownText: {
+    color: COLORS.text,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '600',
+  },
+  breakdownIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  breakdownCopy: { flex: 1, minWidth: 0 },
+  breakdownDescription: {
+    color: COLORS.gray,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+
   summaryBox: {
     width: '48%',
     backgroundColor: COLORS.bg,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     padding: 12,
   },
 
   summaryLabel: {
     color: COLORS.gray,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   summaryValue: {
+    fontVariant: ['tabular-nums'],
     color: COLORS.primary,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 5,
   },
 
   tableCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 14,
     marginTop: 14,
-    elevation: 2,
+    elevation: 0,
   },
 
   tableHeaderRow: {
@@ -228,9 +336,9 @@ const styles = StyleSheet.create({
 
   fullBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     paddingHorizontal: 12,
-    height: 38,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -239,20 +347,20 @@ const styles = StyleSheet.create({
   fullBtnText: {
     color: COLORS.white,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   moreText: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     marginTop: 10,
     textAlign: 'center',
   },
   generateBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -265,7 +373,7 @@ const styles = StyleSheet.create({
   generateText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.8,
   },
 });

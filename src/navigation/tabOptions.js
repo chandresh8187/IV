@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { COLORS, UI } from '../assets/Colors';
+import { COLORS } from '../assets/Colors';
 
 function TabIcon({ icon: Icon, focused, color }) {
   if (!Icon) {
@@ -14,8 +14,8 @@ function TabIcon({ icon: Icon, focused, color }) {
       <View style={[styles.iconPill, focused && styles.iconPillActive]}>
         <Icon
           size={22}
-          color={focused ? COLORS.primary : color}
-          strokeWidth={focused ? 2.7 : 2.2}
+          color={focused ? COLORS.white : color}
+          strokeWidth={focused ? 2.3 : 1.8}
         />
       </View>
     </View>
@@ -28,7 +28,7 @@ function TabIcon({ icon: Icon, focused, color }) {
  * `sceneStyle` (the bottom-tabs v7 prop) keeps the scene background the app
  * background color so screens never flash a dark backdrop.
  */
-export function createTabScreenOptions(iconByRoute) {
+export function createTabScreenOptions(iconByRoute, useNavigationRail = false) {
   return ({ route }) => ({
     headerShadowVisible: false,
     headerStyle: {
@@ -36,16 +36,18 @@ export function createTabScreenOptions(iconByRoute) {
     },
     headerTitleStyle: {
       color: COLORS.primary,
-      fontWeight: '700',
+      fontWeight: '600',
     },
     sceneStyle: {
       backgroundColor: COLORS.bg,
     },
     tabBarHideOnKeyboard: true,
-    tabBarStyle: styles.tabBar,
-    tabBarItemStyle: styles.tabBarItem,
-    tabBarLabelStyle: styles.label,
-    tabBarActiveTintColor: COLORS.primary,
+    tabBarPosition: useNavigationRail ? 'left' : 'bottom',
+    tabBarLabelPosition: useNavigationRail ? 'beside-icon' : 'below-icon',
+    tabBarStyle: useNavigationRail ? styles.rail : styles.tabBar,
+    tabBarItemStyle: useNavigationRail ? styles.railItem : styles.tabBarItem,
+    tabBarLabelStyle: useNavigationRail ? styles.railLabel : styles.label,
+    tabBarActiveTintColor: COLORS.accent,
     tabBarInactiveTintColor: COLORS.gray,
     headerShown: false,
     tabBarIcon: ({ focused, color }) => (
@@ -55,18 +57,28 @@ export function createTabScreenOptions(iconByRoute) {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 70,
-    paddingTop: 7,
-    paddingBottom: 8,
+  rail: {
+    width: 180,
+    paddingHorizontal: 10,
+    paddingTop: 24,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
+  railItem: { minHeight: 64, marginBottom: 8, borderRadius: 12 },
+  railLabel: { fontSize: 13, fontWeight: '600' },
+  tabBar: {
+    height: 76,
+    paddingTop: 7,
+    paddingBottom: 10,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 0,
     borderTopColor: COLORS.border,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
   },
 
   tabBarItem: {
@@ -74,7 +86,7 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
     marginTop: 2,
   },
@@ -89,21 +101,21 @@ const styles = StyleSheet.create({
   topLine: {
     position: 'absolute',
     top: -7,
-    width: 20,
-    height: 3,
-    borderRadius: 99,
+    width: 22,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: COLORS.accent,
   },
 
   iconPill: {
     height: 34,
     minWidth: 44,
-    borderRadius: UI.radiusSmall,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   iconPillActive: {
-    backgroundColor: COLORS.lightBlue,
+    backgroundColor: COLORS.accent,
   },
 });

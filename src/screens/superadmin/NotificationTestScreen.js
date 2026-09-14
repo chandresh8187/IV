@@ -96,13 +96,12 @@ export default function NotificationTestScreen() {
       ]}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.headerCard}>
+      <View style={styles.introCard}>
         <View style={styles.headerIcon}>
-          <BellRing size={25} color={COLORS.primary} />
+          <BellRing size={22} color={COLORS.accent} />
         </View>
         <View style={styles.flex}>
-          <Text style={styles.title}>Backend Notification Test</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.introText}>
             Sends to active superadmins, admins and plant managers. Supervisors
             are excluded.
           </Text>
@@ -263,48 +262,48 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: COLORS.bg,
   },
-  deniedTitle: { color: COLORS.primary, fontSize: 20, fontWeight: '800' },
+  deniedTitle: { color: COLORS.text, fontSize: 20, fontWeight: '700' },
   deniedText: { color: COLORS.gray, marginTop: 8, textAlign: 'center' },
-  headerCard: {
+  introCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
-    padding: 18,
+    padding: 14,
     marginBottom: 14,
     borderRadius: UI.radius,
-    backgroundColor: COLORS.primary,
-    ...UI.shadow,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.lightBlue,
   },
   headerIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
   },
-  title: { color: COLORS.white, fontSize: 20, fontWeight: '800' },
-  subtitle: {
-    color: '#D8ECFA',
+  introText: {
+    color: COLORS.gray,
     fontSize: 12,
     lineHeight: 18,
-    marginTop: 4,
+    fontWeight: '600',
   },
   card: {
     padding: 16,
     marginBottom: 14,
     borderRadius: UI.radius,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
     ...UI.shadow,
   },
-  cardTitle: { color: COLORS.primary, fontSize: 17, fontWeight: '800' },
+  cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
   input: { marginTop: 13, backgroundColor: COLORS.white },
   sendButton: {
     minHeight: 52,
     marginTop: 15,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -312,28 +311,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   buttonDisabled: { opacity: 0.7 },
-  sendButtonText: { color: COLORS.white, fontSize: 13, fontWeight: '800' },
+  sendButtonText: { color: COLORS.white, fontSize: 13, fontWeight: '600' },
   zincButton: {
     minHeight: 50,
     marginTop: 14,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     borderWidth: 1,
     borderColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.lightBlue,
   },
-  zincButtonText: { color: COLORS.primary, fontSize: 13, fontWeight: '800' },
+  zincButtonText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
   zincResult: {
     marginTop: 12,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.surfaceMuted,
   },
   zincResultTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 6,
   },
   resultMessage: {
@@ -353,33 +352,33 @@ const styles = StyleSheet.create({
     minHeight: 105,
     padding: 12,
     marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.lightBlue,
   },
-  metricValue: {
+  metricValue: { fontVariant: ['tabular-nums'],
     color: COLORS.primary,
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 5,
   },
-  metricLabel: { color: COLORS.gray, fontSize: 11, fontWeight: '700' },
-  detailText: { color: COLORS.gray, fontSize: 12, fontWeight: '700' },
+  metricLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  detailText: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
   errorText: {
     color: COLORS.danger,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: 7,
   },
   helpCard: {
     padding: 15,
     borderRadius: UI.radius,
     borderWidth: 1,
-    borderColor: '#D8ECFA',
+    borderColor: COLORS.border,
     backgroundColor: COLORS.lightBlue,
   },
-  helpTitle: { color: COLORS.primary, fontSize: 14, fontWeight: '800' },
+  helpTitle: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   helpText: {
     color: COLORS.gray,
     fontSize: 12,

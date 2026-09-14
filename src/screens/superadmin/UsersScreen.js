@@ -36,7 +36,7 @@ import {
   updateUserPermissionsApi,
   updateUserApi,
 } from '../../api/userApi';
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { hasPermission } from '../../utils/permissions';
 
@@ -48,9 +48,7 @@ const emptyForm = {
   assigned_shift: 'day',
 };
 
-const PasswordLockIcon = () => (
-  <LockKeyhole size={20} color={COLORS.gray} />
-);
+const PasswordLockIcon = () => <LockKeyhole size={20} color={COLORS.gray} />;
 
 export default function UsersScreen() {
   const queryClient = useQueryClient();
@@ -82,7 +80,9 @@ export default function UsersScreen() {
 
   const registerMutation = useMutation({
     mutationFn: body =>
-      editingId ? updateUserApi({ id: editingId, body }) : registerUserApi(body),
+      editingId
+        ? updateUserApi({ id: editingId, body })
+        : registerUserApi(body),
     onSuccess: res => {
       Alert.alert('Success', res?.message || 'User registered successfully');
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -137,14 +137,18 @@ export default function UsersScreen() {
         !normalizedSearch ||
         [item.name, item.email, item.role, item.assigned_shift]
           .filter(Boolean)
-          .some(value => String(value).toLowerCase().includes(normalizedSearch));
+          .some(value =>
+            String(value).toLowerCase().includes(normalizedSearch),
+          );
       return matchesStatus && matchesSearch;
     });
   const filteredSuperadmins = filterUsers(superadmins);
   const filteredPlantManagers = filterUsers(plantManagers);
   const filteredAdmins = filterUsers(admins);
   const filteredSupervisors = filterUsers(supervisors);
-  const activeAccountCount = allUsers.filter(item => item.status === 'active').length;
+  const activeAccountCount = allUsers.filter(
+    item => item.status === 'active',
+  ).length;
   const inactiveAccountCount = allUsers.filter(
     item => item.status === 'inactive',
   ).length;
@@ -172,7 +176,12 @@ export default function UsersScreen() {
   };
 
   const handleRegister = () => {
-    if (!form.name || !form.email || (!editingId && !form.password) || !form.role) {
+    if (
+      !form.name ||
+      !form.email ||
+      (!editingId && !form.password) ||
+      !form.role
+    ) {
       Alert.alert('Required', 'Please fill all required fields');
       return;
     }
@@ -202,8 +211,8 @@ export default function UsersScreen() {
               {isSuperAdmin
                 ? 'View active staff and manage feature access'
                 : canManageUsers
-                  ? 'View active staff and manage accounts'
-                  : 'View supervisors'}
+                ? 'View active staff and manage accounts'
+                : 'View supervisors'}
             </Text>
           </View>
 
@@ -261,9 +270,21 @@ export default function UsersScreen() {
         )}
 
         <View style={styles.summaryGrid}>
-          <SummaryCard label="Enabled" value={activeAccountCount} tone="green" />
-          <SummaryCard label="Inactive" value={inactiveAccountCount} tone="gray" />
-          <SummaryCard label="On shift" value={activeSupervisors.length} tone="blue" />
+          <SummaryCard
+            label="Enabled"
+            value={activeAccountCount}
+            tone="green"
+          />
+          <SummaryCard
+            label="Inactive"
+            value={inactiveAccountCount}
+            tone="gray"
+          />
+          <SummaryCard
+            label="On shift"
+            value={activeSupervisors.length}
+            tone="blue"
+          />
         </View>
 
         <View style={styles.directoryTools}>
@@ -340,7 +361,8 @@ export default function UsersScreen() {
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
-                      status: item.status === 'inactive' ? 'active' : 'inactive',
+                      status:
+                        item.status === 'inactive' ? 'active' : 'inactive',
                     })
                   }
                 />
@@ -368,7 +390,8 @@ export default function UsersScreen() {
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
-                      status: item.status === 'inactive' ? 'active' : 'inactive',
+                      status:
+                        item.status === 'inactive' ? 'active' : 'inactive',
                     })
                   }
                 />
@@ -407,21 +430,21 @@ export default function UsersScreen() {
       </ScrollView>
 
       {canManageUsers && (
-          <RegisterModal
-            visible={modalVisible}
-            editingId={editingId}
-            onClose={closeModal}
-            form={form}
-            updateForm={updateForm}
-            loading={registerMutation.isPending}
-            onSubmit={handleRegister}
-          />
+        <RegisterModal
+          visible={modalVisible}
+          editingId={editingId}
+          onClose={closeModal}
+          form={form}
+          updateForm={updateForm}
+          loading={registerMutation.isPending}
+          onSubmit={handleRegister}
+        />
       )}
       {isSuperAdmin && (
-          <PermissionModal
-            user={permissionUser}
-            onClose={() => setPermissionUser(null)}
-          />
+        <PermissionModal
+          user={permissionUser}
+          onClose={() => setPermissionUser(null)}
+        />
       )}
     </View>
   );
@@ -435,75 +458,81 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
 
   return (
     <View style={styles.userCard}>
-      <View style={styles.avatar}>
-        {isManagement ? (
-          <ShieldCheck size={22} color={COLORS.primary} />
-        ) : (
-          <Users size={22} color={COLORS.primary} />
-        )}
-      </View>
-
-      <View style={styles.flex}>
-        <Text style={styles.userName}>{item.name}</Text>
-        <Text style={styles.userEmail}>{item.email}</Text>
-
-        <Text style={styles.shiftText}>
-          Role: {item.role?.replaceAll('_', ' ')}
-        </Text>
-        <View style={styles.accountMetaRow}>
-          <View
-            style={[
-              styles.accountDot,
-              item.status === 'inactive' && styles.accountDotInactive,
-            ]}
-          />
-          <Text
-            style={[
-              styles.accountStatusText,
-              item.status === 'inactive' && styles.accountStatusTextInactive,
-            ]}
-          >
-            {item.status === 'inactive' ? 'Inactive account' : 'Enabled account'}
-          </Text>
+      <View style={styles.userIdentityRow}>
+        <View style={styles.avatar}>
+          {isManagement ? (
+            <ShieldCheck size={22} color={COLORS.primary} />
+          ) : (
+            <Users size={22} color={COLORS.primary} />
+          )}
         </View>
-        {item.created_at && (
-          <Text style={styles.grayText}>Joined: {formatUserDate(item.created_at)}</Text>
-        )}
-        <Text
-          style={
-            Number(item.notifications_registered) === 1
-              ? styles.greenText
-              : styles.grayText
-          }
-        >
-          Notifications:{' '}
-          {Number(item.notifications_registered) === 1
-            ? 'Registered'
-            : 'Not registered'}
-        </Text>
-        {isManagement ? (
-          <Text style={styles.grayText}>
-            {isSuperAdmin
-              ? 'Protected superadmin account'
-              : isPlantManager
+
+        <View style={styles.flex}>
+          <Text style={styles.userName}>{item.name}</Text>
+          <Text style={styles.userEmail}>{item.email}</Text>
+
+          <Text style={styles.shiftText}>
+            Role: {item.role?.replaceAll('_', ' ')}
+          </Text>
+          <View style={styles.accountMetaRow}>
+            <View
+              style={[
+                styles.accountDot,
+                item.status === 'inactive' && styles.accountDotInactive,
+              ]}
+            />
+            <Text
+              style={[
+                styles.accountStatusText,
+                item.status === 'inactive' && styles.accountStatusTextInactive,
+              ]}
+            >
+              {item.status === 'inactive'
+                ? 'Inactive account'
+                : 'Enabled account'}
+            </Text>
+          </View>
+          {item.created_at && (
+            <Text style={styles.grayText}>
+              Joined: {formatUserDate(item.created_at)}
+            </Text>
+          )}
+          <Text
+            style={
+              Number(item.notifications_registered) === 1
+                ? styles.greenText
+                : styles.grayText
+            }
+          >
+            Notifications:{' '}
+            {Number(item.notifications_registered) === 1
+              ? 'Registered'
+              : 'Not registered'}
+          </Text>
+          {isManagement ? (
+            <Text style={styles.grayText}>
+              {isSuperAdmin
+                ? 'Protected superadmin account'
+                : isPlantManager
                 ? 'Manager user'
                 : 'Admin user'}
-          </Text>
-        ) : (
-          <>
-            <Text style={styles.shiftText}>
-              Assigned: {item.assigned_shift || '-'}
             </Text>
-
-            {item.is_shift_active ? (
-              <Text style={styles.greenText}>
-                Running: {item.active_shift_name} shift
+          ) : (
+            <>
+              <Text style={styles.shiftText}>
+                Assigned: {item.assigned_shift || '-'}
               </Text>
-            ) : (
-              <Text style={styles.grayText}>Not active</Text>
-            )}
-          </>
-        )}
+
+              {item.is_shift_active ? (
+                <Text style={styles.greenText}>
+                  Running: {item.active_shift_name} shift
+                </Text>
+              ) : (
+                <Text style={styles.grayText}>Not active</Text>
+              )}
+            </>
+          )}
+        </View>
       </View>
       {(onEdit || onStatus || onAccess) && (
         <View style={styles.userActions}>
@@ -514,16 +543,16 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
             </TouchableOpacity>
           )}
           {onEdit && (
-          <TouchableOpacity style={styles.userEditBtn} onPress={onEdit}>
-            <Text style={styles.userEditText}>EDIT</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.userEditBtn} onPress={onEdit}>
+              <Text style={styles.userEditText}>EDIT</Text>
+            </TouchableOpacity>
           )}
           {onStatus && (
-          <TouchableOpacity style={styles.userStatusBtn} onPress={onStatus}>
-            <Text style={styles.userStatusText}>
-              {item.status === 'inactive' ? 'ACTIVATE' : 'DEACTIVATE'}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.userStatusBtn} onPress={onStatus}>
+              <Text style={styles.userStatusText}>
+                {item.status === 'inactive' ? 'ACTIVATE' : 'DEACTIVATE'}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -533,14 +562,19 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
 
 function SummaryCard({ label, value, tone }) {
   const toneStyle = {
-    green: { backgroundColor: '#DCFCE7', color: COLORS.green },
-    gray: { backgroundColor: '#F1F5F9', color: COLORS.gray },
+    green: { backgroundColor: COLORS.tealSoft, color: COLORS.green },
+    gray: { backgroundColor: COLORS.surfaceMuted, color: COLORS.gray },
     blue: { backgroundColor: COLORS.lightBlue, color: COLORS.primary },
   }[tone];
 
   return (
     <View style={styles.summaryCard}>
-      <View style={[styles.summaryIcon, { backgroundColor: toneStyle.backgroundColor }]}>
+      <View
+        style={[
+          styles.summaryIcon,
+          { backgroundColor: toneStyle.backgroundColor },
+        ]}
+      >
         <Users size={18} color={toneStyle.color} />
       </View>
       <Text style={[styles.summaryValue, { color: toneStyle.color }]}>
@@ -604,7 +638,9 @@ function PermissionModal({ user, onClose }) {
     onSuccess: response => {
       Alert.alert('Access Updated', response?.message || 'Permissions saved');
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-permissions', user.id] });
+      queryClient.invalidateQueries({
+        queryKey: ['user-permissions', user.id],
+      });
       onClose();
     },
     onError: error =>
@@ -663,9 +699,12 @@ function PermissionModal({ user, onClose }) {
             ]}
           >
             <View style={styles.permissionIntro}>
-              <Text style={styles.permissionIntroTitle}>Role defaults + custom access</Text>
+              <Text style={styles.permissionIntroTitle}>
+                Role defaults + custom access
+              </Text>
               <Text style={styles.permissionIntroText}>
-                Switches show effective access. Changes here override only this user.
+                Switches show effective access. Changes here override only this
+                user.
               </Text>
               <TouchableOpacity
                 style={styles.resetAccessBtn}
@@ -692,7 +731,9 @@ function PermissionModal({ user, onClose }) {
                     <View key={permission.key} style={styles.permissionRow}>
                       <View style={styles.permissionCopy}>
                         <View style={styles.permissionLabelRow}>
-                          <Text style={styles.permissionLabel}>{permission.label}</Text>
+                          <Text style={styles.permissionLabel}>
+                            {permission.label}
+                          </Text>
                           {customized && (
                             <Text style={styles.customBadge}>CUSTOM</Text>
                           )}
@@ -709,7 +750,10 @@ function PermissionModal({ user, onClose }) {
                             [permission.key]: value,
                           }))
                         }
-                        trackColor={{ false: COLORS.borderStrong, true: COLORS.accent }}
+                        trackColor={{
+                          false: COLORS.borderStrong,
+                          true: COLORS.accent,
+                        }}
                         thumbColor={COLORS.white}
                       />
                     </View>
@@ -719,7 +763,10 @@ function PermissionModal({ user, onClose }) {
             ))}
 
             <TouchableOpacity
-              style={[styles.saveBtn, saveMutation.isPending && styles.disabled]}
+              style={[
+                styles.saveBtn,
+                saveMutation.isPending && styles.disabled,
+              ]}
               disabled={saveMutation.isPending}
               onPress={() => saveMutation.mutate()}
             >
@@ -846,11 +893,7 @@ function RegisterModal({
                 cursorColor={COLORS.accent}
                 selectionColor={COLORS.lightBlue}
                 theme={PAPER_THEME}
-                left={
-                  <TextInput.Icon
-                    icon={PasswordLockIcon}
-                  />
-                }
+                left={<TextInput.Icon icon={PasswordLockIcon} />}
                 right={
                   <TextInput.Icon
                     icon={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -984,100 +1027,106 @@ const styles = StyleSheet.create({
   },
 
   headerCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 18,
-    elevation: 2,
+    elevation: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 
-  title: { color: COLORS.primary, fontSize: 27, fontWeight: '800' },
+  title: { color: COLORS.text, fontSize: 27, fontWeight: '700' },
   description: { color: COLORS.gray, fontSize: 13, marginTop: 4 },
 
   addBtn: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   sectionTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     marginTop: 20,
     marginBottom: 12,
   },
 
   activeCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 15,
-    elevation: 2,
+    elevation: 1,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
 
   userCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 15,
-    elevation: 2,
+    elevation: 1,
     marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
+  userIdentityRow: { flexDirection: 'row', alignItems: 'flex-start' },
 
   avatar: {
     width: 46,
     height: 46,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
 
-  userName: { color: COLORS.primary, fontSize: 16, fontWeight: '800' },
+  userName: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
   userEmail: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
 
   shiftText: {
     color: COLORS.text,
     fontSize: 12,
     marginTop: 4,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   greenText: {
     color: COLORS.green,
     fontSize: 12,
     marginTop: 4,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   grayText: {
     color: COLORS.gray,
     fontSize: 12,
     marginTop: 4,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   activeBadge: {
-    backgroundColor: '#DCFCE7',
-    borderRadius: 999,
+    backgroundColor: COLORS.tealSoft,
+    borderRadius: 3,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
 
   activeBadgeText: {
     color: COLORS.green,
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   summaryGrid: {
@@ -1086,43 +1135,51 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   summaryCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     flex: 1,
     minWidth: 0,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 12,
-    elevation: 2,
+    elevation: 1,
   },
   summaryIcon: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
-  summaryValue: { fontSize: 21, fontWeight: '900' },
-  summaryLabel: { color: COLORS.gray, fontSize: 11, fontWeight: '700' },
+  summaryValue: {
+    fontVariant: ['tabular-nums'],
+    fontSize: 21,
+    fontWeight: '700',
+  },
+  summaryLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
 
   directoryTools: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 14,
     marginTop: 18,
-    elevation: 2,
+    elevation: 1,
   },
   directoryTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 10,
   },
   searchInput: { backgroundColor: COLORS.white, fontSize: 13 },
   filterRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   filterBtn: {
     flex: 1,
-    minHeight: 38,
-    borderRadius: 10,
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
@@ -1133,7 +1190,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  filterText: { color: COLORS.gray, fontSize: 12, fontWeight: '800' },
+  filterText: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
   filterTextActive: { color: COLORS.white },
 
   accountMetaRow: {
@@ -1149,17 +1206,19 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   accountDotInactive: { backgroundColor: COLORS.gray },
-  accountStatusText: { color: COLORS.green, fontSize: 11, fontWeight: '800' },
+  accountStatusText: { color: COLORS.green, fontSize: 12, fontWeight: '600' },
   accountStatusTextInactive: { color: COLORS.gray },
 
   emptyCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 18,
-    elevation: 2,
+    elevation: 1,
   },
 
-  emptyText: { color: COLORS.gray, fontWeight: '700' },
+  emptyText: { color: COLORS.gray, fontWeight: '600' },
   loaderBox: { padding: 30 },
 
   modalSafe: { flex: 1, backgroundColor: COLORS.bg },
@@ -1188,7 +1247,7 @@ const styles = StyleSheet.create({
   modalIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1199,7 +1258,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  modalTitle: { color: COLORS.primary, fontSize: 22, fontWeight: '800' },
+  modalTitle: { color: COLORS.text, fontSize: 22, fontWeight: '700' },
   modalDesc: {
     color: COLORS.gray,
     fontSize: 12,
@@ -1208,9 +1267,9 @@ const styles = StyleSheet.create({
   },
 
   closeBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1219,10 +1278,12 @@ const styles = StyleSheet.create({
   modalBody: { padding: 16, paddingBottom: 32 },
 
   formCard: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     padding: 18,
-    elevation: 2,
+    elevation: 1,
   },
 
   input: {
@@ -1233,8 +1294,8 @@ const styles = StyleSheet.create({
 
   passwordHint: {
     color: COLORS.gray,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '400',
     marginTop: -7,
     marginBottom: 16,
     paddingHorizontal: 4,
@@ -1243,7 +1304,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: COLORS.primary,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     marginBottom: 8,
     marginTop: 4,
   },
@@ -1257,7 +1318,7 @@ const styles = StyleSheet.create({
   choiceBtn: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     paddingVertical: 13,
     alignItems: 'center',
     borderWidth: 1,
@@ -1271,7 +1332,7 @@ const styles = StyleSheet.create({
 
   choiceText: {
     color: COLORS.gray,
-    fontWeight: '800',
+    fontWeight: '600',
     fontSize: 13,
   },
 
@@ -1280,7 +1341,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: COLORS.primary,
     height: 56,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -1291,52 +1352,63 @@ const styles = StyleSheet.create({
   saveText: {
     color: COLORS.white,
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.6,
   },
-  userActions: { alignItems: 'stretch', gap: 6, marginLeft: 8 },
+  userActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
   userAccessBtn: {
+    flex: 1,
     minWidth: 72,
-    minHeight: 34,
-    borderRadius: 9,
-    backgroundColor: '#FFF7ED',
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 4,
   },
-  userAccessText: { color: COLORS.accent, fontSize: 9, fontWeight: '900' },
+  userAccessText: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
   userEditBtn: {
+    flex: 1,
     minWidth: 72,
-    minHeight: 34,
-    borderRadius: 9,
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.lightBlue,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userEditText: { color: COLORS.primary, fontSize: 10, fontWeight: '800' },
+  userEditText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
   userStatusBtn: {
+    flex: 1,
     minWidth: 72,
-    minHeight: 34,
-    borderRadius: 9,
-    backgroundColor: '#FEE2E2',
+    minHeight: 44,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
-  userStatusText: { color: COLORS.danger, fontSize: 8.5, fontWeight: '800' },
+  userStatusText: { color: COLORS.danger, fontSize: 12, fontWeight: '600' },
 
   permissionBody: { padding: 16, paddingBottom: 36 },
   permissionIntro: {
     backgroundColor: COLORS.lightBlue,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     padding: 16,
     marginBottom: 16,
   },
   permissionIntroTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   permissionIntroText: {
     color: COLORS.gray,
@@ -1350,24 +1422,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: COLORS.white,
-    borderRadius: 9,
+    borderRadius: UI.radiusSmall,
     paddingHorizontal: 11,
     paddingVertical: 9,
     marginTop: 12,
   },
-  resetAccessText: { color: COLORS.primary, fontSize: 10, fontWeight: '900' },
+  resetAccessText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
   permissionGroup: {
+    borderWidth: 0,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radius,
     paddingHorizontal: 15,
     paddingTop: 15,
     marginBottom: 14,
-    elevation: 2,
+    elevation: 1,
   },
   permissionGroupTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
     marginBottom: 4,
   },
   permissionRow: {
@@ -1381,19 +1455,19 @@ const styles = StyleSheet.create({
   },
   permissionCopy: { flex: 1 },
   permissionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  permissionLabel: { color: COLORS.text, fontSize: 14, fontWeight: '800' },
+  permissionLabel: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
   customBadge: {
     color: COLORS.accent,
-    backgroundColor: '#FFF7ED',
-    borderRadius: 999,
+    backgroundColor: COLORS.warningSoft,
+    borderRadius: 3,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    fontSize: 8,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '600',
   },
   permissionDescription: {
     color: COLORS.gray,
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 16,
     marginTop: 4,
   },

@@ -10,7 +10,7 @@ import {
   updateControlPanelSettingApi,
   uploadAndroidApkApi,
 } from '../../api/controlPanelApi';
-import { COLORS, PAPER_THEME } from '../../assets/Colors';
+import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { socket } from '../../socket/socket';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { useSelector } from 'react-redux';
@@ -20,6 +20,14 @@ const defaults = {
   zinc_alert_threshold: { enabled: true, percentage: '7.50' },
   shift_schedule: { automatic: true, day_start: '08:00', night_start: '20:00' },
   maintenance_mode: { enabled: false, message: '' },
+};
+
+const getNightShiftStart = dayStart => {
+  const [hours, minutes] = String(dayStart || '08:00').split(':').map(Number);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return '20:00';
+  return `${String((hours + 12) % 24).padStart(2, '0')}:${String(
+    minutes,
+  ).padStart(2, '0')}`;
 };
 
 const emptyRelease = {
@@ -164,7 +172,6 @@ export default function ControlPanelScreen() {
       contentContainerStyle={[styles.container, centeredContent(contentMaxWidth)]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
     >
-      <View style={styles.headerCard}><Text style={styles.title}>Control Panel</Text><Text style={styles.subtitle}>Authorized app settings and release controls</Text></View>
       {canManageAppUpdates && <SettingCard title="Native Android Update" subtitle="Upload an APK and publish the same native update used by the web control panel.">
         <SwitchRow label="Enable native update" value={release.enabled} onChange={value => updateRelease('enabled', value)} />
         <SwitchRow label="Mandatory update" value={release.mandatory} onChange={value => updateRelease('mandatory', value)} />
@@ -186,10 +193,11 @@ export default function ControlPanelScreen() {
         <Input label="Alert Percentage" keyboardType="decimal-pad" value={settings.zinc_alert_threshold.percentage} onChangeText={value => update('zinc_alert_threshold', 'percentage', value)} />
         <SaveButton loading={saving === 'zinc_alert_threshold'} onPress={() => save('zinc_alert_threshold')} />
       </SettingCard>
-      <SettingCard title="Shift Schedule" subtitle="Automatic day and night shift timing.">
-        <SwitchRow label="Automatic shifts" value={settings.shift_schedule.automatic} onChange={value => update('shift_schedule', 'automatic', value)} />
-        <Input label="Day Start (HH:mm)" value={settings.shift_schedule.day_start} onChangeText={value => update('shift_schedule', 'day_start', value)} />
-        <Input label="Night Start (HH:mm)" value={settings.shift_schedule.night_start} onChangeText={value => update('shift_schedule', 'night_start', value)} />
+      <SettingCard title="Shift Schedule" subtitle="Automatic 12-hour day and night shifts.">
+        <Input label="Day Shift Start (HH:mm)" value={settings.shift_schedule.day_start} onChangeText={value => update('shift_schedule', 'day_start', value)} />
+        <Text style={styles.scheduleNote}>
+          Night shift starts automatically at {getNightShiftStart(settings.shift_schedule.day_start)} and both shifts run for 12 hours.
+        </Text>
         <SaveButton loading={saving === 'shift_schedule'} onPress={() => save('shift_schedule')} />
       </SettingCard>
       <SettingCard title="Maintenance Mode" subtitle="Temporarily block normal app usage with a message.">
@@ -219,22 +227,20 @@ const SaveButton = ({ loading, onPress }) => <TouchableOpacity style={styles.sav
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 40, backgroundColor: COLORS.bg },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg },
-  headerCard: { backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, marginBottom: 14 },
-  title: { color: COLORS.white, fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#D8ECFA', fontSize: 13, fontWeight: '700', marginTop: 4 },
-  card: { backgroundColor: COLORS.white, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 14 },
-  cardTitle: { color: COLORS.primary, fontSize: 17, fontWeight: '800' },
+  card: { backgroundColor: COLORS.white, borderRadius: UI.radius, borderWidth: 0, borderColor: COLORS.border, padding: 16, marginBottom: 14 },
+  cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
   cardSubtitle: { color: COLORS.gray, fontSize: 12, lineHeight: 18, marginTop: 3, marginBottom: 12 },
   switchRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  switchLabel: { color: COLORS.text, fontSize: 14, fontWeight: '700', flex: 1 },
+  switchLabel: { color: COLORS.text, fontSize: 14, fontWeight: '600', flex: 1 },
   input: { backgroundColor: COLORS.white, marginBottom: 12 },
-  saveBtn: { minHeight: 50, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: COLORS.white, fontSize: 13, fontWeight: '800' },
-  uploadBtn: { minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  uploadText: { color: COLORS.primary, fontSize: 13, fontWeight: '800' },
-  uploadProgress: { color: COLORS.gray, fontSize: 12, fontWeight: '700', marginBottom: 10 },
+  scheduleNote: { color: COLORS.gray, fontSize: 12, fontWeight: '600', lineHeight: 18, marginBottom: 12 },
+  saveBtn: { minHeight: 50, borderRadius: UI.radiusSmall, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  saveText: { color: COLORS.white, fontSize: 13, fontWeight: '600' },
+  uploadBtn: { minHeight: 48, borderRadius: UI.radiusSmall, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  uploadText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
+  uploadProgress: { color: COLORS.gray, fontSize: 12, fontWeight: '600', marginBottom: 10 },
   logRow: { paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  logAction: { color: COLORS.text, fontSize: 13, fontWeight: '800' },
-  logMeta: { color: COLORS.gray, fontSize: 11, fontWeight: '600', marginTop: 3 },
-  empty: { color: COLORS.gray, fontWeight: '700', marginTop: 12 },
+  logAction: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+  logMeta: { color: COLORS.gray, fontSize: 12, fontWeight: '400', marginTop: 3 },
+  empty: { color: COLORS.gray, fontWeight: '600', marginTop: 12 },
 });

@@ -137,3 +137,7 @@ export const formatTime12Hour = (value, fallback = '-') => {
 
   return `${String(hour).padStart(2, '0')}:${minute} ${period}`;
 };
+// Planning labels arrive as "material name + description". Only replace the
+// joining separator; keep any subsequent plus signs within the description.
+export const formatMaterialDescription = value =>
+  String(value ?? '').trim().replace(/\s+\+\s+/, ' ');

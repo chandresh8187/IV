@@ -1,8 +1,25 @@
 import apiClient from './apiClient';
 
-export const downloadProductionReportApi = async ({ type, value, date }) => {
+export const getHistoryPartySummaryApi = async params => {
+  const response = await apiClient.get('/production-history/party-summary', { params });
+  return response.data;
+};
+
+export const getHistoryDatesApi = async () => {
+  const response = await apiClient.get('/production-history/dates');
+  return response.data;
+};
+
+export const downloadProductionReportApi = async ({
+  type,
+  value,
+  date,
+  item_id,
+  planning_id,
+  shift_name,
+}) => {
   const response = await apiClient.get('/production-history/report', {
-    params: { type, value, date },
+    params: { type, value, date, item_id, planning_id, shift_name },
     responseType: 'arraybuffer',
   });
   return response;
@@ -27,16 +44,16 @@ export const getHistoryShiftTableApi = async params => {
   return response.data;
 };
 
-export const getHistoryMaterialSummaryApi = async date => {
+export const getHistoryMaterialSummaryApi = async params => {
   const response = await apiClient.get('/production-history/material-summary', {
-    params: { date },
+    params: typeof params === 'string' ? { date: params } : params,
   });
   return response.data;
 };
 
-export const getHistoryPlanningSummaryApi = async date => {
+export const getHistoryPlanningSummaryApi = async params => {
   const response = await apiClient.get('/production-history/planning-summary', {
-    params: { date },
+    params: typeof params === 'string' ? { date: params } : params,
   });
   return response.data;
 };

@@ -3,12 +3,9 @@ import {
   AlertTriangle,
   CalendarDays,
   CircleCheck,
-  Factory,
   Moon,
   Sun,
-  TrendingUp,
   Wrench,
-  Zap,
 } from 'lucide-react-native';
 import React from 'react';
 import {
@@ -22,11 +19,13 @@ import {
 
 import moment from 'moment';
 import { getDashboardApi } from '../../api/dashboardApi';
+import { formatWeight } from '../../utils/format';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function DashboardScreen() {
-  const { isTablet, wideMaxWidth } = useResponsive();
+  const { isTablet: tabletWindow, fontScale, wideMaxWidth } = useResponsive();
+  const isTablet = tabletWindow && fontScale <= 1.3;
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: ['dashboard'],
@@ -54,11 +53,9 @@ export default function DashboardScreen() {
   }
 
   const dashboard = data?.data;
-  const shiftStatus = dashboard?.shift_status;
   const todaySummary = dashboard?.today_summary;
   const dayShift = todaySummary?.day_shift || {};
   const nightShift = todaySummary?.night_shift || {};
-  const activeShift = dashboard?.active_shift_summary || {};
   const monthlySummary = dashboard?.current_month || {};
   const plantStatusData = dashboard?.plant_status || {};
   const plantStatus = plantStatusData?.status || 'running';
@@ -76,160 +73,73 @@ export default function DashboardScreen() {
       >
         <View style={styles.pageIntro}>
           <View style={styles.introCopy}>
-            <Text style={styles.eyebrow}>PLANT OPERATIONS</Text>
-            <Text style={styles.title}>Operations overview</Text>
-            <Text style={styles.subTitle}>
-              Live production and plant performance at a glance
-            </Text>
+            <Text style={styles.eyebrow}>Your plant at a glance</Text>
+            <Text style={styles.title}>Dashboard</Text>
           </View>
           <View style={styles.dateChip}>
             <CalendarDays size={16} color={COLORS.accent} />
-            <Text style={styles.dateChipText}>{moment().format('DD MMM')}</Text>
+            <Text style={styles.dateChipText}>
+              {moment().format('DD MMM YYYY')}
+            </Text>
           </View>
         </View>
 
-        {productionAllowed && (
-          <View style={styles.activeShiftCard}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.iconBox}>
-                <Factory size={22} color={COLORS.primary} />
-              </View>
-
-              <View style={styles.flex}>
-                <Text style={styles.cardTitle}>
-                  {productionAllowed
-                    ? 'Current Shift'
-                    : plantStatus === 'maintenance'
-                    ? 'Production Before Maintenance'
-                    : 'Production Before Plant Stop'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.shiftBadge,
-                  shiftStatus?.is_shift_active
-                    ? styles.activeBadge
-                    : styles.idleBadge,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.shiftBadgeText,
-                    shiftStatus?.is_shift_active
-                      ? styles.activeText
-                      : styles.idleText,
-                  ]}
-                >
-                  {shiftStatus?.is_shift_active
-                    ? shiftStatus.active_shift.shift_name?.toUpperCase()
-                    : 'NO SHIFT'}
-                </Text>
-              </View>
-            </View>
-
-            {shiftStatus?.active_shift ? (
-              <View style={styles.shiftInfoBox}>
-                <InfoLine
-                  label="Shift Date"
-                  value={moment(shiftStatus.active_shift.shift_date).format(
-                    'DD/MM/YYYY',
-                  )}
-                />
-              </View>
-            ) : (
-              <Text style={styles.emptyText}>No active shift right now.</Text>
-            )}
-          </View>
-        )}
-
         <View style={styles.monthCard}>
           <View style={styles.monthHeader}>
-            <Text style={styles.monthTitle}>Current Month Summary</Text>
-            <Text style={styles.monthSubTitle}>Production overview</Text>
+            <Text style={styles.monthTitle}>Monthly production</Text>
+            <Text style={styles.monthSubTitle}>
+              {moment().format('MMMM YYYY')}
+            </Text>
           </View>
 
           <View style={styles.monthGrid}>
             <SummaryBox
               label="MS Production"
-              value={`${monthlySummary.total_ms_production_kg || 0} KG`}
+              value={`${formatWeight(
+                monthlySummary.total_ms_production_kg || 0,
+              )} KG`}
               isTablet={isTablet}
             />
 
             <SummaryBox
               label="GI Production"
-              value={`${monthlySummary.total_gi_production_kg || 0} KG`}
+              value={`${formatWeight(
+                monthlySummary.total_gi_production_kg || 0,
+              )} KG`}
               isTablet={isTablet}
             />
 
             <SummaryBox
               label="Zinc Used"
-              value={`${monthlySummary.zink_used || 0} KG`}
+              value={`${formatWeight(monthlySummary.zink_used || 0)} KG`}
               isTablet={isTablet}
             />
 
             <SummaryBox
               label="Zinc Consumption"
-              value={`${monthlySummary.zinc_consumption || 0}%`}
+              value={`${formatWeight(monthlySummary.zinc_consumption || 0)}%`}
               isTablet={isTablet}
             />
           </View>
         </View>
 
-        <View style={styles.grid}>
-          <SummaryCard
-            title={
-              productionAllowed
-                ? 'Active MS Production'
-                : plantStatus === 'maintenance'
-                ? 'MS Before Maintenance'
-                : 'MS Before Plant Stop'
-            }
-            value={`${activeShift.total_ms_production_kg || 0} kg`}
-            icon={<TrendingUp size={22} color={COLORS.primary} />}
-            isfull={!isTablet}
+        <SectionTitle title="Today’s shifts" />
+
+        <View style={[styles.shiftGrid, isTablet && styles.shiftGridTablet]}>
+          <ShiftSummaryCard
+            title="Day Shift"
+            icon={<Sun size={22} color={COLORS.accent} />}
+            data={dayShift}
             isTablet={isTablet}
           />
 
-          <SummaryCard
-            title="Zinc Used"
-            value={`${
-              activeShift.zink_used || activeShift.difference_kg || 0
-            } kg`}
-            icon={<Zap size={22} color={COLORS.orange} />}
-            isTablet={isTablet}
-          />
-
-          <SummaryCard
-            title="Zinc Consumption"
-            value={`${
-              activeShift.zinc_consumption ||
-              activeShift.difference_percentage ||
-              0
-            }%`}
-            icon={<Zap size={22} color={COLORS.orange} />}
+          <ShiftSummaryCard
+            title="Night Shift"
+            icon={<Moon size={22} color={COLORS.primary} />}
+            data={nightShift}
             isTablet={isTablet}
           />
         </View>
-
-        {productionAllowed && <SectionTitle title="Today Shift Summary" />}
-
-        {productionAllowed && (
-          <View style={[styles.shiftGrid, isTablet && styles.shiftGridTablet]}>
-            <ShiftSummaryCard
-              title="Day Shift"
-              icon={<Sun size={22} color={COLORS.orange} />}
-              data={dayShift}
-              isTablet={isTablet}
-            />
-
-            <ShiftSummaryCard
-              title="Night Shift"
-              icon={<Moon size={22} color={COLORS.primary} />}
-              data={nightShift}
-              isTablet={isTablet}
-            />
-          </View>
-        )}
       </ScrollView>
       {!productionAllowed && (
         <PlantStatusBanner config={plantStatusConfig} data={plantStatusData} />
@@ -244,7 +154,7 @@ function getPlantStatusConfig(status, data) {
       title: data?.title || 'Plant Under Maintenance',
       description:
         data?.message || 'Maintenance work is currently in progress.',
-      icon: <Wrench size={24} color="#B26A00" />,
+      icon: <Wrench size={24} color={COLORS.warning} />,
       containerStyle: styles.maintenanceStatusCard,
       badgeStyle: styles.maintenanceStatusBadge,
       badgeTextStyle: styles.maintenanceStatusText,
@@ -256,7 +166,7 @@ function getPlantStatusConfig(status, data) {
     return {
       title: data?.title || 'Plant Stopped',
       description: data?.message || 'Plant operations are currently stopped.',
-      icon: <AlertTriangle size={24} color="#C62828" />,
+      icon: <AlertTriangle size={24} color={COLORS.danger} />,
       containerStyle: styles.stoppedStatusCard,
       badgeStyle: styles.stoppedStatusBadge,
       badgeTextStyle: styles.stoppedStatusText,
@@ -268,7 +178,7 @@ function getPlantStatusConfig(status, data) {
     title: data?.title || 'Plant Running',
     description:
       data?.message || 'Plant operations and production entry are active.',
-    icon: <CircleCheck size={24} color="#1B7F3A" />,
+    icon: <CircleCheck size={24} color={COLORS.success} />,
     containerStyle: styles.runningStatusCard,
     badgeStyle: styles.runningStatusBadge,
     badgeTextStyle: styles.runningStatusText,
@@ -324,25 +234,6 @@ function PlantStatusBanner({ config, data }) {
   );
 }
 
-function SummaryCard({ title, value, icon, isfull, isTablet }) {
-  // Tablets have room for all three cards in a single row.
-  const width = isfull ? '100%' : isTablet ? '31.5%' : '48%';
-
-  return (
-    <View style={[styles.summaryCard, { width }]}>
-      <View style={isfull && styles.summaryHeaderFull}>
-        <View style={[styles.summaryIcon, isfull && styles.summaryIconFull]}>
-          {icon}
-        </View>
-        <Text style={styles.summaryTitle}>{title}</Text>
-      </View>
-      <Text style={[styles.summaryValue, isfull && styles.summaryValueFull]}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 function ShiftSummaryCard({ title, icon, data, isTablet }) {
   return (
     <View style={[styles.shiftCard, isTablet && styles.shiftCardTablet]}>
@@ -351,12 +242,33 @@ function ShiftSummaryCard({ title, icon, data, isTablet }) {
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
 
-      <InfoLine label="MS" value={`${data?.total_ms_production_kg || 0} kg`} />
-      <InfoLine label="Zinc Used" value={`${data?.zink_used || 0} kg`} />
-      <InfoLine
-        label="Zinc Consumption"
-        value={`${data?.zinc_consumption || 0}%`}
-      />
+      <View style={styles.shiftMetrics}>
+        <ShiftMetric
+          label="MS production"
+          value={`${formatWeight(data?.total_ms_production_kg || 0)} kg`}
+        />
+        <ShiftMetric
+          label="GI production"
+          value={`${formatWeight(data?.total_gi_production_kg || 0)} kg`}
+        />
+        <ShiftMetric
+          label="Zinc used"
+          value={`${formatWeight(data?.zink_used || 0)} kg`}
+        />
+        <ShiftMetric
+          label="Zinc consumption"
+          value={`${formatWeight(data?.zinc_consumption || 0)}%`}
+        />
+      </View>
+    </View>
+  );
+}
+
+function ShiftMetric({ label, value }) {
+  return (
+    <View style={styles.shiftMetric}>
+      <Text style={styles.shiftMetricLabel}>{label}</Text>
+      <Text style={styles.shiftMetricValue}>{value}</Text>
     </View>
   );
 }
@@ -384,7 +296,6 @@ function SectionTitle({ title }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   bannerPadding: { padding: 20 },
   screen: {
     flex: 1,
@@ -407,16 +318,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     color: COLORS.gray,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   errorText: {
     color: COLORS.red,
-    fontWeight: '800',
+    fontWeight: '600',
   },
 
   pageIntro: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -427,25 +340,18 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
-    color: COLORS.accent,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.8,
+    color: COLORS.gray,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0,
     marginBottom: 6,
   },
 
   title: {
-    color: COLORS.primary,
-    fontSize: 27,
-    fontWeight: '800',
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: '700',
     letterSpacing: -0.7,
-  },
-
-  subTitle: {
-    color: COLORS.gray,
-    fontSize: 13,
-    marginTop: 4,
-    lineHeight: 19,
   },
 
   dateChip: {
@@ -463,34 +369,7 @@ const styles = StyleSheet.create({
   dateChipText: {
     color: COLORS.primary,
     fontSize: 12,
-    fontWeight: '700',
-  },
-
-  shiftBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 4,
-  },
-
-  activeBadge: {
-    backgroundColor: '#DCFCE7',
-  },
-
-  idleBadge: {
-    backgroundColor: '#FEE2E2',
-  },
-
-  shiftBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  activeText: {
-    color: COLORS.green,
-  },
-
-  idleText: {
-    color: COLORS.red,
+    fontWeight: '600',
   },
 
   plantStatusCard: {
@@ -501,18 +380,18 @@ const styles = StyleSheet.create({
   },
 
   runningStatusCard: {
-    backgroundColor: '#ECFDF3',
-    borderColor: '#86D69D',
+    backgroundColor: COLORS.tealSoft,
+    borderColor: COLORS.borderStrong,
   },
 
   maintenanceStatusCard: {
-    backgroundColor: '#FFF8E1',
-    borderColor: '#F2C15B',
+    backgroundColor: COLORS.warningSoft,
+    borderColor: COLORS.warning,
   },
 
   stoppedStatusCard: {
-    backgroundColor: '#FFF0F0',
-    borderColor: '#EF9A9A',
+    backgroundColor: COLORS.dangerSoft,
+    borderColor: COLORS.danger,
   },
 
   plantStatusHeader: {
@@ -524,7 +403,7 @@ const styles = StyleSheet.create({
   plantStatusIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -535,15 +414,15 @@ const styles = StyleSheet.create({
   },
 
   plantStatusTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   plantStatusDescription: {
     color: COLORS.text,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     marginTop: 4,
     lineHeight: 18,
   },
@@ -551,56 +430,44 @@ const styles = StyleSheet.create({
   plantStatusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: UI.radiusSmall,
   },
 
   plantStatusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   runningStatusBadge: {
-    backgroundColor: '#D8F3E1',
+    backgroundColor: COLORS.tealSoft,
   },
 
   runningStatusText: {
-    color: '#1B7F3A',
+    color: COLORS.success,
   },
 
   maintenanceStatusBadge: {
-    backgroundColor: '#FCE7AE',
+    backgroundColor: COLORS.warningSoft,
   },
 
   maintenanceStatusText: {
-    color: '#9A5A00',
+    color: COLORS.warning,
   },
 
   stoppedStatusBadge: {
-    backgroundColor: '#FFDADA',
+    backgroundColor: COLORS.dangerSoft,
   },
 
   stoppedStatusText: {
-    color: '#B71C1C',
+    color: COLORS.danger,
   },
 
   productionBlockedText: {
     color: COLORS.red,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     marginTop: 12,
     lineHeight: 18,
-  },
-
-  activeShiftCard: {
-    marginTop: 14,
-    backgroundColor: COLORS.white,
-    borderRadius: UI.radius,
-    padding: UI.cardPadding,
-    ...UI.shadow,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.teal,
   },
 
   cardHeaderRow: {
@@ -613,72 +480,41 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: UI.radiusSmall,
-    backgroundColor: COLORS.tealSoft,
+    backgroundColor: COLORS.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   cardTitle: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 16,
     fontWeight: '700',
   },
 
-  shiftInfoBox: {
-    marginTop: 14,
-  },
-
-  grid: {
-    marginTop: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-
-  summaryCard: {
-    // width: '48%',
-    backgroundColor: COLORS.white,
-    borderRadius: UI.radius,
-    padding: 16,
-    ...UI.shadow,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-
-  summaryIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: UI.radiusSmall,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  summaryHeaderFull: { flexDirection: 'row', alignItems: 'center' },
-  summaryIconFull: { marginRight: 10 },
-
-  summaryTitle: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  summaryValue: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-  summaryValueFull: { fontSize: 25 },
-
   sectionTitle: {
-    color: COLORS.primary,
+    color: COLORS.gray,
+    letterSpacing: 0,
     fontSize: 18,
     fontWeight: '700',
     marginTop: 22,
     marginBottom: 12,
   },
 
+  shiftMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginTop: 16,
+  },
+  shiftMetric: { flexBasis: '43%', flexGrow: 1 },
+  shiftMetricLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '400' },
+  shiftMetricValue: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    marginTop: 5,
+  },
   shiftGrid: {
     gap: 12,
   },
@@ -692,7 +528,7 @@ const styles = StyleSheet.create({
     borderRadius: UI.radius,
     padding: UI.cardPadding,
     ...UI.shadow,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: COLORS.border,
   },
 
@@ -701,8 +537,8 @@ const styles = StyleSheet.create({
   },
 
   monthCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: UI.radius,
+    backgroundColor: COLORS.hero,
+    borderRadius: UI.radiusLarge,
     padding: UI.cardPadding,
     marginTop: 14,
     ...UI.shadow,
@@ -715,13 +551,14 @@ const styles = StyleSheet.create({
   },
 
   monthTitle: {
-    color: COLORS.primary,
+    color: COLORS.white,
     fontSize: 18,
     fontWeight: '700',
   },
 
   monthSubTitle: {
-    color: COLORS.gray,
+    color: COLORS.onHero,
+    letterSpacing: 0,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 3,
@@ -734,29 +571,31 @@ const styles = StyleSheet.create({
   },
 
   summaryBox: {
-    width: '48%',
-    backgroundColor: COLORS.surfaceMuted,
+    flexGrow: 1,
+    flexBasis: '42%',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     borderRadius: UI.radiusSmall,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: COLORS.border,
     padding: 13,
   },
 
   summaryBoxTablet: {
-    width: '23.5%',
+    flexBasis: '21%',
   },
 
   summaryLabel: {
-    color: COLORS.gray,
-    fontSize: 11,
-    fontWeight: '600',
+    color: COLORS.onHero,
+    fontSize: 12,
+    fontWeight: '400',
   },
 
   // Named differently from summaryValue: duplicate StyleSheet keys silently
   // override each other, which was shrinking the summary card values.
   summaryBoxValue: {
-    color: COLORS.primary,
-    fontSize: 15,
+    color: COLORS.white,
+    fontSize: 19,
+    fontVariant: ['tabular-nums'],
     fontWeight: '700',
     marginTop: 5,
   },
@@ -764,27 +603,25 @@ const styles = StyleSheet.create({
   infoLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 7,
+    paddingVertical: 11,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
 
   infoLabel: {
+    flex: 1,
+    marginRight: 10,
     color: COLORS.gray,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   infoValue: {
+    flexShrink: 1,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
     color: COLORS.text,
     fontSize: 13,
-    fontWeight: '800',
-  },
-
-  emptyText: {
-    color: COLORS.gray,
-    fontSize: 13,
     fontWeight: '700',
-    marginTop: 8,
   },
 });

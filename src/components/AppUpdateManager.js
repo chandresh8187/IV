@@ -426,14 +426,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: UI.radiusLarge,
     backgroundColor: COLORS.white,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: COLORS.border,
     ...UI.shadow,
   },
   iconCircle: {
     width: 58,
     height: 58,
-    borderRadius: 18,
+    borderRadius: UI.radiusSmall,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -441,14 +441,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: {
-    color: COLORS.primary,
-    fontWeight: '800',
+    color: COLORS.text,
+    fontWeight: '700',
     textAlign: 'center',
   },
   updateType: {
     marginTop: 5,
     color: COLORS.gray,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
   },
   notesBox: {
@@ -461,8 +461,8 @@ const styles = StyleSheet.create({
   },
   notesTitle: {
     color: COLORS.accent,
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     letterSpacing: 1.1,
     marginBottom: 7,
   },
@@ -482,23 +482,23 @@ const styles = StyleSheet.create({
   progressText: {
     color: COLORS.text,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   progressPercent: {
     color: COLORS.accent,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   progressTrack: {
     height: 10,
     width: '100%',
     overflow: 'hidden',
-    borderRadius: 99,
+    borderRadius: 3,
     backgroundColor: COLORS.border,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 99,
+    borderRadius: 3,
     backgroundColor: COLORS.accent,
   },
   statusBox: {
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   statusText: {
     color: COLORS.primary,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   readyText: {
     marginTop: 16,
@@ -550,6 +550,6 @@ const styles = StyleSheet.create({
   required: {
     color: COLORS.danger,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

@@ -1,8 +1,10 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { COLORS } from '../assets/Colors';
+import { COLORS, UI } from '../assets/Colors';
+import { sortProductionEntries } from '../utils/productionOrder';
 import {
+  formatMaterialDescription,
   formatNumber,
   formatQuantity,
   formatTime12Hour,
@@ -10,30 +12,30 @@ import {
 } from '../utils/format';
 
 const COLUMNS = [
-  { key: 'sr_no', label: 'Sr', width: 55, bold: true },
+  { key: 'row_number', label: 'No.', width: 55, bold: true },
   { key: 'production_time', label: 'Time', width: 100 },
   { key: 'challan_no', label: 'Challan', width: 120 },
   { key: 'party_name', label: 'Party', width: 170 },
   { key: 'material', label: 'Material', width: 200 },
-  { key: 'kettle_temperature', label: 'Kettle Temp', width: 90 },
-  { key: 'dipping_qty', label: 'Dipping Qty', width: 80 },
-  { key: 'ms_weight', label: 'MS', width: 100 },
-  { key: 'gi_weight', label: 'GI', width: 100 },
+  { key: 'kettle_temperature', label: 'Kettle\n°C', width: 90 },
+  { key: 'dipping_qty', label: 'Qty\nNOS', width: 80 },
+  { key: 'ms_weight', label: 'MS\nKG', width: 100 },
+  { key: 'gi_weight', label: 'GI\nKG', width: 100 },
   { key: 'zinc_percentage', label: 'Zinc %', width: 90 },
   { key: 'c1', label: 'C1', width: 70 },
   { key: 'c2', label: 'C2', width: 70 },
   { key: 'c3', label: 'C3', width: 70 },
   { key: 'c4', label: 'C4', width: 70 },
   { key: 'c5', label: 'C5', width: 70 },
-  { key: 'avg_coating', label: 'Avg', width: 90, bold: true },
+  { key: 'avg_coating', label: 'Avg\nµm', width: 90, bold: true },
 ];
 
-const hasValue = value =>
-  value !== null && value !== undefined && value !== '';
+const hasValue = value => value !== null && value !== undefined && value !== '';
 
 const formatCellValue = (row, key) => {
   const value = row?.[key];
 
+  if (key === 'material') return formatMaterialDescription(value) || '-';
   if (key === 'production_time') return formatTime12Hour(value);
   if (key === 'dipping_qty') return formatQuantity(value, '-');
   if (key === 'kettle_temperature') {
@@ -54,13 +56,7 @@ const formatCellValue = (row, key) => {
 
 function TableCell({ children, width, header = false, bold = false }) {
   return (
-    <View
-      style={[
-        styles.cell,
-        { width },
-        header && styles.headerCell,
-      ]}
-    >
+    <View style={[styles.cell, { width }, header && styles.headerCell]}>
       <Text
         numberOfLines={3}
         style={[
@@ -78,14 +74,9 @@ function TableCell({ children, width, header = false, bold = false }) {
 const ProductionRows = React.memo(function ProductionRows({
   rows,
   renderAction,
-  emptyMessage,
 }) {
   if (!rows.length) {
-    return (
-      <View style={styles.emptyBox}>
-        <Text style={styles.emptyText}>{emptyMessage}</Text>
-      </View>
-    );
+    return null;
   }
 
   return rows.map((item, index) => (
@@ -94,12 +85,10 @@ const ProductionRows = React.memo(function ProductionRows({
       style={[styles.row, index % 2 === 1 && styles.altRow]}
     >
       {COLUMNS.map(column => (
-        <TableCell
-          key={column.key}
-          width={column.width}
-          bold={column.bold}
-        >
-          {formatCellValue(item, column.key)}
+        <TableCell key={column.key} width={column.width} bold={column.bold}>
+          {column.key === 'row_number'
+            ? String(index + 1)
+            : formatCellValue(item, column.key)}
         </TableCell>
       ))}
 
@@ -114,29 +103,56 @@ const ProductionRows = React.memo(function ProductionRows({
 
 export default function ProductionTable({
   rows = [],
+  shiftName,
   rowLimit,
   renderAction,
   scrollRows = false,
   emptyMessage = 'No production entries found',
   showsHorizontalScrollIndicator = true,
 }) {
-  const visibleRows = rowLimit ? rows.slice(0, rowLimit) : rows;
+  const sortedRows = React.useMemo(
+    () => sortProductionEntries(rows, shiftName),
+    [rows, shiftName],
+  );
+  const visibleRows = rowLimit ? sortedRows.slice(0, rowLimit) : sortedRows;
   const body = (
-    <ProductionRows
-      rows={visibleRows}
-      renderAction={renderAction}
-      emptyMessage={emptyMessage}
-    />
+    <ProductionRows rows={visibleRows} renderAction={renderAction} />
   );
 
   return (
     <View style={[styles.container, scrollRows && styles.fill]}>
+      <View style={styles.registerMeta}>
+        <Text style={styles.registerCount}>{visibleRows.length} ENTRIES</Text>
+        <Text style={styles.scrollHint}>Swipe to view columns →</Text>
+      </View>
+      {!visibleRows.length && (
+        <View style={styles.emptyNotice}>
+          <Text style={styles.emptyText}>{emptyMessage}</Text>
+        </View>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
         style={scrollRows && styles.fill}
       >
         <View style={[styles.table, scrollRows && styles.fill]}>
+          <View style={styles.groupRow}>
+            <Text style={[styles.groupLabel, styles.entryGroup]}>ENTRY</Text>
+            <Text style={[styles.groupLabel, styles.materialGroup]}>
+              CHALLAN / MATERIAL
+            </Text>
+            <Text style={[styles.groupLabel, styles.processGroup]}>
+              PROCESS / OUTPUT
+            </Text>
+            <Text style={[styles.groupLabel, styles.coatingGroup]}>
+              COATING READINGS · µm
+            </Text>
+            {renderAction && (
+              <Text style={[styles.groupLabel, styles.actionGroup]}>
+                CONTROL
+              </Text>
+            )}
+          </View>
           <View style={styles.headerRow}>
             {COLUMNS.map(column => (
               <TableCell key={column.key} width={column.width} header>
@@ -166,16 +182,60 @@ export default function ProductionTable({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: UI.radiusSmall,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  registerMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  registerCount: {
+    color: COLORS.gray,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.7,
+    fontVariant: ['tabular-nums'],
+  },
+  scrollHint: { color: COLORS.gray, fontSize: 11 },
+  emptyNotice: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  entryGroup: { width: 155 },
+  materialGroup: { width: 490 },
+  processGroup: { width: 460 },
+  coatingGroup: { width: 440 },
+  actionGroup: { width: 110 },
   fill: { flex: 1 },
   table: { backgroundColor: COLORS.white },
+  groupRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceMuted,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  groupLabel: {
+    color: COLORS.gray,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.9,
+    textAlign: 'center',
+    paddingVertical: 9,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accentSoft,
   },
   row: {
     flexDirection: 'row',
@@ -186,7 +246,8 @@ const styles = StyleSheet.create({
   altRow: { backgroundColor: COLORS.surfaceMuted },
   cell: {
     minHeight: 54,
-    paddingHorizontal: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderRightWidth: 1,
@@ -194,31 +255,27 @@ const styles = StyleSheet.create({
   },
   headerCell: {
     minHeight: 50,
-    borderRightColor: 'rgba(255,255,255,0.22)',
+    borderRightColor: COLORS.border,
   },
   cellText: {
     color: COLORS.text,
     fontSize: 12,
-    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    fontWeight: '500',
     textAlign: 'center',
   },
   headerText: {
-    color: COLORS.white,
-    fontWeight: '800',
+    color: COLORS.primary,
+    fontWeight: '600',
   },
   boldText: {
-    color: COLORS.primary,
-    fontWeight: '800',
+    color: COLORS.text,
+    fontWeight: '600',
   },
   actionCell: { width: 110 },
-  emptyBox: {
-    minHeight: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyText: {
     color: COLORS.gray,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

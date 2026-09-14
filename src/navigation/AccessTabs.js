@@ -2,8 +2,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   Clock,
   Factory,
-  Gauge,
   LayoutDashboard,
+  Settings,
   UserCircle2,
   Users,
 } from 'lucide-react-native';
@@ -11,15 +11,17 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 
 import ProductionStack from './comman/ProductionStock';
+import SettingsStack from './comman/SettingsStack';
 import { createTabScreenOptions } from './tabOptions';
 import DashboardScreen from '../screens/superadmin/DashboardScreen';
-import PlantControlScreen from '../screens/superadmin/PlantControlScreen';
 import ProfileScreen from '../screens/superadmin/ProfileScreen';
 import UsersScreen from '../screens/superadmin/UsersScreen';
 import ShiftScreen from '../screens/supervisor/ShiftScreen';
 import { hasPermission } from '../utils/permissions';
+import { useResponsive } from '../utils/responsive';
 import {
   canOpenProductionWorkspace,
+  shouldShowSettingsTab,
   shouldShowShiftTab,
 } from '../utils/accessNavigation';
 
@@ -30,29 +32,30 @@ const IconByRoute = {
   Production: Factory,
   Shift: Clock,
   Users,
-  PlantControl: Gauge,
+  Settings,
   Profile: UserCircle2,
 };
 
-const screenOptions = createTabScreenOptions(IconByRoute);
 export default function AccessTabs() {
+  const { useNavigationRail } = useResponsive();
+  const screenOptions = createTabScreenOptions(IconByRoute, useNavigationRail);
   const user = useSelector(state => state.auth.user);
   const canDashboard = hasPermission(user, 'dashboard.view');
   const canProduction = canOpenProductionWorkspace(user);
   const showShiftTab = shouldShowShiftTab(user);
   const canUsers = hasPermission(user, 'users.view');
-  const canPlantControl = hasPermission(user, 'plant.view');
+  const showSettingsTab = shouldShowSettingsTab(user);
   const initialRouteName = canDashboard
     ? 'Dashboard'
     : canProduction
-      ? 'Production'
-      : showShiftTab
-        ? 'Shift'
-        : canUsers
-          ? 'Users'
-          : canPlantControl
-            ? 'PlantControl'
-            : 'Profile';
+    ? 'Production'
+    : showShiftTab
+    ? 'Shift'
+    : canUsers
+    ? 'Users'
+    : showSettingsTab
+    ? 'Settings'
+    : 'Profile';
 
   return (
     <Tab.Navigator
@@ -67,12 +70,8 @@ export default function AccessTabs() {
       )}
       {showShiftTab && <Tab.Screen name="Shift" component={ShiftScreen} />}
       {canUsers && <Tab.Screen name="Users" component={UsersScreen} />}
-      {canPlantControl && (
-        <Tab.Screen
-          name="PlantControl"
-          component={PlantControlScreen}
-          options={{ title: 'Plant Control' }}
-        />
+      {showSettingsTab && (
+        <Tab.Screen name="Settings" component={SettingsStack} />
       )}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

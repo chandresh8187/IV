@@ -8,8 +8,7 @@ import ProductionMenuScreen from './../../screens/common/ProductionMenuScreen';
 import ProductionPlanningScreen from './../../screens/common/ProductionPlanningScreen';
 import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';
 import HistoryStack from './HistoryStack';
-import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
-import NotificationTestScreen from '../../screens/superadmin/NotificationTestScreen';
+import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';
 import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
@@ -65,21 +64,16 @@ export default function ProductionStack() {
         options={{ title: 'Generate Certificate' }}
       />
       <Stack.Screen
+        name="PlantControl"
+        component={PlantControlScreen}
+        options={{ title: 'Plant Control' }}
+      />
+      <Stack.Screen
         name="PdfViewer"
         component={PdfViewerScreen}
         options={({ route }) => ({
           title: route.params?.title || 'PDF Preview',
         })}
-      />
-      <Stack.Screen
-        name="ControlPanel"
-        component={ControlPanelScreen}
-        options={{ title: 'Control Panel' }}
-      />
-      <Stack.Screen
-        name="NotificationTest"
-        component={NotificationTestScreen}
-        options={{ title: 'Test Notifications' }}
       />
     </Stack.Navigator>
   );

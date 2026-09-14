@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { ClipboardList, MoonStar, SunMedium } from 'lucide-react-native';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -9,269 +10,324 @@ import {
 } from 'react-native';
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
-import {
-  centeredContent,
-  gridItemWidth,
-  useResponsive,
-} from '../../utils/responsive';
-
-import { COLORS } from '../../assets/Colors';
+import { COLORS, UI } from '../../assets/Colors';
 import { formatQuantity } from '../../utils/format';
+import { centeredContent, useResponsive } from '../../utils/responsive';
+import ResponsiveGrid from '../../components/ResponsiveGrid';
 
 export default function HistoryPlanningSummaryScreen({ route }) {
-  const { date } = route.params;
-  const { isTablet, contentMaxWidth } = useResponsive();
-  const infoBoxWidth = gridItemWidth(2, 4, isTablet);
-
+  const { date, shift_name: shiftName } = route.params;
+  const { contentMaxWidth } = useResponsive();
   const { data, isLoading } = useQuery({
-    queryKey: ['history-planning-summary', date],
-    queryFn: () => getHistoryPlanningSummaryApi(date),
+    queryKey: ['history-planning-summary', date, shiftName || 'all'],
+    queryFn: () =>
+      getHistoryPlanningSummaryApi({ date, shift_name: shiftName }),
   });
+  const planningItems = data?.data || [];
 
-  const planningList = data?.data || [];
-
-  if (isLoading) {
+  if (isLoading)
     return (
-      <View style={styles.loaderBox}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
-  }
 
   return (
     <ScrollView
-      style={styles.safe}
-      contentContainerStyle={[
-        styles.container,
-        centeredContent(contentMaxWidth),
-      ]}
+      style={styles.screen}
+      contentContainerStyle={[styles.content, centeredContent(contentMaxWidth)]}
     >
-      <View style={styles.dateCard}>
-        <Text style={styles.dateLabel}>PRODUCTION DATE</Text>
-        <Text style={styles.dateValue}>{date}</Text>
-      </View>
-
-      {planningList.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No planning summary found</Text>
+      <View style={styles.intro}>
+        <View style={styles.introIcon}>
+          <ClipboardList size={22} color={COLORS.accent} />
         </View>
-      ) : (
-        planningList.map(item => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.topRow}>
-              <View style={styles.flex}>
-                <Text style={styles.challan}>{item.challan_no}</Text>
-
-                <Text style={styles.party}>
-                  {item.third_party_name
-                    ? `${item.party_name} (${item.third_party_name})`
-                    : item.party_name}
-                </Text>
-              </View>
-
-              <Text
-                style={[
-                  styles.badge,
-                  item.status === 'completed' && styles.completedBadge,
-                  item.status === 'canceled' && styles.canceledBadge,
-                ]}
-              >
-                {String(item.status || 'pending').toUpperCase()}
-              </Text>
-            </View>
-
-            <Text style={styles.materialDesc}>
-              {item.material_description || '-'}
-            </Text>
-
-            <View style={styles.grid}>
-              <InfoBox
-                label="Planning Qty"
-                value={`${formatQuantity(item.planned_qty)} NOS`}
-                width={infoBoxWidth}
-              />
-
-              <InfoBox
-                label="Day Shift"
-                value={`${formatQuantity(item.day_produced_qty)} NOS`}
-                width={infoBoxWidth}
-              />
-
-              <InfoBox
-                label="Night Shift"
-                value={`${formatQuantity(item.night_produced_qty)} NOS`}
-                width={infoBoxWidth}
-              />
-
-              <InfoBox
-                label="Total Produced"
-                value={`${formatQuantity(item.total_produced_qty)} NOS`}
-                width={infoBoxWidth}
-              />
-
-              <InfoBox
-                label="Remaining Qty"
-                value={`${formatQuantity(item.remaining_qty)} NOS`}
-                width={infoBoxWidth}
-              />
-            </View>
-          </View>
-        ))
-      )}
+        <View style={styles.grow}>
+          <Text style={styles.title}>
+            {shiftName
+              ? `${shiftName[0].toUpperCase()}${shiftName.slice(
+                  1,
+                )} shift planning output`
+              : 'Planning flow output'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {date} · {shiftName ? 'only this shift' : 'all shifts'} · one card
+            per challan item
+          </Text>
+        </View>
+      </View>
+      <ResponsiveGrid>
+        {!planningItems.length ? (
+          <EmptyState />
+        ) : (
+          planningItems.map(item => (
+            <PlanningItemCard
+              key={item.planning_item_id || `plan-${item.planning_id}`}
+              item={item}
+              shiftName={shiftName}
+            />
+          ))
+        )}
+      </ResponsiveGrid>
     </ScrollView>
   );
 }
 
-function InfoBox({ label, value, width }) {
+function PlanningItemCard({ item, shiftName }) {
+  const planned = Number(item.planned_qty) || 0;
+  const completed = Number(item.completed_qty) || 0;
+  const progress = planned ? Math.min(100, (completed / planned) * 100) : 0;
+  const isComplete = String(item.status).toLowerCase() === 'completed';
   return (
-    <View style={[styles.infoBox, { width }]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+    <View style={styles.card}>
+      <View style={styles.topRow}>
+        <View style={styles.grow}>
+          <Text style={styles.challan}>
+            {item.challan_no || 'Linked planning item'}
+          </Text>
+          <Text style={styles.party}>{item.party_name || '—'}</Text>
+        </View>
+        <View style={[styles.status, isComplete && styles.statusComplete]}>
+          <Text
+            style={[styles.statusText, isComplete && styles.statusTextComplete]}
+          >
+            {isComplete ? 'COMPLETED' : 'PENDING'}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.material}>
+        {item.material_description || item.item_name || '—'}
+      </Text>
+      <View style={styles.progressMeta}>
+        <Text style={styles.progressLabel}>Overall plan progress</Text>
+        <Text style={styles.progressValue}>
+          {formatQuantity(completed)} / {formatQuantity(planned)} NOS
+        </Text>
+      </View>
+      <View style={styles.progressTrack}>
+        <View
+          style={[
+            styles.progressFill,
+            isComplete && styles.progressFillComplete,
+            { width: `${progress}%` },
+          ]}
+        />
+      </View>
+      {shiftName ? (
+        <View style={styles.singleShiftGrid}>
+          <ShiftBox
+            icon={
+              shiftName === 'day' ? (
+                <SunMedium size={15} color={COLORS.accent} />
+              ) : (
+                <MoonStar size={15} color={COLORS.teal} />
+              )
+            }
+            label={`${shiftName[0].toUpperCase()}${shiftName.slice(
+              1,
+            )} shift output`}
+            value={item.total_produced_qty}
+            strong
+          />
+        </View>
+      ) : (
+        <View style={styles.shiftGrid}>
+          <ShiftBox
+            icon={<SunMedium size={15} color={COLORS.accent} />}
+            label="Day shift"
+            value={item.day_produced_qty}
+          />
+          <ShiftBox
+            icon={<MoonStar size={15} color={COLORS.teal} />}
+            label="Night shift"
+            value={item.night_produced_qty}
+          />
+          <ShiftBox
+            label="Produced today"
+            value={item.total_produced_qty}
+            strong
+          />
+        </View>
+      )}
+      <View style={styles.bottomGrid}>
+        <Metric
+          label="Remaining"
+          value={`${formatQuantity(item.remaining_qty)} NOS`}
+        />
+        <Metric
+          label="Target zinc"
+          value={
+            item.target_zinc_percentage
+              ? `${item.target_zinc_percentage}%`
+              : '—'
+          }
+        />
+      </View>
+    </View>
+  );
+}
+
+function ShiftBox({ icon, label, value, strong }) {
+  return (
+    <View style={styles.shiftBox}>
+      {icon ? (
+        <View style={styles.shiftLabelRow}>
+          {icon}
+          <Text style={styles.shiftLabel}>{label}</Text>
+        </View>
+      ) : (
+        <Text style={styles.shiftLabel}>{label}</Text>
+      )}
+      <Text style={[styles.shiftValue, strong && styles.shiftValueStrong]}>
+        {formatQuantity(value)} NOS
+      </Text>
+    </View>
+  );
+}
+function Metric({ label, value }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
+  );
+}
+function EmptyState() {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyTitle}>No linked planning production</Text>
+      <Text style={styles.emptyText}>
+        This date has no production entries connected to a planning item yet.
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safe: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-
-  container: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-
-  loaderBox: {
+  screen: { flex: 1, backgroundColor: COLORS.bg },
+  content: { padding: UI.pagePadding, paddingBottom: 40 },
+  loader: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.bg,
   },
-
-  emptyCard: {
+  intro: {
+    padding: 15,
+    marginBottom: 13,
+    borderRadius: UI.radius,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 25,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 11,
+    ...UI.shadow,
   },
-
-  dateCard: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
+  introIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  grow: { flex: 1, minWidth: 0 },
+  title: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  subtitle: { color: COLORS.gray, fontSize: 12, lineHeight: 16, marginTop: 3 },
+  card: {
     padding: 16,
-    marginBottom: 14,
+    marginBottom: 13,
+    borderRadius: UI.radius,
+    borderWidth: 0,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    ...UI.shadow,
   },
-
-  dateLabel: {
-    color: COLORS.borderStrong,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+  topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+  challan: { color: COLORS.accent, fontSize: 14, fontWeight: '600' },
+  party: { color: COLORS.gray, fontSize: 12, marginTop: 4 },
+  status: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.warningSoft,
   },
-
-  dateValue: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4,
+  statusComplete: { backgroundColor: COLORS.tealSoft },
+  statusText: { color: COLORS.warning, fontSize: 12, fontWeight: '600' },
+  statusTextComplete: { color: COLORS.teal },
+  material: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 13,
   },
-
-  dateDescription: {
-    color: COLORS.border,
+  progressMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 14,
+  },
+  progressLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  progressValue: {
+    fontVariant: ['tabular-nums'],
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressTrack: {
+    height: 7,
+    marginTop: 6,
+    overflow: 'hidden',
+    borderRadius: 5,
+    backgroundColor: COLORS.border,
+  },
+  progressFill: { height: '100%', backgroundColor: COLORS.accent },
+  progressFillComplete: { backgroundColor: COLORS.teal },
+  shiftGrid: { flexDirection: 'row', gap: 7, marginTop: 15 },
+  singleShiftGrid: { marginTop: 15 },
+  shiftBox: {
+    flex: 1,
+    padding: 9,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  shiftLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  shiftLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  shiftValue: {
+    fontVariant: ['tabular-nums'],
+    color: COLORS.text,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 5,
   },
-
+  shiftValueStrong: { color: COLORS.accent },
+  bottomGrid: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  metric: {
+    flex: 1,
+    padding: 10,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
+  },
+  metricLabel: { color: COLORS.gray, fontSize: 12, fontWeight: '600' },
+  metricValue: {
+    fontVariant: ['tabular-nums'],
+    color: COLORS.text,
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  empty: {
+    padding: 28,
+    alignItems: 'center',
+    borderRadius: UI.radius,
+    backgroundColor: COLORS.white,
+  },
+  emptyTitle: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
   emptyText: {
     color: COLORS.gray,
-    fontWeight: '800',
-  },
-
-  card: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-
-  challan: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  party: {
-    color: COLORS.gray,
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-
-  badge: {
-    backgroundColor: '#FEF3C7',
-    color: '#92400E',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 99,
-    fontSize: 10,
-    fontWeight: '800',
-    overflow: 'hidden',
-  },
-
-  completedBadge: {
-    backgroundColor: '#DCFCE7',
-    color: '#166534',
-  },
-
-  canceledBadge: {
-    backgroundColor: '#FEE2E2',
-    color: '#991B1B',
-  },
-
-  materialDesc: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 12,
-    lineHeight: 20,
-  },
-
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 14,
-  },
-
-  infoBox: {
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 10,
-  },
-
-  infoLabel: {
-    color: COLORS.gray,
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  infoValue: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 4,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 5,
   },
 });

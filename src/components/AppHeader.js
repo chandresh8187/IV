@@ -8,7 +8,7 @@ const Header = props => {
 
   return (
     <View style={styles.header}>
-      <View style={styles.titleBox}>
+      <View style={[styles.titleBox, !canGoBack && styles.titleWithoutBack]}>
         <Text style={styles.title} numberOfLines={1}>
           {props?.options?.title ? props?.options?.title : props?.route?.name}
         </Text>
@@ -17,6 +17,8 @@ const Header = props => {
       {canGoBack && (
         <View style={styles.backBox} pointerEvents="box-none">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={() => props?.navigation.goBack()}
             android_ripple={{
               color: COLORS.lightBlue,
@@ -39,25 +41,34 @@ const Header = props => {
 
 const styles = StyleSheet.create({
   header: {
-    height: 64,
+    minHeight: 58,
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     borderBottomColor: COLORS.divider,
   },
 
   titleBox: {
-    height: '100%',
+    minHeight: 58,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     // Keep long titles clear of the back button on both sides.
-    paddingHorizontal: 60,
+    paddingLeft: 62,
+    paddingRight: 62,
   },
 
+  titleWithoutBack: { paddingLeft: 20, paddingRight: 20 },
+  eyebrow: {
+    fontSize: 9,
+    letterSpacing: 1.4,
+    fontWeight: '600',
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
   title: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: '800',
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
     letterSpacing: -0.35,
   },
 
@@ -71,7 +82,8 @@ const styles = StyleSheet.create({
   },
 
   backBtn: {
-    padding: 10,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
