@@ -1,4 +1,5 @@
 const ROLE_DEFAULTS = {
+  'rate_calculator.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.manage': ['superadmin', 'plant_manager'],
   'dashboard.view': ['superadmin', 'plant_manager', 'admin'],

@@ -6,6 +6,7 @@ import {
   History,
   Settings2,
   Users,
+  Calculator,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -36,6 +37,13 @@ const PRODUCTION_ACTIONS = [
     screen: 'ProductionHistory',
     description: 'Review day and night shifts, materials and planning.',
     permission: 'history.view',
+  },
+  {
+    title: 'Rate Calculator',
+    icon: Calculator,
+    screen: 'RateCalculator',
+    description: 'Calculate zinc cost and final production rate per kg.',
+    permission: 'rate_calculator.view',
   },
   {
     title: 'Contractor',

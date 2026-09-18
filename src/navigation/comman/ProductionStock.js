@@ -11,6 +11,7 @@ import HistoryStack from './HistoryStack';
 import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';
 import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
 import ContractorScreen from '../../screens/common/ContractorScreen';
+import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -64,6 +65,11 @@ export default function ProductionStack() {
         name="Contractors"
         component={ContractorScreen}
         options={{ title: 'Contractor' }}
+      />
+      <Stack.Screen
+        name="RateCalculator"
+        component={RateCalculatorScreen}
+        options={{ title: 'Rate Calculator' }}
       />
 
       <Stack.Screen
