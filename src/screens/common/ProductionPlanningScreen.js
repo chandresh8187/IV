@@ -815,7 +815,6 @@ function PlanningModal({
                   <TextInput
                     label="Challan Number"
                     value={line.challan_number}
-                    keyboardType="number-pad"
                     onChangeText={value =>
                       setLine(previous => ({
                         ...previous,
