@@ -1,4 +1,6 @@
 const ROLE_DEFAULTS = {
+  'contractors.view': ['superadmin', 'plant_manager', 'admin'],
+  'contractors.manage': ['superadmin', 'plant_manager'],
   'dashboard.view': ['superadmin', 'plant_manager', 'admin'],
   'production.view': ['superadmin', 'plant_manager', 'admin', 'supervisor'],
   'production.save': ['superadmin', 'plant_manager', 'supervisor'],

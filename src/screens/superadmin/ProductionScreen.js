@@ -42,6 +42,7 @@ import {
 } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { hasPermission } from '../../utils/permissions';
+import { canUseShiftCorrection } from '../../utils/accessNavigation';
 
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 
@@ -152,10 +153,14 @@ export default function ProductionScreen() {
   });
 
   const shiftStatus = shiftStatusData?.data;
-  const correctionMode = Boolean(shiftStatus?.correction_mode);
-  const shiftRevision = shiftStatus?.shift_revision || 0;
+  const usesCorrection = canUseShiftCorrection(loggedUser);
+  const correctionMode =
+    usesCorrection && Boolean(shiftStatus?.correction_mode);
+  const shiftRevision = usesCorrection ? shiftStatus?.shift_revision || 0 : 0;
   const activeShift =
-    shiftStatus?.production_shift || shiftStatus?.active_shift || null;
+    (usesCorrection ? shiftStatus?.production_shift : null) ||
+    shiftStatus?.active_shift ||
+    null;
   const { data: correctionPlanningData } = useQuery({
     queryKey: ['correction-planning-items', shiftRevision],
     queryFn: getCorrectionPlanningItemsApi,
@@ -295,7 +300,7 @@ export default function ProductionScreen() {
     });
 
     const latestShiftId =
-      latestShift?.data?.production_shift?.id ||
+      (usesCorrection ? latestShift?.data?.production_shift?.id : null) ||
       latestShift?.data?.active_shift?.id;
 
     if (latestShiftId) {
@@ -426,6 +431,17 @@ export default function ProductionScreen() {
     }
 
     const dippingQty = Number(fullForm.dipping_qty);
+    if (
+      !existingEntry &&
+      Number(fullForm.planning_item_id) !==
+        Number(activePlanning?.planning_item_id)
+    ) {
+      Alert.alert(
+        'Production flow changed',
+        'The next planning item has changed. Reopen the production form and review the selected material before saving.',
+      );
+      return;
+    }
 
     if (!Number.isInteger(dippingQty) || dippingQty <= 0) {
       Alert.alert(
@@ -548,7 +564,15 @@ export default function ProductionScreen() {
         </View>
       </View>
       <ShiftCorrectionControls
-        status={shiftStatus}
+        status={
+          shiftStatus
+            ? {
+                ...shiftStatus,
+                correction_mode: correctionMode,
+                production_shift: activeShift,
+              }
+            : shiftStatus
+        }
         canManage={canManageCorrection}
       />
       <View

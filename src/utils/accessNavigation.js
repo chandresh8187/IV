@@ -1,6 +1,7 @@
 import { hasPermission } from './permissions';
 
 const PRODUCTION_WORKSPACE_PERMISSIONS = [
+  'contractors.view',
   'production.view',
   'history.view',
   'planning.view',
@@ -17,6 +18,9 @@ export const normalizeUserRole = user =>
 
 export const shouldShowSettingsTab = user =>
   ['superadmin', 'plant_manager'].includes(normalizeUserRole(user));
+
+export const canUseShiftCorrection = user =>
+  ['superadmin', 'plant_manager', 'supervisor'].includes(normalizeUserRole(user));
 
 export const canOpenProductionWorkspace = user =>
   PRODUCTION_WORKSPACE_PERMISSIONS.some(key => hasPermission(user, key)) ||

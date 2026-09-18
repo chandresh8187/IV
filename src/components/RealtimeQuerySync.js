@@ -137,6 +137,7 @@ export default function RealtimeQuerySync() {
 
     const invalidateProductionData = () => {
       invalidateKeys([
+        'contractor-report',
         'correction-planning-items',
         'productions',
         'production-history',
@@ -195,6 +196,7 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
+      invalidateKeys(['contractors', 'contractor-report']);
       invalidateKeys(['financial-years', 'current-financial-year']);
       invalidateProductionData();
       invalidatePlanningData();
@@ -214,6 +216,7 @@ export default function RealtimeQuerySync() {
     };
 
     const invalidateFinancialYears = () => {
+      queryClient.resetQueries({ queryKey: ['contractor-report'] });
       invalidateKeys([
         'financial-years',
         'current-financial-year',
@@ -253,6 +256,9 @@ export default function RealtimeQuerySync() {
     if (socket.connected) socket.disconnect();
 
     socket.on('production_updated', invalidateProductionData);
+    const invalidateContractors = () =>
+      invalidateKeys(['contractors', 'contractor-report']);
+    socket.on('contractors_updated', invalidateContractors);
     socket.on('production_planning_updated', invalidatePlanningData);
     socket.on('production_edit_grant_updated', invalidateProductionData);
     socket.on('production_preference_updated', invalidatePlanningData);
@@ -301,6 +307,7 @@ export default function RealtimeQuerySync() {
       active = false;
       if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
       socket.off('production_updated', invalidateProductionData);
+      socket.off('contractors_updated', invalidateContractors);
       socket.off('financial_years_updated', invalidateFinancialYears);
       socket.off('production_planning_updated', invalidatePlanningData);
       socket.off('production_edit_grant_updated', invalidateProductionData);

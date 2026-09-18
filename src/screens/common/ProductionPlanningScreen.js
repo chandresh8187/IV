@@ -36,11 +36,17 @@ import {
   deleteProductionPlanningApi,
   getProductionPlanningApi,
   updateProductionPlanningApi,
+  reorderPlanningQueueApi,
 } from '../../api/productionPlanningApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
+import ReorderablePlanningFlow from '../../components/ReorderablePlanningFlow';
+import {
+  movePlanningItem,
+  movedPlanningIndex,
+} from '../../utils/planningOrder';
 import { downloadProductionPlanningFile } from '../../utils/serverProductionReport';
 import { formatMaterialDescription } from '../../utils/format';
 
@@ -70,9 +76,17 @@ const getChallanParts = challanNo => {
 
 export default function ProductionPlanningScreen({ navigation }) {
   const queryClient = useQueryClient();
-  const { contentMaxWidth } = useResponsive();
+  const { contentMaxWidth, height } = useResponsive();
   const loggedUser = useSelector(state => state.auth.user);
   const canManagePlanning = hasPermission(loggedUser, 'planning.manage');
+  const canReorderFlows =
+    canManagePlanning &&
+    ['superadmin', 'plant_manager'].includes(
+      String(loggedUser?.role || '')
+        .trim()
+        .toLowerCase(),
+    );
+  const [queueDragging, setQueueDragging] = useState(false);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
@@ -115,6 +129,53 @@ export default function ProductionPlanningScreen({ navigation }) {
     queryClient.invalidateQueries({ queryKey: ['production-planning'] });
     queryClient.invalidateQueries({
       queryKey: ['available-production-planning'],
+    });
+  };
+
+  const queueMutation = useMutation({
+    mutationFn: reorderPlanningQueueApi,
+    onMutate: async payload => {
+      await queryClient.cancelQueries({
+        queryKey: ['production-planning', 'pending'],
+      });
+      const previous = queryClient.getQueryData([
+        'production-planning',
+        'pending',
+      ]);
+      queryClient.setQueryData(['production-planning', 'pending'], cached =>
+        cached
+          ? {
+              ...cached,
+              data: payload.ordered_ids
+                .map(id => cached.data.find(plan => Number(plan.id) === id))
+                .filter(Boolean),
+            }
+          : cached,
+      );
+      return { previous };
+    },
+    onSuccess: refreshPlanningQueries,
+    onError: (error, _, context) => {
+      if (context?.previous)
+        queryClient.setQueryData(
+          ['production-planning', 'pending'],
+          context.previous,
+        );
+      refreshPlanningQueries();
+      Alert.alert(
+        'Could not change production priority',
+        error?.response?.data?.message || 'Refresh and try again.',
+      );
+    },
+  });
+
+  const reorderFlows = (from, to, snapshot) => {
+    if (!canReorderFlows || queueMutation.isPending || from === to) return;
+    queueMutation.mutate({
+      expected_ids: snapshot.map(plan => Number(plan.id)),
+      ordered_ids: movePlanningItem(snapshot, from, to).map(plan =>
+        Number(plan.id),
+      ),
     });
   };
 
@@ -293,6 +354,15 @@ export default function ProductionPlanningScreen({ navigation }) {
     });
   };
 
+  const reorderLines = (from, to) => {
+    if (saveMutation.isPending) return;
+    setForm(previous => ({
+      ...previous,
+      items: movePlanningItem(previous.items, from, to),
+    }));
+    setEditingLineIndex(previous => movedPlanningIndex(previous, from, to));
+  };
+
   const removeLine = index => {
     const item = form.items[index];
     if (Number(item.completed_qty) > 0) {
@@ -429,6 +499,7 @@ export default function ProductionPlanningScreen({ navigation }) {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
+          scrollEnabled={!queueDragging}
           contentContainerStyle={[
             styles.listContent,
             centeredContent(contentMaxWidth),
@@ -440,32 +511,73 @@ export default function ProductionPlanningScreen({ navigation }) {
             />
           }
         >
-          <ResponsiveGrid minColumnWidth={400}>
-            {planningList.length ? (
-              planningList.map(plan => (
-                <PlanningCard
-                  key={plan.id}
-                  plan={plan}
-                  canManage={canManagePlanning}
-                  fileLoading={downloadingId === plan.id}
-                  fileDisabled={downloadingId != null}
-                  onFile={() => openPlanningFile(plan)}
-                  onEdit={() => openEditModal(plan)}
-                  onDelete={() => confirmDelete(plan)}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyCard}>
-                <Package2 size={32} color={COLORS.muted} />
-                <Text style={styles.emptyTitle}>No {statusFilter} plans</Text>
-                <Text style={styles.stateText}>
-                  {statusFilter === 'pending'
-                    ? 'Add a planning challan to start the next production flow.'
-                    : 'Completed production flows will appear here.'}
-                </Text>
-              </View>
-            )}
-          </ResponsiveGrid>
+          {statusFilter === 'pending' && planningList.length ? (
+            <>
+              <Text style={styles.sectionTitle}>
+                {queueMutation.isPending
+                  ? 'Saving production priority…'
+                  : 'Production queue · top flow runs first'}
+              </Text>
+              <ReorderablePlanningFlow
+                items={planningList}
+                onReorder={reorderFlows}
+                showHandles={canReorderFlows}
+                disabled={!canReorderFlows || queueMutation.isPending}
+                maxHeight={Math.max(320, (height || 800) - 260)}
+                onDraggingChange={setQueueDragging}
+                hint={
+                  canReorderFlows
+                    ? 'Drag a flow to the top to produce it next. Priority saves when you release. Existing quantities are preserved.'
+                    : 'Flows run from top to bottom, finishing each remaining item in order.'
+                }
+                renderItem={(plan, index) => (
+                  <View>
+                    <Text style={styles.sectionHint}>
+                      {index === 0
+                        ? 'NEXT FLOW'
+                        : `QUEUE POSITION ${index + 1}`}
+                    </Text>
+                    <PlanningCard
+                      plan={plan}
+                      canManage={canManagePlanning && !queueMutation.isPending}
+                      fileLoading={downloadingId === plan.id}
+                      fileDisabled={downloadingId != null}
+                      onFile={() => openPlanningFile(plan)}
+                      onEdit={() => openEditModal(plan)}
+                      onDelete={() => confirmDelete(plan)}
+                    />
+                  </View>
+                )}
+              />
+            </>
+          ) : (
+            <ResponsiveGrid minColumnWidth={400}>
+              {planningList.length ? (
+                planningList.map(plan => (
+                  <PlanningCard
+                    key={plan.id}
+                    plan={plan}
+                    canManage={canManagePlanning}
+                    fileLoading={downloadingId === plan.id}
+                    fileDisabled={downloadingId != null}
+                    onFile={() => openPlanningFile(plan)}
+                    onEdit={() => openEditModal(plan)}
+                    onDelete={() => confirmDelete(plan)}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Package2 size={32} color={COLORS.muted} />
+                  <Text style={styles.emptyTitle}>No {statusFilter} plans</Text>
+                  <Text style={styles.stateText}>
+                    {statusFilter === 'pending'
+                      ? 'Add a planning challan to start the next production flow.'
+                      : 'Completed production flows will appear here.'}
+                  </Text>
+                </View>
+              )}
+            </ResponsiveGrid>
+          )}
         </ScrollView>
       )}
 
@@ -490,6 +602,7 @@ export default function ProductionPlanningScreen({ navigation }) {
         onAddLine={addOrUpdateLine}
         onEditLine={editLine}
         onRemoveLine={removeLine}
+        onReorder={reorderLines}
         onCancelLine={resetLine}
         onClose={() => closeModal()}
         onSave={savePlanning}
@@ -628,11 +741,13 @@ function PlanningModal({
   onAddLine,
   onEditLine,
   onRemoveLine,
+  onReorder,
   onCancelLine,
   onClose,
   onSave,
 }) {
   const { workspaceFormMaxWidth } = useResponsive();
+  const [dragging, setDragging] = useState(false);
   const prefix = line.challan_prefix
     ? line.challan_prefix
     : currentYear
@@ -664,6 +779,7 @@ function PlanningModal({
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={!dragging}
             nestedScrollEnabled
             contentContainerStyle={[
               styles.modalContent,
@@ -836,52 +952,62 @@ function PlanningModal({
                   </View>
                 </View>
                 {form.items.length ? (
-                  form.items.map((item, index) => (
-                    <View
-                      key={item.id || `${item.item_id}-${index}`}
-                      style={styles.formFlowRow}
-                    >
-                      <View style={styles.formSequence}>
-                        <Text style={styles.formSequenceText}>{index + 1}</Text>
-                      </View>
-                      <View style={styles.formFlowCopy}>
-                        <Text style={styles.formFlowChallan}>
-                          {`${
-                            item.challan_prefix ||
-                            (currentYear ? `DC/${currentYear}/` : 'DC/----/')
-                          }${item.challan_number}`}
-                        </Text>
-                        <Text style={styles.formFlowName}>
-                          {item.material_detail
-                            ? `${item.item_name} ${item.material_detail}`
-                            : item.item_name}
-                        </Text>
-                        <Text style={styles.formFlowMeta}>
-                          {item.party_name} · {formatQty(item.planned_qty)} NOS
-                          · Zinc target {formatQty(item.target_zinc_percentage)}
-                          %
-                        </Text>
-                        {Number(item.completed_qty) > 0 ? (
-                          <Text style={styles.completedText}>
-                            {formatQty(item.completed_qty)} NOS already
-                            completed
+                  <ReorderablePlanningFlow
+                    items={form.items}
+                    onReorder={onReorder}
+                    disabled={saving}
+                    onDraggingChange={setDragging}
+                    renderItem={(item, index) => (
+                      <View
+                        key={item.id || `${item.item_id}-${index}`}
+                        style={styles.formFlowRow}
+                      >
+                        <View style={styles.formSequence}>
+                          <Text style={styles.formSequenceText}>
+                            {index + 1}
                           </Text>
-                        ) : null}
+                        </View>
+                        <View style={styles.formFlowCopy}>
+                          <Text style={styles.formFlowChallan}>
+                            {`${
+                              item.challan_prefix ||
+                              (currentYear ? `DC/${currentYear}/` : 'DC/----/')
+                            }${item.challan_number}`}
+                          </Text>
+                          <Text style={styles.formFlowName}>
+                            {item.material_detail
+                              ? `${item.item_name} ${item.material_detail}`
+                              : item.item_name}
+                          </Text>
+                          <Text style={styles.formFlowMeta}>
+                            {item.party_name} · {formatQty(item.planned_qty)}{' '}
+                            NOS · Zinc target{' '}
+                            {formatQty(item.target_zinc_percentage)}%
+                          </Text>
+                          {Number(item.completed_qty) > 0 ? (
+                            <Text style={styles.completedText}>
+                              {formatQty(item.completed_qty)} NOS already
+                              completed
+                            </Text>
+                          ) : null}
+                        </View>
+                        <View style={styles.flowRowActions}>
+                          <TouchableOpacity
+                            style={styles.lineAction}
+                            onPress={() => onEditLine(index)}
+                          >
+                            <Pencil size={16} color={COLORS.teal} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.lineAction, styles.flowDeleteAction]}
+                            onPress={() => onRemoveLine(index)}
+                          >
+                            <Trash2 size={16} color={COLORS.danger} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <TouchableOpacity
-                        style={styles.lineAction}
-                        onPress={() => onEditLine(index)}
-                      >
-                        <Pencil size={16} color={COLORS.teal} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.lineAction, styles.lineDeleteAction]}
-                        onPress={() => onRemoveLine(index)}
-                      >
-                        <Trash2 size={16} color={COLORS.danger} />
-                      </TouchableOpacity>
-                    </View>
-                  ))
+                    )}
+                  />
                 ) : (
                   <View style={styles.emptyFlow}>
                     <Package2 size={25} color={COLORS.muted} />
@@ -898,7 +1024,7 @@ function PlanningModal({
                 (saving || (!editingPlan && !currentYear)) &&
                   styles.buttonDisabled,
               ]}
-              disabled={saving || (!editingPlan && !currentYear)}
+              disabled={saving || dragging || (!editingPlan && !currentYear)}
               onPress={onSave}
             >
               {saving ? (
@@ -1215,10 +1341,10 @@ const styles = StyleSheet.create({
   countText: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
   formFlowRow: {
     minHeight: 68,
+    paddingVertical: 12,
+    paddingRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   formSequence: {
     width: 30,
@@ -1230,6 +1356,8 @@ const styles = StyleSheet.create({
   },
   formSequenceText: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
   formFlowCopy: { flex: 1, minWidth: 0, marginHorizontal: 10 },
+  flowRowActions: { gap: 8 },
+  flowDeleteAction: { backgroundColor: COLORS.dangerSoft },
   formFlowChallan: { color: COLORS.accent, fontSize: 12, fontWeight: '600' },
   formFlowName: { color: COLORS.text, fontSize: 13.5, fontWeight: '700' },
   formFlowMeta: { color: COLORS.gray, fontSize: 12, marginTop: 3 },

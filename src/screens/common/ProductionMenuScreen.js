@@ -5,6 +5,7 @@ import {
   Gauge,
   History,
   Settings2,
+  Users,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -35,6 +36,13 @@ const PRODUCTION_ACTIONS = [
     screen: 'ProductionHistory',
     description: 'Review day and night shifts, materials and planning.',
     permission: 'history.view',
+  },
+  {
+    title: 'Contractor',
+    icon: Users,
+    screen: 'Contractors',
+    description: 'Assign Day/Night shifts and review contractor production.',
+    permission: 'contractors.view',
   },
   {
     title: 'Shift Status',

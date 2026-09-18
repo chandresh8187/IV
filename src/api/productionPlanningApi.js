@@ -1,5 +1,10 @@
 import apiClient from './apiClient';
 
+export const reorderPlanningQueueApi = async body => {
+  const response = await apiClient.put('/production-planning/order', body);
+  return response.data;
+};
+
 export const createProductionPlanningApi = async body => {
   const response = await apiClient.post('/production-planning', body);
   return response.data;

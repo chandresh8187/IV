@@ -10,6 +10,7 @@ import GenerateCertificateScreen from './../../screens/common/GenerateCertificat
 import HistoryStack from './HistoryStack';
 import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';
 import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
+import ContractorScreen from '../../screens/common/ContractorScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -22,7 +23,9 @@ export default function ProductionStack() {
   return (
     <Stack.Navigator
       key={directLiveProduction ? 'direct-live-production' : 'production-menu'}
-      initialRouteName={directLiveProduction ? 'LiveProduction' : 'ProductionMenu'}
+      initialRouteName={
+        directLiveProduction ? 'LiveProduction' : 'ProductionMenu'
+      }
       screenOptions={{
         header: renderHeader,
         contentStyle: { backgroundColor: COLORS.bg },
@@ -56,6 +59,11 @@ export default function ProductionStack() {
         name="ProductionPlanning"
         component={ProductionPlanningScreen}
         options={{ title: 'Production Planning' }}
+      />
+      <Stack.Screen
+        name="Contractors"
+        component={ContractorScreen}
+        options={{ title: 'Contractor' }}
       />
 
       <Stack.Screen

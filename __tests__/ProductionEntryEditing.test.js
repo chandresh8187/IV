@@ -133,6 +133,43 @@ describe('production editing via row actions', () => {
         .props.onPress();
     });
 
+  test.each([
+    ['admin', 20],
+    ['supervisor', 10],
+    ['plant_manager', 10],
+    ['superadmin', 10],
+  ])(
+    '%s views shift %s when correction mode is active',
+    (role, expectedShift) => {
+      useSelector.mockReturnValue({ role });
+      const previousQuery = useQuery.getMockImplementation();
+      useQuery.mockImplementation(options =>
+        options.queryKey[0] === 'shift-status'
+          ? {
+              data: {
+                data: {
+                  correction_mode: true,
+                  shift_revision: 5,
+                  active_shift: { id: 20, shift_name: 'day' },
+                  production_shift: { id: 10, shift_name: 'night' },
+                },
+              },
+            }
+          : previousQuery(options),
+      );
+      useQuery.mockClear();
+      renderScreen();
+      const productionQuery = useQuery.mock.calls.find(
+        ([options]) => options.queryKey[0] === 'productions',
+      )[0];
+      expect(productionQuery.queryKey).toEqual([
+        'productions',
+        expectedShift,
+        role === 'admin' ? 0 : 5,
+      ]);
+    },
+  );
+
   test.each(['superadmin', 'plant_manager', 'admin', 'supervisor'])(
     'adding requires no SR input for %s',
     role => {
@@ -202,5 +239,40 @@ describe('production editing via row actions', () => {
     press('Add production entry');
     expect(input('Sr No (auto)')).toBeUndefined();
     expect(input('Production Time').props.value).toBe('');
+  });
+
+  test('a reordered flow cannot silently save an open form against another material', () => {
+    renderScreen();
+    press('Add production entry');
+    const qtyInput = tree.root
+      .findAllByType(TextInput)
+      .find(node => /Dipping/.test(node.props.label));
+    act(() => qtyInput.props.onChangeText('10'));
+    const timeButton = tree.root
+      .findAllByType(TouchableOpacity)
+      .find(node =>
+        node
+          .findAllByType(TextInput)
+          .some(field => field.props.label === 'Production Time'),
+      );
+    act(() => timeButton.props.onPress());
+    act(() =>
+      tree.root
+        .findByType('DateTimePicker')
+        .props.onChange({ type: 'set' }, new Date(2026, 8, 13, 14, 0)),
+    );
+    const previousQuery = useQuery.getMockImplementation();
+    useQuery.mockImplementation(options =>
+      options.queryKey[0] === 'available-production-planning'
+        ? { data: { data: [{ ...plan, planning_item_id: 99 }] } }
+        : previousQuery(options),
+    );
+    act(() => tree.update(<ProductionScreen />));
+    save();
+    expect(mutate).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(
+      'Production flow changed',
+      expect.any(String),
+    );
   });
 });
