@@ -818,7 +818,7 @@ function PlanningModal({
                     onChangeText={value =>
                       setLine(previous => ({
                         ...previous,
-                        challan_number: value.replace(/\D/g, ''),
+                        challan_number: value,
                       }))
                     }
                     mode="outlined"
