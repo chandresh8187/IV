@@ -176,6 +176,10 @@ describe('production editing via row actions', () => {
       useSelector.mockReturnValue({ role, permissions: ['production.save'] });
       renderScreen();
       press('Add production entry');
+      expect(tree.root.findByType('DropDownPicker').props.value).toBeNull();
+      act(() =>
+        tree.root.findByType('DropDownPicker').props.setValue(() => 24),
+      );
       expect(input('Sr No')).toBeUndefined();
       expect(input('Sr No (auto)')).toBeUndefined();
       expect(input('Production Time').props.value).toBe('');
@@ -241,9 +245,51 @@ describe('production editing via row actions', () => {
     expect(input('Production Time').props.value).toBe('');
   });
 
-  test('a reordered flow cannot silently save an open form against another material', () => {
+  test('any pending challan can be selected and the balance follows the selected quantity', () => {
+    const previousQuery = useQuery.getMockImplementation();
+    useQuery.mockImplementation(options =>
+      options.queryKey[0] === 'available-production-planning'
+        ? {
+            data: {
+              data: [
+                plan,
+                {
+                  ...plan,
+                  id: 21,
+                  planning_item_id: 99,
+                  challan_no: 'PARTY/99',
+                  completed_qty: 40,
+                  planned_qty: 100,
+                  remaining_qty: 60,
+                },
+              ],
+            },
+          }
+        : previousQuery(options),
+    );
     renderScreen();
     press('Add production entry');
+    act(() => tree.root.findByType('DropDownPicker').props.setValue(() => 99));
+    const picker = tree.root.findByType('DropDownPicker');
+    expect(picker.props.value).toBe(99);
+    expect(picker.props.items).toHaveLength(2);
+    const quantity = tree.root
+      .findAllByType(TextInput)
+      .find(node => /Dipping/.test(node.props.label));
+    act(() => quantity.props.onChangeText('10'));
+    const texts = tree.root
+      .findAllByType(Text)
+      .map(node => React.Children.toArray(node.props.children).join(''));
+    expect(texts).toContain('PARTY/99');
+    expect(
+      texts.some(text => /Balance after this entry: 50 NOS/.test(text)),
+    ).toBe(true);
+  });
+
+  test('a removed or completed selected challan cannot silently switch to another material', () => {
+    renderScreen();
+    press('Add production entry');
+    act(() => tree.root.findByType('DropDownPicker').props.setValue(() => 24));
     const qtyInput = tree.root
       .findAllByType(TextInput)
       .find(node => /Dipping/.test(node.props.label));
@@ -271,7 +317,7 @@ describe('production editing via row actions', () => {
     save();
     expect(mutate).not.toHaveBeenCalled();
     expect(alert).toHaveBeenCalledWith(
-      'Production flow changed',
+      'Select a planning challan',
       expect.any(String),
     );
   });

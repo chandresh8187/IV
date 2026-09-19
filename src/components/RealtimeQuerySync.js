@@ -157,6 +157,7 @@ export default function RealtimeQuerySync() {
 
     const invalidatePlanningData = () => {
       invalidateKeys([
+        'correction-planning-items',
         'production-planning',
         'available-production-planning',
         'default-production-challan',

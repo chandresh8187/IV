@@ -1,0 +1,11 @@
+# Manual challan planning (replaces the production queue)
+
+New planning is one challan per save. Choose In-house or Other party first. In-house accepts a 1–40 character reference (letters, numbers and symbols, such as `123-1` or `123-2`) and uses the configured financial year (`DC/2026-27/123-1`). Editing strips only the financial-year prefix, preserving any slashes in the reference. Other party stores the supplied reference unchanged (trimmed, 1–100 characters); it is still linked to the current financial year for reporting. Control characters and empty references are rejected. Material selection and optional material detail remain linked to the Items master. Existing duplicate-reference checks remain in place.
+
+Add Production starts with no selected challan. Select any pending challan/material from the searchable dropdown. The card shows completed quantity, remaining quantity before this entry, and balance after the entered quantity. Completed/deleted/canceled plans are excluded for new normal production, and the server rechecks availability and quantity under transaction locks. Entry edits keep their original linked item. Shift correction retains explicit historical selection and the same quantity limit.
+
+Old grouped plans and their item IDs are retained: editing one challan submits the remaining items unchanged, and each pending item is individually selectable in Add Production. Legacy grouped-plan reports still cover the whole group and are labeled accordingly. Deleting a grouped plan affects all of its challans, with confirmation. No existing production rows are deleted by this change. Queue priority no longer determines new production selection.
+
+Deploy backend and run `npm run migrate` for `20260919000100_add_planning_source.sql`, then update mobile clients together. This single additive statement defaults existing planning items to `in_house`; it does not recreate tables or modify quantities. Old clients relying on automatic assignment must be updated. No live database migration was performed during implementation.
+
+Automated tests cover reference formatting, both create modes, preserving progress and IDs on update, remaining-quantity guards, dropdown selection, and existing shift correction. Validate the workflow on Android/tablet and a staging MySQL instance before production rollout.

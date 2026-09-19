@@ -1,5 +1,7 @@
 # Playlist-style production-flow ordering
 
+> Superseded by [manual challan planning](manual-planning.md) on 2026-09-19. Add Production now requires the user's selected pending challan; queue order no longer assigns production. The following describes the earlier workflow only.
+
 ## Whole-flow production queue
 
 The Pending list is the saved production queue: the top flow's first unfinished item is used by Add Production. Plant managers and superadmins can drag a whole flow to the top; the order saves immediately on release. Other flows shift down, retaining all completed quantities and linked entries. Without reordering, production finishes each flow's remaining items in sequence before continuing to the next flow. New flows append to the queue. Completed flows remain in the Completed list.

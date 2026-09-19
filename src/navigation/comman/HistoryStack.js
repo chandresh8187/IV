@@ -69,7 +69,7 @@ const HistoryStack = () => {
       />
       <Stack.Screen
         name="HistoricalProductionEdit"
-        options={{ title: 'Edit Production' }}
+        options={{ title: 'Edit Production', headerShown: false }}
         component={HistoricalProductionEditScreen}
       />
     </Stack.Navigator>
