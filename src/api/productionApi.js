@@ -1,5 +1,17 @@
 import apiClient from './apiClient';
 
+export const getLiveZincStockApi = async () =>
+  (await apiClient.get('/zinc-stock')).data;
+export const addLiveZincApi = async body =>
+  (await apiClient.post('/zinc-stock/movements', body)).data;
+
+export const getProductionContractorsApi = async () =>
+  (await apiClient.get('/productions/contractors')).data;
+export const getProductionDefaultsApi = async () =>
+  (await apiClient.get('/productions/preferences/defaults')).data;
+export const setProductionDefaultsApi = async body =>
+  (await apiClient.put('/productions/preferences/defaults', body)).data;
+
 export const getProductionsApi = async params => {
   const response = await apiClient.get('/productions', {
     params,

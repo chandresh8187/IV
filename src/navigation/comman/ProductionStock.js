@@ -12,6 +12,9 @@ import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';
 import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
 import ContractorScreen from '../../screens/common/ContractorScreen';
 import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';
+import ExpenseReportScreen from '../../screens/common/ExpenseReportScreen';
+import ZincStockScreen from '../../screens/common/ZincStockScreen';
+import ZincStockReportScreen from '../../screens/common/ZincStockReportScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -64,7 +67,22 @@ export default function ProductionStack() {
       <Stack.Screen
         name="Contractors"
         component={ContractorScreen}
-        options={{ title: 'Contractor' }}
+        options={{ title: 'Contract Production' }}
+      />
+      <Stack.Screen
+        name="ExpenseReport"
+        component={ExpenseReportScreen}
+        options={{ title: 'Expense Report' }}
+      />
+      <Stack.Screen
+        name="ZincStock"
+        component={ZincStockScreen}
+        options={{ title: 'Zinc Stock' }}
+      />
+      <Stack.Screen
+        name="ZincStockReport"
+        component={ZincStockReportScreen}
+        options={{ title: 'Zinc Stock Report' }}
       />
       <Stack.Screen
         name="RateCalculator"

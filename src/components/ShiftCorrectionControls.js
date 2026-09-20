@@ -20,7 +20,13 @@ import {
 import { formatDateForApi, parseDateForPicker } from '../utils/format';
 import { COLORS, UI } from '../assets/Colors';
 
-export default function ShiftCorrectionControls({ status, canManage }) {
+export default function ShiftCorrectionControls({
+  status,
+  canManage,
+  canAddZinc = false,
+  onAddZinc,
+  zincBusy = false,
+}) {
   const client = useQueryClient();
   const [visible, setVisible] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -55,7 +61,7 @@ export default function ShiftCorrectionControls({ status, canManage }) {
       );
     },
   });
-  if (!canManage && !status?.correction_mode) return null;
+  if (!canManage && !status?.correction_mode && !canAddZinc) return null;
   const target = status?.production_shift;
   return (
     <View
@@ -74,19 +80,30 @@ export default function ShiftCorrectionControls({ status, canManage }) {
           </Text>
         </>
       )}
-      {canManage && (
+      {(canManage || canAddZinc) && (
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.button}
-            disabled={mutation.isPending || !status}
-            onPress={() => {
-              setShiftId(null);
-              setRevision(status?.shift_revision || 0);
-              setVisible(true);
-            }}
-          >
-            <Text style={styles.buttonText}>Correct previous shift</Text>
-          </TouchableOpacity>
+          {canManage && (
+            <TouchableOpacity
+              style={styles.button}
+              disabled={mutation.isPending || !status}
+              onPress={() => {
+                setShiftId(null);
+                setRevision(status?.shift_revision || 0);
+                setVisible(true);
+              }}
+            >
+              <Text style={styles.buttonText}>Correct previous shift</Text>
+            </TouchableOpacity>
+          )}
+          {canAddZinc && (
+            <TouchableOpacity
+              style={[styles.button, styles.zincButton]}
+              disabled={zincBusy}
+              onPress={onAddZinc}
+            >
+              <Text style={[styles.buttonText, styles.zincText]}>Add zinc</Text>
+            </TouchableOpacity>
+          )}
           {status?.correction_mode && (
             <TouchableOpacity
               style={[styles.button, styles.resumeButton]}
@@ -226,6 +243,8 @@ const styles = StyleSheet.create({
   },
   resumeButton: { backgroundColor: COLORS.primary },
   resumeText: { color: COLORS.white },
+  zincButton: { backgroundColor: COLORS.accent },
+  zincText: { color: COLORS.white },
   title: { color: COLORS.text, fontSize: 13, fontWeight: '700' },
   text: { color: COLORS.text, fontSize: 12, lineHeight: 18, marginVertical: 5 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -161,6 +161,7 @@ export default function RealtimeQuerySync() {
         'production-planning',
         'available-production-planning',
         'default-production-challan',
+        'production-defaults',
         'history-planning-summary',
         'dashboard',
         'history-party-summary',
@@ -197,6 +198,7 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
+      invalidateKeys(['zinc-stock', 'zinc-stock-movements']);
       invalidateKeys(['contractors', 'contractor-report']);
       invalidateKeys(['financial-years', 'current-financial-year']);
       invalidateProductionData();
@@ -257,8 +259,16 @@ export default function RealtimeQuerySync() {
     if (socket.connected) socket.disconnect();
 
     socket.on('production_updated', invalidateProductionData);
+    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements']);
+    socket.on('zinc_stock_updated', invalidateZincStock);
     const invalidateContractors = () =>
-      invalidateKeys(['contractors', 'contractor-report']);
+      invalidateKeys([
+        'contractors',
+        'contractor-report',
+        'production-defaults',
+        'productions',
+        'history-shift-table',
+      ]);
     socket.on('contractors_updated', invalidateContractors);
     socket.on('production_planning_updated', invalidatePlanningData);
     socket.on('production_edit_grant_updated', invalidateProductionData);
@@ -308,6 +318,7 @@ export default function RealtimeQuerySync() {
       active = false;
       if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
       socket.off('production_updated', invalidateProductionData);
+      socket.off('zinc_stock_updated', invalidateZincStock);
       socket.off('contractors_updated', invalidateContractors);
       socket.off('financial_years_updated', invalidateFinancialYears);
       socket.off('production_planning_updated', invalidatePlanningData);

@@ -1,6 +1,7 @@
 import { hasPermission } from './permissions';
 
 const PRODUCTION_WORKSPACE_PERMISSIONS = [
+  'zinc_stock.view',
   'rate_calculator.view',
   'contractors.view',
   'production.view',

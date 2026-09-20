@@ -7,6 +7,8 @@ import {
   Settings2,
   Users,
   Calculator,
+  Receipt,
+  Package,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -46,11 +48,25 @@ const PRODUCTION_ACTIONS = [
     permission: 'rate_calculator.view',
   },
   {
-    title: 'Contractor',
+    title: 'Contract Production',
     icon: Users,
     screen: 'Contractors',
-    description: 'Assign Day/Night shifts and review contractor production.',
+    description: 'Review monthly production totals for each contractor.',
     permission: 'contractors.view',
+  },
+  {
+    title: 'Expense Report',
+    icon: Receipt,
+    screen: 'ExpenseReport',
+    description: 'Coming soon',
+    permission: 'production.view',
+  },
+  {
+    title: 'Zinc Stock',
+    icon: Package,
+    screen: 'ZincStock',
+    description: 'Track zinc in the plant and kettle tank.',
+    permission: 'zinc_stock.view',
   },
   {
     title: 'Shift Status',

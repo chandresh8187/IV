@@ -2,7 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, LockKeyhole, Pencil } from 'lucide-react-native';
 import moment from 'moment';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
 import {
   ActivityIndicator,
@@ -14,10 +14,17 @@ import {
   View,
 } from 'react-native';
 import { useSelector } from 'react-redux';
+import { TextInput } from 'react-native-paper';
+import { parseZincAmount, zincTransferPreview } from '../../utils/zincStock';
 import {
   getProductionsApi,
   grantProductionEditApi,
   saveProductionApi,
+  getProductionContractorsApi,
+  getProductionDefaultsApi,
+  setProductionDefaultsApi,
+  getLiveZincStockApi,
+  addLiveZincApi,
 } from '../../api/productionApi';
 import { getUsersApi } from '../../api/userApi';
 import {
@@ -32,11 +39,13 @@ import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import { formatNumber, formatQuantity } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
 import { canUseShiftCorrection } from '../../utils/accessNavigation';
+import { getDefaultProductionSelection } from '../../utils/productionDefaults';
 
 import { COLORS, UI } from '../../assets/Colors';
 
 const emptyFullForm = {
   entry_id: 0,
+  contractor_id: null,
   planning_item_id: null,
   planning_id: '',
   challan_no: '',
@@ -67,6 +76,10 @@ export default function ProductionScreen() {
   const [grantRow, setGrantRow] = useState(null);
   const [selectedGrantUserId, setSelectedGrantUserId] = useState(null);
   const [grantUserOpen, setGrantUserOpen] = useState(false);
+  const [zincModalVisible, setZincModalVisible] = useState(false);
+  const [zincAmount, setZincAmount] = useState('');
+  const [zincError, setZincError] = useState('');
+  const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
   const canManageCorrection = ['superadmin', 'plant_manager'].includes(
     String(loggedUser?.role || '')
@@ -74,6 +87,35 @@ export default function ProductionScreen() {
       .toLowerCase(),
   );
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
+  const canAddZinc = hasPermission(loggedUser, 'zinc_stock.manage');
+  const zincStockQuery = useQuery({
+    queryKey: ['zinc-stock'],
+    queryFn: getLiveZincStockApi,
+    enabled: canAddZinc,
+    retry: false,
+  });
+  const zincStock = zincStockQuery.data?.data;
+  const zincMutation = useMutation({
+    mutationFn: addLiveZincApi,
+    retry: false,
+    onSuccess: response => {
+      zincRequest.current = null;
+      setZincModalVisible(false);
+      setZincAmount('');
+      setZincError('');
+      queryClient.setQueryData(['zinc-stock'], response);
+      queryClient.invalidateQueries({ queryKey: ['zinc-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['zinc-stock-movements'] });
+      Alert.alert('Zinc added', response?.message || 'Zinc moved into the kettle.');
+    },
+    onError: error => {
+      setZincError(error?.response?.data?.message || 'Could not add zinc. Please try again.');
+      if (error?.response?.status === 409) {
+        zincRequest.current = null;
+        zincStockQuery.refetch();
+      }
+    },
+  });
   const canGrantProductionEdit = hasPermission(
     loggedUser,
     'production.grant_edit',
@@ -83,7 +125,37 @@ export default function ProductionScreen() {
     'production.manage_all',
   );
 
-  const { data: availablePlanningData } = useQuery({
+  const contractorQuery = useQuery({
+    queryKey: ['contractors', 'production-options'],
+    queryFn: getProductionContractorsApi,
+  });
+  const contractors = contractorQuery.data?.data || [];
+  const defaultsQuery = useQuery({
+    queryKey: ['production-defaults', loggedUser?.id],
+    queryFn: getProductionDefaultsApi,
+    enabled: canSaveProduction,
+  });
+  const defaults = defaultsQuery.data?.data || {};
+  const defaultMutation = useMutation({
+    mutationFn: setProductionDefaultsApi,
+    onSuccess: response => {
+      queryClient.setQueryData(
+        ['production-defaults', loggedUser?.id],
+        previous => ({
+          ...previous,
+          data: { ...previous?.data, ...response.data },
+        }),
+      );
+      queryClient.invalidateQueries({ queryKey: ['production-defaults'] });
+    },
+    onError: error =>
+      Alert.alert(
+        'Could not save default',
+        error?.response?.data?.message || 'Please try again.',
+      ),
+  });
+
+  const { data: availablePlanningData, isLoading: planningLoading } = useQuery({
     queryKey: ['available-production-planning'],
     queryFn: getAvailablePlanningApi,
   });
@@ -114,11 +186,12 @@ export default function ProductionScreen() {
     (usesCorrection ? shiftStatus?.production_shift : null) ||
     shiftStatus?.active_shift ||
     null;
-  const { data: correctionPlanningData } = useQuery({
-    queryKey: ['correction-planning-items', shiftRevision],
-    queryFn: getCorrectionPlanningItemsApi,
-    enabled: correctionMode && canSaveProduction,
-  });
+  const { data: correctionPlanningData, isLoading: correctionPlanningLoading } =
+    useQuery({
+      queryKey: ['correction-planning-items', shiftRevision],
+      queryFn: getCorrectionPlanningItemsApi,
+      enabled: correctionMode && canSaveProduction,
+    });
 
   const activeShiftId = activeShift?.id || null;
   const isShiftActive = !!activeShiftId;
@@ -168,6 +241,9 @@ export default function ProductionScreen() {
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
       queryClient.invalidateQueries({ queryKey: ['productions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['contractor-report'] });
+      queryClient.invalidateQueries({ queryKey: ['zinc-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['zinc-stock-movements'] });
       queryClient.invalidateQueries({
         queryKey: ['correction-planning-items'],
       });
@@ -230,7 +306,14 @@ export default function ProductionScreen() {
 
   const openEntryModal = () => {
     setFormContext({ shift_id: activeShiftId, shift_revision: shiftRevision });
-    setFullForm({ ...emptyFullForm });
+    setFullForm({
+      ...emptyFullForm,
+      ...getDefaultProductionSelection(
+        defaults,
+        selectablePlanning,
+        contractors,
+      ),
+    });
     setModalType('Full');
   };
 
@@ -261,12 +344,43 @@ export default function ProductionScreen() {
     setFullForm(emptyFullForm);
   };
 
+  const saveAddedZinc = () => {
+    const kg = parseZincAmount(zincAmount);
+    if (kg == null) {
+      setZincError('Enter zinc kilograms greater than zero, with up to 3 decimal places.');
+      return;
+    }
+    if (!zincStock?.initialized) {
+      setZincError('Set opening zinc stock on the Zinc Stock screen first.');
+      return;
+    }
+    const preview = zincTransferPreview(zincStock, kg);
+    if (preview.error) {
+      setZincError(preview.error);
+      return;
+    }
+    if (!zincRequest.current || zincRequest.current.amount_kg !== kg) {
+      zincRequest.current = {
+        action: 'transfer',
+        amount_kg: kg,
+        expected_revision: zincStock.revision,
+        request_id: `live_zinc_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        note: 'Added from Live Production',
+      };
+    }
+    setZincError('');
+    zincMutation.mutate(zincRequest.current);
+  };
+
   // Only the row's Edit button loads an existing entry by its immutable ID.
   const openEditModal = found => {
     if (!canManageAllProduction && !canEditProductionRow(found)) return;
     setFormContext({ shift_id: activeShiftId, shift_revision: shiftRevision });
     setFullForm({
       entry_id: found.id,
+      contractor_id:
+        found.contractor_id == null ? null : Number(found.contractor_id),
+      contractor_name: found.contractor_name || '',
       planning_item_id: found.planning_item_id || null,
       planning_id: found.planning_id ? String(found.planning_id) : '',
       challan_no: found.challan_no || '',
@@ -350,6 +464,18 @@ export default function ProductionScreen() {
     }
 
     const dippingQty = Number(fullForm.dipping_qty);
+    if (
+      fullForm.contractor_id &&
+      !contractors.some(
+        item => Number(item.id) === Number(fullForm.contractor_id),
+      )
+    ) {
+      Alert.alert(
+        'Contractor unavailable',
+        'Refresh the contractor list and select an available contractor.',
+      );
+      return;
+    }
     if (!Number.isInteger(dippingQty) || dippingQty <= 0) {
       Alert.alert(
         'Invalid Quantity',
@@ -380,6 +506,7 @@ export default function ProductionScreen() {
     const payload = {
       ...formContext,
       entry_id: fullForm.entry_id || 0,
+      contractor_id: fullForm.contractor_id || null,
       planning_item_id: fullForm.planning_item_id || undefined,
       entry_type: 'full',
       sr_no: String(existingEntry ? existingEntry.sr_no : nextSrNo),
@@ -433,6 +560,11 @@ export default function ProductionScreen() {
               accessibilityLabel="Add production entry"
               activeOpacity={0.8}
               onPress={openEntryModal}
+              disabled={
+                defaultsQuery.isLoading ||
+                contractorQuery.isLoading ||
+                (correctionMode ? correctionPlanningLoading : planningLoading)
+              }
               style={styles.headerAddBtn}
             >
               <Plus size={24} color={COLORS.white} />
@@ -455,7 +587,61 @@ export default function ProductionScreen() {
             : shiftStatus
         }
         canManage={canManageCorrection}
+        canAddZinc={canAddZinc}
+        zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
+        onAddZinc={() => {
+          zincRequest.current = null;
+          setZincAmount('');
+          setZincError('');
+          setZincModalVisible(true);
+        }}
       />
+      <Modal
+        visible={zincModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !zincMutation.isPending && setZincModalVisible(false)}
+      >
+        <View style={styles.zincOverlay}>
+          <View style={styles.zincModal}>
+            <Text style={styles.zincTitle}>Add zinc to kettle</Text>
+            <Text style={styles.zincHelp}>
+              This amount will move from plant stock into kettle stock.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Zinc kg"
+              value={zincAmount}
+              onChangeText={value => {
+                setZincAmount(value);
+                setZincError('');
+                zincRequest.current = null;
+              }}
+              keyboardType="decimal-pad"
+              editable={!zincMutation.isPending}
+            />
+            {zincError ? <Text style={styles.zincError}>{zincError}</Text> : null}
+            <View style={styles.zincActions}>
+              <TouchableOpacity
+                style={styles.zincCancel}
+                disabled={zincMutation.isPending}
+                onPress={() => setZincModalVisible(false)}
+              >
+                <Text style={styles.zincCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.zincSave}
+                disabled={zincMutation.isPending}
+                onPress={saveAddedZinc}
+              >
+                <Text style={styles.zincSaveText}>
+                  {zincMutation.isPending ? 'Saving…' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View
         style={[
           styles.shiftInfoCard,
@@ -560,6 +746,14 @@ export default function ProductionScreen() {
             correctionMode={correctionMode}
             selectablePlanning={selectablePlanning}
             activePlanning={activePlanning}
+            contractors={contractors}
+            contractorsLoading={contractorQuery.isLoading}
+            contractorsError={contractorQuery.isError}
+            onRetryContractors={contractorQuery.refetch}
+            defaults={defaults}
+            defaultsBusy={defaultMutation.isPending}
+            defaultsError={defaultsQuery.isError}
+            onSetDefault={body => defaultMutation.mutate(body)}
             loading={saveMutation.isPending}
             onSave={saveFullEntry}
             onClose={closeModal}
@@ -758,4 +952,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   grantSaveText: { color: COLORS.white, fontWeight: '600' },
+  zincOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.58)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  zincModal: {
+    width: '100%',
+    maxWidth: 480,
+    borderRadius: UI.radius,
+    backgroundColor: COLORS.white,
+    padding: 20,
+    gap: 14,
+  },
+  zincTitle: { color: COLORS.text, fontSize: 20, fontWeight: '700' },
+  zincHelp: { color: COLORS.gray, fontSize: 13, lineHeight: 19 },
+  zincError: { color: COLORS.danger, fontSize: 13 },
+  zincActions: { flexDirection: 'row', gap: 10 },
+  zincCancel: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zincCancelText: { color: COLORS.primary, fontWeight: '600' },
+  zincSave: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zincSaveText: { color: COLORS.white, fontWeight: '700' },
 });

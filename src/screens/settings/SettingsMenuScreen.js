@@ -1,6 +1,7 @@
 import {
   BellRing,
   CalendarRange,
+  HardHat,
   PackageOpen,
   SlidersHorizontal,
 } from 'lucide-react-native';
@@ -11,6 +12,13 @@ import ModuleMenu from '../../components/ModuleMenu';
 import { hasPermission } from '../../utils/permissions';
 
 const SETTINGS_ACTIONS = [
+  {
+    title: 'Contractors',
+    icon: HardHat,
+    screen: 'Contractors',
+    description: 'Add contractors and browse the contractor list.',
+    permissions: ['contractors.view'],
+  },
   {
     title: 'Items',
     icon: PackageOpen,

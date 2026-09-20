@@ -5,6 +5,7 @@ import { COLORS } from '../../assets/Colors';
 import AppHeader from '../../components/AppHeader';
 import FinancialYearScreen from '../../screens/settings/FinancialYearScreen';
 import ItemsScreen from '../../screens/settings/ItemsScreen';
+import ContractorsScreen from '../../screens/settings/ContractorsScreen';
 import SettingsMenuScreen from '../../screens/settings/SettingsMenuScreen';
 import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
 import NotificationTestScreen from '../../screens/superadmin/NotificationTestScreen';
@@ -30,6 +31,11 @@ export default function SettingsStack() {
         name="Items"
         component={ItemsScreen}
         options={{ title: 'Items' }}
+      />
+      <Stack.Screen
+        name="Contractors"
+        component={ContractorsScreen}
+        options={{ title: 'Contractors' }}
       />
       <Stack.Screen
         name="FinancialYear"

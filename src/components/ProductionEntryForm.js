@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clock3, X } from 'lucide-react-native';
 import moment from 'moment';
 import ResponsiveGrid from './ResponsiveGrid';
+import { planningFormFields } from '../utils/productionDefaults';
 import { centeredContent, useResponsive } from '../utils/responsive';
 import {
   formatMaterialDescription,
@@ -65,9 +66,18 @@ export default function ProductionEntryForm({
   onSave,
   onClose,
   subtitle,
+  contractors = null,
+  contractorsLoading = false,
+  contractorsError = false,
+  onRetryContractors,
+  defaults = {},
+  defaultsBusy = false,
+  defaultsError = false,
+  onSetDefault,
 }) {
   const { workspaceFormMaxWidth } = useResponsive();
   const coatingInputs = useRef([]);
+  const [contractorOpen, setContractorOpen] = useState(false);
   const [correctionPlanOpen, setCorrectionPlanOpen] = useState(false);
   const [showProductionTimePicker, setShowProductionTimePicker] =
     useState(false);
@@ -171,6 +181,7 @@ export default function ProductionEntryForm({
                   limits still apply.
                 </Text>
                 <DropDownPicker
+                  testID="planning-selector"
                   open={correctionPlanOpen}
                   setOpen={setCorrectionPlanOpen}
                   value={fullForm.planning_item_id}
@@ -193,21 +204,37 @@ export default function ProductionEntryForm({
                     );
                     setFullForm(prev => ({
                       ...prev,
-                      planning_item_id: nextId,
-                      planning_id:
-                        item?.planning_id || item?.id
-                          ? String(item.planning_id || item.id)
-                          : '',
-                      challan_no: item?.challan_no || '',
-                      party_name: item?.party_name || '',
-                      material: item?.material_description || '',
-                      material_description: item?.material_description || '',
+                      ...planningFormFields(item),
                     }));
                   }}
                   listMode="MODAL"
                   searchable
                   placeholder="Select planning challan item"
                 />
+                {onSetDefault && !!fullForm.planning_item_id && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Toggle default challan"
+                    disabled={defaultsBusy || defaultsError}
+                    style={styles.defaultButton}
+                    onPress={() =>
+                      onSetDefault({
+                        planning_item_id:
+                          Number(defaults.default_planning_item_id) ===
+                          Number(fullForm.planning_item_id)
+                            ? null
+                            : Number(fullForm.planning_item_id),
+                      })
+                    }
+                  >
+                    <Text style={styles.defaultText}>
+                      {Number(defaults.default_planning_item_id) ===
+                      Number(fullForm.planning_item_id)
+                        ? 'Default challan · Remove default'
+                        : 'Make default challan & material'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
             {fullForm.challan_no ? (
@@ -267,6 +294,106 @@ export default function ProductionEntryForm({
                 </Text>
               </View>
             )}
+
+            {contractors !== null ? (
+              <View style={styles.contractorCard}>
+                <Text style={styles.formTitle}>Contractor</Text>
+                <DropDownPicker
+                  testID="contractor-selector"
+                  open={contractorOpen}
+                  setOpen={setContractorOpen}
+                  value={fullForm.contractor_id || 0}
+                  items={[
+                    { label: 'No contractor selected', value: 0 },
+                    ...contractors.map(item => ({
+                      label: item.name,
+                      value: Number(item.id),
+                    })),
+                  ]}
+                  setValue={callback => {
+                    const value =
+                      typeof callback === 'function'
+                        ? callback(fullForm.contractor_id || 0)
+                        : callback;
+                    setFullForm(prev => ({
+                      ...prev,
+                      contractor_id: Number(value) || null,
+                    }));
+                  }}
+                  listMode="MODAL"
+                  searchable
+                  disabled={loading || contractorsLoading}
+                  placeholder="Select contractor"
+                />
+                {contractorsLoading && (
+                  <ActivityIndicator color={COLORS.primary} />
+                )}
+                {contractorsError && (
+                  <TouchableOpacity
+                    onPress={onRetryContractors}
+                    accessibilityRole="button"
+                    style={styles.defaultButton}
+                  >
+                    <Text style={styles.defaultText}>
+                      Could not load contractors · Retry
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {!contractorsLoading &&
+                  !contractorsError &&
+                  !contractors.length && (
+                    <Text style={styles.coatingHint}>
+                      Add contractors in Settings → Contractors.
+                    </Text>
+                  )}
+                {!formExistingEntry &&
+                  onSetDefault &&
+                  !!fullForm.contractor_id && (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Toggle default contractor"
+                      disabled={
+                        defaultsBusy || defaultsError || contractorsError
+                      }
+                      style={styles.defaultButton}
+                      onPress={() =>
+                        onSetDefault({
+                          contractor_id:
+                            Number(defaults.default_contractor_id) ===
+                            Number(fullForm.contractor_id)
+                              ? null
+                              : Number(fullForm.contractor_id),
+                        })
+                      }
+                    >
+                      <Text style={styles.defaultText}>
+                        {Number(defaults.default_contractor_id) ===
+                        Number(fullForm.contractor_id)
+                          ? 'Default contractor · Remove default'
+                          : 'Make default contractor'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                {!formExistingEntry && (
+                  <Text style={styles.coatingHint}>
+                    Defaults apply only to your next new entries. You can change
+                    either selection for this entry.
+                  </Text>
+                )}
+                {defaultsError && (
+                  <Text style={styles.coatingHint}>
+                    Could not load defaults. Select manually or reopen the form
+                    after refreshing.
+                  </Text>
+                )}
+              </View>
+            ) : fullForm.contractor_name ? (
+              <FormInput
+                label="Contractor"
+                value={fullForm.contractor_name}
+                editable={false}
+              />
+            ) : null}
 
             <TouchableOpacity
               activeOpacity={0.8}
@@ -459,6 +586,13 @@ function SaveButton({ title, loading, onPress }) {
 }
 
 const styles = StyleSheet.create({
+  contractorCard: { marginBottom: 14, gap: 8 },
+  defaultButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  defaultText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
   headerCopy: {
     flex: 1,
     minWidth: 0,

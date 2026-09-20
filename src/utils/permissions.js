@@ -1,4 +1,6 @@
 const ROLE_DEFAULTS = {
+  'zinc_stock.view': ['superadmin', 'plant_manager', 'admin'],
+  'zinc_stock.manage': ['superadmin', 'plant_manager'],
   'rate_calculator.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.manage': ['superadmin', 'plant_manager'],

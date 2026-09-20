@@ -53,6 +53,9 @@ jest.mock('../src/api/productionApi', () => ({
   getProductionsApi: jest.fn(),
   grantProductionEditApi: jest.fn(),
   saveProductionApi: jest.fn(),
+  getProductionDefaultsApi: jest.fn(),
+  setProductionDefaultsApi: jest.fn(),
+  getProductionContractorsApi: jest.fn(),
 }));
 jest.mock('../src/api/userApi', () => ({ getUsersApi: jest.fn() }));
 jest.mock('../src/api/shiftApi', () => ({
@@ -133,6 +136,56 @@ describe('production editing via row actions', () => {
         .props.onPress();
     });
 
+  test('new form applies saved defaults and allows independent contractor selection', () => {
+    const base = useQuery.getMockImplementation();
+    useQuery.mockImplementation(options => {
+      if (options.queryKey[0] === 'production-defaults')
+        return {
+          data: {
+            data: { default_planning_item_id: 24, default_contractor_id: 1 },
+          },
+        };
+      if (options.queryKey[0] === 'contractors')
+        return {
+          data: {
+            data: [
+              { id: 1, name: 'Bintu' },
+              { id: 2, name: 'Bhagat' },
+            ],
+          },
+        };
+      return base(options);
+    });
+    renderScreen();
+    press('Add production entry');
+    const dropdown = id =>
+      tree.root
+        .findAllByType('DropDownPicker')
+        .find(node => node.props.testID === id);
+    expect(dropdown('planning-selector').props.value).toBe(24);
+    expect(dropdown('contractor-selector').props.value).toBe(1);
+    act(() => dropdown('contractor-selector').props.setValue(() => 2));
+    expect(dropdown('planning-selector').props.value).toBe(24);
+    press('Toggle default contractor');
+    expect(mutate).toHaveBeenLastCalledWith({ contractor_id: 2 });
+    press('Toggle default challan');
+    expect(mutate).toHaveBeenLastCalledWith({ planning_item_id: null });
+    act(() => input('Dipping Qty').props.onChangeText('5'));
+    const sharedForm = tree.root.findByType(
+      require('../src/components/ProductionEntryForm').default,
+    );
+    act(() =>
+      sharedForm.props.setFullForm(previous => ({
+        ...previous,
+        production_time: '10:00:00',
+      })),
+    );
+    save();
+    expect(mutate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ contractor_id: 2, planning_item_id: 24 }),
+    );
+  });
+
   test.each([
     ['admin', 20],
     ['supervisor', 10],
@@ -176,9 +229,16 @@ describe('production editing via row actions', () => {
       useSelector.mockReturnValue({ role, permissions: ['production.save'] });
       renderScreen();
       press('Add production entry');
-      expect(tree.root.findByType('DropDownPicker').props.value).toBeNull();
+      expect(
+        tree.root
+          .findAllByType('DropDownPicker')
+          .find(node => node.props.testID === 'planning-selector').props.value,
+      ).toBeNull();
       act(() =>
-        tree.root.findByType('DropDownPicker').props.setValue(() => 24),
+        tree.root
+          .findAllByType('DropDownPicker')
+          .find(node => node.props.testID === 'planning-selector')
+          .props.setValue(() => 24),
       );
       expect(input('Sr No')).toBeUndefined();
       expect(input('Sr No (auto)')).toBeUndefined();
@@ -269,8 +329,15 @@ describe('production editing via row actions', () => {
     );
     renderScreen();
     press('Add production entry');
-    act(() => tree.root.findByType('DropDownPicker').props.setValue(() => 99));
-    const picker = tree.root.findByType('DropDownPicker');
+    act(() =>
+      tree.root
+        .findAllByType('DropDownPicker')
+        .find(node => node.props.testID === 'planning-selector')
+        .props.setValue(() => 99),
+    );
+    const picker = tree.root
+      .findAllByType('DropDownPicker')
+      .find(node => node.props.testID === 'planning-selector');
     expect(picker.props.value).toBe(99);
     expect(picker.props.items).toHaveLength(2);
     const quantity = tree.root
@@ -289,7 +356,12 @@ describe('production editing via row actions', () => {
   test('a removed or completed selected challan cannot silently switch to another material', () => {
     renderScreen();
     press('Add production entry');
-    act(() => tree.root.findByType('DropDownPicker').props.setValue(() => 24));
+    act(() =>
+      tree.root
+        .findAllByType('DropDownPicker')
+        .find(node => node.props.testID === 'planning-selector')
+        .props.setValue(() => 24),
+    );
     const qtyInput = tree.root
       .findAllByType(TextInput)
       .find(node => /Dipping/.test(node.props.label));

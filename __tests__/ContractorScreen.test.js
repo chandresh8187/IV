@@ -1,130 +1,142 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import { Alert, Text, TouchableOpacity } from 'react-native';
-import { useSelector } from 'react-redux';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Text, TouchableOpacity } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import ContractorScreen from '../src/screens/common/ContractorScreen';
-import { formatDateForApi } from '../src/utils/format';
+import { getContractProductionApi } from '../src/api/contractorApi';
 
-jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
-jest.mock('@tanstack/react-query', () => ({
-  useQuery: jest.fn(),
-  useMutation: jest.fn(),
-  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
-}));
-jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
-jest.mock('../src/utils/responsive', () => ({
-  useResponsive: () => ({ contentMaxWidth: 920 }),
-  centeredContent: () => ({ maxWidth: 920 }),
-}));
+jest.mock('@tanstack/react-query', () => ({ useQuery: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+jest.mock('react-native-dropdown-picker', () => 'MonthPicker');
 jest.mock('../src/api/contractorApi', () => ({
-  createContractorApi: jest.fn(),
-  getContractorsApi: jest.fn(),
-  getContractorReportApi: jest.fn(),
-  saveContractorAssignmentApi: jest.fn(),
+  getContractProductionApi: jest.fn(),
+}));
+jest.mock('../src/api/financialYearsApi', () => ({
+  getCurrentFinancialYearApi: jest.fn(),
+}));
+jest.mock('../src/utils/responsive', () => ({
+  useResponsive: () => ({}),
+  centeredContent: () => ({}),
 }));
 
-let tree;
-let mutate;
-const today = formatDateForApi(new Date());
-const production = {
-  contractor_id: 1,
-  contractor_name: 'Contractor A',
-  shift_date: today,
-  shift_name: 'day',
-  shift_count: 1,
-  entry_count: 2,
-  qty: 15,
-  ms_kg: 1500,
-  gi_kg: 1605,
-};
+let tree, year, report, reportOptions;
+const refetch = jest.fn();
+const button = label =>
+  tree.root
+    .findAllByType(TouchableOpacity)
+    .find(node =>
+      node.findAllByType(Text).some(text => text.props.children === label),
+    );
 const texts = () =>
   tree.root
     .findAllByType(Text)
-    .map(node => React.Children.toArray(node.props.children).join(''));
-const tap = label =>
-  act(() =>
-    tree.root
-      .findAllByType(TouchableOpacity)
-      .find(node => node.props.children?.props?.children === label)
-      .props.onPress(),
-  );
-
+    .map(node => node.props.children)
+    .flat()
+    .join(' ');
 beforeEach(() => {
-  mutate = jest.fn();
-  useSelector.mockReturnValue({ role: 'plant_manager' });
-  useMutation.mockReturnValue({ mutate, isPending: false });
-  useQuery.mockImplementation(({ queryKey }) => ({
+  jest.useFakeTimers().setSystemTime(new Date('2026-09-20T06:00:00Z'));
+  year = { id: 1, financial_year: '2026-27', start_date: '2026-04-01' };
+  report = {
     data: {
-      data:
-        queryKey[0] === 'contractors'
-          ? {
-              contractors: [
-                { id: 1, name: 'Contractor A' },
-                { id: 2, name: 'Contractor B' },
-              ],
-              assignments: [
-                {
-                  id: 3,
-                  contractor_id: 1,
-                  contractor_name: 'Contractor A',
-                  shift_name: 'day',
-                  effective_from: today,
-                },
-              ],
-            }
-          : {
-              from: '2026-04-01',
-              to: '2027-03-31',
-              financial_year: '2026-27',
-              summaries: [production],
-              shifts: [production],
-            },
+      data: {
+        summaries: [
+          {
+            contractor_id: 1,
+            contractor_name: 'Bhagat',
+            entry_count: 2,
+            qty: 5,
+            ms_kg: 80,
+            gi_kg: 88,
+          },
+          {
+            contractor_id: 2,
+            contractor_name: 'Bintu',
+            entry_count: 0,
+            qty: 0,
+            ms_kg: 0,
+            gi_kg: 0,
+          },
+        ],
+        totals: { entry_count: 2, qty: 5, ms_kg: 80, gi_kg: 88 },
+      },
     },
-  }));
-  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    refetch,
+  };
+  useQuery.mockImplementation(options => {
+    if (options.queryKey[0] === 'current-financial-year')
+      return { data: { data: year }, refetch };
+    reportOptions = options;
+    return report;
+  });
 });
 afterEach(() => {
   if (tree) act(() => tree.unmount());
   tree = null;
-  jest.restoreAllMocks();
+  jest.useRealTimers();
+  jest.clearAllMocks();
 });
-
-test('report renders weight totals and switches to tonnes', () => {
+const render = () =>
   act(() => {
     tree = renderer.create(<ContractorScreen />);
   });
-  expect(texts()).toContain('1,605.00 kg');
-  tap('Tonnes (t)');
-  expect(texts()).toContain('1.605 t');
-  expect(texts()).toContain('Date-wise shift breakdown');
-});
 
-test('existing repeating assignment is preselected and saved only after confirmation', () => {
-  act(() => {
-    tree = renderer.create(<ContractorScreen />);
-  });
-  tap('Shift assignments');
-  tap('Save repeating assignment');
-  expect(mutate).not.toHaveBeenCalled();
-  const buttons = Alert.alert.mock.calls.at(-1)[2];
-  act(() => buttons[1].onPress());
-  expect(mutate).toHaveBeenCalledWith({
-    shift_name: 'day',
-    effective_from: today,
-    contractor_id: 1,
-    expected_id: 3,
-    expected_contractor_id: 1,
+test('opens current month with both contractors, combined totals and zero production', () => {
+  render();
+  expect(texts()).toContain('September 2026');
+  expect(texts()).toContain('Bhagat');
+  expect(texts()).toContain('Bintu');
+  expect(texts()).toContain('All contractors');
+  expect(texts()).not.toContain('Coming soon');
+  reportOptions.queryFn();
+  expect(getContractProductionApi).toHaveBeenCalledWith({
+    month: 9,
+    financial_year_id: 1,
   });
 });
-
-test('admin can view assignments but cannot add or assign contractors by default', () => {
-  useSelector.mockReturnValue({ role: 'admin' });
-  act(() => {
-    tree = renderer.create(<ContractorScreen />);
+test('12 financial-year months fetch only after confirmation and January uses ending year', () => {
+  render();
+  act(() => button('Fetch Previous Production').props.onPress());
+  const picker = tree.root.findByType('MonthPicker');
+  expect(picker.props.items).toHaveLength(12);
+  expect(picker.props.items[0].label).toBe('April 2026');
+  expect(picker.props.items[11].label).toBe('March 2027');
+  act(() => picker.props.setValue(() => 1));
+  expect(reportOptions.queryKey.at(-1)).toBe(9);
+  act(() => button('Fetch Production').props.onPress());
+  expect(texts()).toContain('January 2027');
+  reportOptions.queryFn();
+  expect(getContractProductionApi).toHaveBeenCalledWith({
+    month: 1,
+    financial_year_id: 1,
   });
-  tap('Shift assignments');
-  expect(texts()).toContain('Repeating assignments');
-  expect(texts()).not.toContain('Save repeating assignment');
-  expect(texts()).not.toContain('Add contractor');
+});
+test('changing Settings financial year resets the report and uses a separate cache key', () => {
+  render();
+  year = { id: 2, financial_year: '2024-25', start_date: '2024-04-01' };
+  act(() => tree.update(<ContractorScreen />));
+  expect(texts()).toContain('September 2024');
+  expect(reportOptions.queryKey).toContain(2);
+  reportOptions.queryFn();
+  expect(getContractProductionApi).toHaveBeenCalledWith({
+    month: 9,
+    financial_year_id: 2,
+  });
+});
+test('report errors hide totals and offer retry', () => {
+  report.isError = true;
+  report.error = {
+    response: { data: { message: 'Please refresh the financial year.' } },
+  };
+  render();
+  expect(texts()).toContain('Please refresh the financial year.');
+  expect(texts()).not.toContain('Bhagat');
+  act(() => button('Retry production').props.onPress());
+  expect(refetch).toHaveBeenCalled();
+});
+test('missing financial year prevents report loading', () => {
+  year = null;
+  reportOptions = null;
+  render();
+  expect(reportOptions).toBeNull();
+  expect(texts()).toContain('Set a current financial year');
 });
