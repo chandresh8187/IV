@@ -153,6 +153,7 @@ export default function RealtimeQuerySync() {
         'production-planning',
         'available-production-planning',
         'expense-report',
+        'monthly-report',
       ]);
     };
 
@@ -199,7 +200,7 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
-      invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report']);
+      invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
       invalidateKeys(['contractors', 'contractor-report']);
       invalidateKeys(['financial-years', 'current-financial-year']);
       invalidateProductionData();
@@ -260,9 +261,9 @@ export default function RealtimeQuerySync() {
     if (socket.connected) socket.disconnect();
 
     socket.on('production_updated', invalidateProductionData);
-    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report']);
-    const invalidateZincByproducts = () => invalidateKeys(['zinc-byproducts', 'dashboard', 'expense-report']);
-    const invalidateExpenseReport = () => invalidateKeys(['expense-report', 'expense-settings']);
+    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
+    const invalidateZincByproducts = () => invalidateKeys(['zinc-byproducts', 'dashboard', 'expense-report', 'monthly-report']);
+    const invalidateExpenseReport = () => invalidateKeys(['expense-report', 'expense-settings', 'monthly-report']);
     socket.on('zinc_stock_updated', invalidateZincStock);
     socket.on('zinc_byproduct_updated', invalidateZincByproducts);
     socket.on('expense_report_updated', invalidateExpenseReport);

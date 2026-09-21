@@ -14,6 +14,7 @@ import ContractorScreen from '../../screens/common/ContractorScreen';
 import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';
 import ExpenseReportScreen from '../../screens/common/ExpenseReportScreen';
 import ExpenseSettingsScreen from '../../screens/common/ExpenseSettingsScreen';
+import MonthlyReportsScreen from '../../screens/common/MonthlyReportsScreen';
 import ZincStockScreen from '../../screens/common/ZincStockScreen';
 import ZincStockReportScreen from '../../screens/common/ZincStockReportScreen';
 import AshDrossReportScreen from '../../screens/common/AshDrossReportScreen';
@@ -81,6 +82,11 @@ export default function ProductionStack() {
         name="ExpenseSettings"
         component={ExpenseSettingsScreen}
         options={{ title: 'Expense Settings' }}
+      />
+      <Stack.Screen
+        name="MonthlyReports"
+        component={MonthlyReportsScreen}
+        options={{ title: 'Monthly Reports' }}
       />
       <Stack.Screen
         name="ZincStock"

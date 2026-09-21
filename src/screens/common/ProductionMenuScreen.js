@@ -62,6 +62,13 @@ const PRODUCTION_ACTIONS = [
     permission: 'expense_report.view',
   },
   {
+    title: 'Monthly Reports',
+    icon: ClipboardList,
+    screen: 'MonthlyReports',
+    description: 'View and export complete reports for previous months.',
+    permission: 'monthly_reports.view',
+  },
+  {
     title: 'Zinc Stock',
     icon: Package,
     screen: 'ZincStock',

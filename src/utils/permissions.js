@@ -8,6 +8,8 @@ const ROLE_DEFAULTS = {
   'expense_report.view': ['superadmin', 'plant_manager', 'admin'],
   'expense_report.settings': ['superadmin', 'plant_manager'],
   'expense_report.report': ['superadmin', 'plant_manager', 'admin'],
+  'monthly_reports.view': ['superadmin', 'plant_manager', 'admin'],
+  'monthly_reports.report': ['superadmin', 'plant_manager', 'admin'],
   'rate_calculator.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.view': ['superadmin', 'plant_manager', 'admin'],
   'contractors.manage': ['superadmin', 'plant_manager'],
