@@ -152,6 +152,7 @@ export default function RealtimeQuerySync() {
         'dashboard',
         'production-planning',
         'available-production-planning',
+        'expense-report',
       ]);
     };
 
@@ -198,7 +199,7 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
-      invalidateKeys(['zinc-stock', 'zinc-stock-movements']);
+      invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report']);
       invalidateKeys(['contractors', 'contractor-report']);
       invalidateKeys(['financial-years', 'current-financial-year']);
       invalidateProductionData();
@@ -259,8 +260,12 @@ export default function RealtimeQuerySync() {
     if (socket.connected) socket.disconnect();
 
     socket.on('production_updated', invalidateProductionData);
-    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements']);
+    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report']);
+    const invalidateZincByproducts = () => invalidateKeys(['zinc-byproducts', 'dashboard', 'expense-report']);
+    const invalidateExpenseReport = () => invalidateKeys(['expense-report', 'expense-settings']);
     socket.on('zinc_stock_updated', invalidateZincStock);
+    socket.on('zinc_byproduct_updated', invalidateZincByproducts);
+    socket.on('expense_report_updated', invalidateExpenseReport);
     const invalidateContractors = () =>
       invalidateKeys([
         'contractors',
@@ -319,6 +324,8 @@ export default function RealtimeQuerySync() {
       if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
       socket.off('production_updated', invalidateProductionData);
       socket.off('zinc_stock_updated', invalidateZincStock);
+      socket.off('zinc_byproduct_updated', invalidateZincByproducts);
+      socket.off('expense_report_updated', invalidateExpenseReport);
       socket.off('contractors_updated', invalidateContractors);
       socket.off('financial_years_updated', invalidateFinancialYears);
       socket.off('production_planning_updated', invalidatePlanningData);

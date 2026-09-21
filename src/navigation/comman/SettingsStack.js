@@ -9,6 +9,7 @@ import ContractorsScreen from '../../screens/settings/ContractorsScreen';
 import SettingsMenuScreen from '../../screens/settings/SettingsMenuScreen';
 import ControlPanelScreen from '../../screens/superadmin/ControlPanelScreen';
 import NotificationTestScreen from '../../screens/superadmin/NotificationTestScreen';
+import UsersScreen from '../../screens/superadmin/UsersScreen';
 
 const Stack = createNativeStackNavigator();
 const renderHeader = props => <AppHeader {...props} />;
@@ -46,6 +47,11 @@ export default function SettingsStack() {
         name="ControlPanel"
         component={ControlPanelScreen}
         options={{ title: 'Control Panel' }}
+      />
+      <Stack.Screen
+        name="UserAccess"
+        component={UsersScreen}
+        options={{ title: 'User Access' }}
       />
       <Stack.Screen
         name="NotificationTest"

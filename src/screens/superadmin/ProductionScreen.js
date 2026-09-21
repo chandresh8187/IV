@@ -87,7 +87,7 @@ export default function ProductionScreen() {
       .toLowerCase(),
   );
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
-  const canAddZinc = hasPermission(loggedUser, 'zinc_stock.manage');
+  const canAddZinc = hasPermission(loggedUser, 'zinc_stock.transfer');
   const zincStockQuery = useQuery({
     queryKey: ['zinc-stock'],
     queryFn: getLiveZincStockApi,

@@ -45,6 +45,7 @@ export default function ZincStockReportScreen({ navigation }) {
   const [generating, setGenerating] = useState(false);
   const user = useSelector(state => state.auth.user);
   const canView = hasPermission(user, 'zinc_stock.view');
+  const canGeneratePdf = hasPermission(user, 'zinc_stock.report');
   const { contentMaxWidth } = useResponsive();
   const query = useQuery({
     queryKey: ['zinc-stock-movements', 'all'],
@@ -92,18 +93,20 @@ export default function ZincStockReportScreen({ navigation }) {
       <Text style={styles.muted}>
         Complete history of zinc receipts, kettle additions, corrections, and production use.
       </Text>
-      <TouchableOpacity
-        accessibilityRole="button"
-        style={[styles.pdfButton, generating && styles.disabled]}
-        disabled={generating || query.isLoading || query.isError}
-        onPress={generatePdf}
-      >
-        {generating ? (
-          <ActivityIndicator color={COLORS.white} />
-        ) : (
-          <Text style={styles.pdfButtonText}>Generate PDF Report</Text>
-        )}
-      </TouchableOpacity>
+      {canGeneratePdf && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          style={[styles.pdfButton, generating && styles.disabled]}
+          disabled={generating || query.isLoading || query.isError}
+          onPress={generatePdf}
+        >
+          {generating ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Text style={styles.pdfButtonText}>Generate PDF Report</Text>
+          )}
+        </TouchableOpacity>
+      )}
       {query.isLoading ? (
         <ActivityIndicator color={COLORS.accent} />
       ) : query.isError ? (

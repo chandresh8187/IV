@@ -4,7 +4,7 @@ import { Text, TouchableOpacity } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import ZincStockScreen from '../src/screens/common/ZincStockScreen';
-import { parseZincAmount, zincTransferPreview } from '../src/utils/zincStock';
+import { parseZincAmount, zincKgToMm, zincMmToKg, zincTransferPreview } from '../src/utils/zincStock';
 
 jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
 jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
@@ -27,6 +27,7 @@ jest.mock('lucide-react-native', () => ({
   Factory: 'Factory',
   Package: 'Package',
   ArrowRightLeft: 'ArrowRightLeft',
+  Settings: 'Settings',
 }));
 jest.mock('../src/components/ZincTankVisual', () => 'ZincTankVisual');
 jest.mock('../src/api/zincStockApi', () => ({
@@ -62,14 +63,15 @@ const render = () =>
   });
 beforeEach(() => {
   jest.clearAllMocks();
+  mutationOptions = null;
   useSelector.mockReturnValue({ role: 'plant_manager' });
   stock = {
     initialized: true,
     plant_kg: 9989,
     kettle_kg: 0,
-    kg_per_mm: 35.65,
+    kg_per_mm: 35.7,
     revision: 1,
-    capacity_kg: 44562.5,
+    capacity_kg: 44625,
     level_mm: 0,
     fill_percent: 0,
     tank: { length_m: 5, width_m: 1, depth_mm: 1250 },
@@ -82,7 +84,7 @@ beforeEach(() => {
   );
   mutate = jest.fn();
   useMutation.mockImplementation(options => {
-    mutationOptions = options;
+    if (!mutationOptions) mutationOptions = options;
     return { mutate, isPending: false };
   });
 });
@@ -97,7 +99,7 @@ test('plant and kettle options display balances and preview exact transfer', () 
   tap('Add zinc to kettle');
   change('Zinc amount (kg)', '1000');
   expect(texts()).toContain('8,989');
-  expect(texts()).toContain('28.1');
+  expect(texts()).toContain('28.0');
   tap('Confirm transfer');
   expect(mutate.mock.calls[0][0]).toMatchObject({
     action: 'transfer',
@@ -108,7 +110,7 @@ test('plant and kettle options display balances and preview exact transfer', () 
     ...stock,
     plant_kg: 8989,
     kettle_kg: 1000,
-    level_mm: 1000 / 35.65,
+    level_mm: 1000 / 35.7,
     revision: 2,
   };
   act(() =>
@@ -146,51 +148,23 @@ test('receipt adds only to plant and a network retry preserves request ID and re
   expect(mutate.mock.calls[1][0]).toEqual(first);
   expect(first.action).toBe('receive');
 });
-test('opening stock requires explicit balances and accepts fill height in mm', () => {
+test('opening stock is configured from the separate settings screen', () => {
   stock = { ...stock, initialized: false, revision: 0, level_mm: null };
   render();
-  tap('Save opening stock');
-  expect(mutate).not.toHaveBeenCalled();
-  change('Opening plant stock (kg)', '9989');
-  tap('mm');
-  change('Kettle fill height from bottom (mm)', '1000');
-  tap('Save opening stock');
-  expect(mutate.mock.calls[0][0]).toMatchObject({
-    action: 'initialize',
-    plant_kg: 9989,
-    kettle_kg: 35650,
-    kg_per_mm: 35.65,
-  });
+  expect(texts()).toContain('Opening stock is not set');
+  expect(texts()).toContain('Use Settings');
+  expect(input('Opening plant stock (kg)')).toBeUndefined();
 });
-test('manager can replace both balances and the correction is audited', () => {
+test('balance correction controls are moved out of the stock tab', () => {
   render();
-  tap('Change plant and kettle stock');
-  expect(input('Plant stock (kg)').props.value).toBe('9989');
-  expect(input('Kettle stock (kg)').props.value).toBe('0');
-  change('Plant stock (kg)', '8500');
-  change('Kettle stock (kg)', '16500');
-  change('Note (optional)', 'Physical stock verification');
-  tap('Save changed balances');
-  expect(mutate.mock.calls[0][0]).toMatchObject({
-    action: 'adjust',
-    plant_kg: 8500,
-    kettle_kg: 16500,
-    kg_per_mm: 35.65,
-    note: 'Physical stock verification',
-    expected_revision: 1,
-  });
+  expect(button('Settings')).toBeDefined();
+  expect(button('Change plant and kettle stock')).toBeUndefined();
 });
-test('changed kettle balance may be entered as measured millimetres', () => {
+test('ash and dross tab shows current-month collection headings', () => {
   render();
-  tap('Change plant and kettle stock');
-  tap('mm');
-  change('Kettle fill height from bottom (mm)', '500');
-  tap('Save changed balances');
-  expect(mutate.mock.calls[0][0]).toMatchObject({
-    action: 'adjust',
-    plant_kg: 9989,
-    kettle_kg: 17825,
-  });
+  tap('Ash & Dross');
+  expect(texts()).toContain('Collected this month');
+  expect(texts()).toContain('Recovered zinc');
 });
 test('view-only users cannot mutate and revoked view access disables queries', () => {
   useSelector.mockReturnValue({
@@ -223,6 +197,12 @@ test('weight parsing and capacity prevent tiny negative balances and overflowing
       .plant_kg,
   ).toBe(0.2);
   expect(
-    zincTransferPreview({ ...stock, kettle_kg: 44562.5 }, '1').error,
+    zincTransferPreview({ ...stock, kettle_kg: 44625 }, '1').error,
   ).toContain('tank volume');
+});
+
+test('kettle opening stock converts between millimetres and kilograms', () => {
+  expect(zincMmToKg(100)).toBe(3570);
+  expect(zincKgToMm(3570)).toBe(100);
+  expect(zincMmToKg(1250)).toBe(44625);
 });

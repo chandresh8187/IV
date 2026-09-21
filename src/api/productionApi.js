@@ -1,7 +1,7 @@
 import apiClient from './apiClient';
 
 export const getLiveZincStockApi = async () =>
-  (await apiClient.get('/zinc-stock')).data;
+  (await apiClient.get('/zinc-stock/transfer-context')).data;
 export const addLiveZincApi = async body =>
   (await apiClient.post('/zinc-stock/movements', body)).data;
 

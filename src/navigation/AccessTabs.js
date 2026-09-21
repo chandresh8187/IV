@@ -44,6 +44,8 @@ export default function AccessTabs() {
   const canProduction = canOpenProductionWorkspace(user);
   const showShiftTab = shouldShowShiftTab(user);
   const canUsers = hasPermission(user, 'users.view');
+  const isSuperAdmin = String(user?.role || '').toLowerCase().trim() === 'superadmin';
+  const showUsersTab = canUsers && !isSuperAdmin;
   const showSettingsTab = shouldShowSettingsTab(user);
   const initialRouteName = canDashboard
     ? 'Dashboard'
@@ -51,7 +53,7 @@ export default function AccessTabs() {
     ? 'Production'
     : showShiftTab
     ? 'Shift'
-    : canUsers
+    : showUsersTab
     ? 'Users'
     : showSettingsTab
     ? 'Settings'
@@ -69,7 +71,7 @@ export default function AccessTabs() {
         <Tab.Screen name="Production" component={ProductionStack} />
       )}
       {showShiftTab && <Tab.Screen name="Shift" component={ShiftScreen} />}
-      {canUsers && <Tab.Screen name="Users" component={UsersScreen} />}
+      {showUsersTab && <Tab.Screen name="Users" component={UsersScreen} />}
       {showSettingsTab && (
         <Tab.Screen name="Settings" component={SettingsStack} />
       )}

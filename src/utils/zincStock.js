@@ -1,7 +1,11 @@
-// Configured zinc density 7.13 g/cm³ (7,130 kg/m³); 5 m x 1 m footprint.
-export const ZINC_DENSITY_G_CM3 = 7.13;
-export const ZINC_KG_PER_MM = 35.65;
+// Configured zinc density 7.14 g/cm³ (7,140 kg/m³); 5 m x 1 m footprint.
+export const ZINC_DENSITY_G_CM3 = 7.14;
+export const ZINC_KG_PER_MM = 35.7;
 export const ZINC_DEPTH_MM = 1250;
+
+export const zincMmToKg = mm => Math.round(Number(mm) * ZINC_KG_PER_MM * 1000) / 1000;
+
+export const zincKgToMm = kg => Math.round((Number(kg) / ZINC_KG_PER_MM) * 1000) / 1000;
 
 export const zincKg = value =>
   Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });

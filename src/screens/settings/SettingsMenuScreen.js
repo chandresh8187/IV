@@ -4,6 +4,7 @@ import {
   HardHat,
   PackageOpen,
   SlidersHorizontal,
+  ShieldCheck,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -12,6 +13,13 @@ import ModuleMenu from '../../components/ModuleMenu';
 import { hasPermission } from '../../utils/permissions';
 
 const SETTINGS_ACTIONS = [
+  {
+    title: 'User Access',
+    icon: ShieldCheck,
+    screen: 'UserAccess',
+    description: 'Manage users and decide which operations each user can perform.',
+    superadminOnly: true,
+  },
   {
     title: 'Contractors',
     icon: HardHat,

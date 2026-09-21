@@ -13,8 +13,11 @@ import PdfViewerScreen from '../../screens/common/PdfViewerScreen';
 import ContractorScreen from '../../screens/common/ContractorScreen';
 import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';
 import ExpenseReportScreen from '../../screens/common/ExpenseReportScreen';
+import ExpenseSettingsScreen from '../../screens/common/ExpenseSettingsScreen';
 import ZincStockScreen from '../../screens/common/ZincStockScreen';
 import ZincStockReportScreen from '../../screens/common/ZincStockReportScreen';
+import AshDrossReportScreen from '../../screens/common/AshDrossReportScreen';
+import ZincStockSettingsScreen from '../../screens/common/ZincStockSettingsScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -75,6 +78,11 @@ export default function ProductionStack() {
         options={{ title: 'Expense Report' }}
       />
       <Stack.Screen
+        name="ExpenseSettings"
+        component={ExpenseSettingsScreen}
+        options={{ title: 'Expense Settings' }}
+      />
+      <Stack.Screen
         name="ZincStock"
         component={ZincStockScreen}
         options={{ title: 'Zinc Stock' }}
@@ -83,6 +91,16 @@ export default function ProductionStack() {
         name="ZincStockReport"
         component={ZincStockReportScreen}
         options={{ title: 'Zinc Stock Report' }}
+      />
+      <Stack.Screen
+        name="ZincStockSettings"
+        component={ZincStockSettingsScreen}
+        options={{ title: 'Zinc Stock Settings' }}
+      />
+      <Stack.Screen
+        name="AshDrossReport"
+        component={AshDrossReportScreen}
+        options={{ title: 'Ash & Dross Report' }}
       />
       <Stack.Screen
         name="RateCalculator"

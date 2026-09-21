@@ -58,8 +58,8 @@ const PRODUCTION_ACTIONS = [
     title: 'Expense Report',
     icon: Receipt,
     screen: 'ExpenseReport',
-    description: 'Coming soon',
-    permission: 'production.view',
+    description: 'Review monthly production costs and running plant cost.',
+    permission: 'expense_report.view',
   },
   {
     title: 'Zinc Stock',
