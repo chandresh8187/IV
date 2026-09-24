@@ -5,7 +5,6 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,8 +22,10 @@ import {
   editChatMessageApi,
   getChatApi,
   markChatReadApi,
+  registerChatParticipantApi,
   sendChatMessageApi,
 } from '../../api/chatApi';
+import { getNotificationInstallationId } from '../../services/notificationRegistrationService';
 
 const formatMessageTime = value => {
   const date = moment(value, 'YYYY-MM-DD HH:mm:ss', true);
@@ -34,6 +35,7 @@ const formatMessageTime = value => {
     : date.format('DD MMM YYYY, h:mm A');
 };
 const CHAT_NAME_STORAGE_KEY = 'plant_chat_device_name';
+const CHAT_MOBILE_STORAGE_KEY = 'plant_chat_device_mobile';
 
 export default function ChatScreen() {
   const user = useSelector(state => state.auth.user);
@@ -45,38 +47,49 @@ export default function ChatScreen() {
   const [highlightedId, setHighlightedId] = useState(null);
   const [chatName, setChatName] = useState('');
   const [nameDraft, setNameDraft] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [installationId, setInstallationId] = useState('');
   const [identityReady, setIdentityReady] = useState(false);
+  const [participantReady, setParticipantReady] = useState(false);
+  const [participantId, setParticipantId] = useState(null);
   const [busy, setBusy] = useState(false);
   const list = useRef(null);
   const highlightTimer = useRef(null);
   useEffect(() => {
-    AsyncStorage.getItem(CHAT_NAME_STORAGE_KEY)
-      .then(value => {
+    Promise.all([AsyncStorage.getItem(CHAT_NAME_STORAGE_KEY), AsyncStorage.getItem(CHAT_MOBILE_STORAGE_KEY), getNotificationInstallationId()])
+      .then(([value, savedMobile, deviceId]) => {
         const saved = String(value || '').trim();
         setChatName(saved);
         setNameDraft(saved);
+        setMobile(String(savedMobile || ''));
+        setInstallationId(deviceId);
       })
       .finally(() => setIdentityReady(true));
   }, []);
+  useEffect(() => {
+    if (identityReady && chatName && mobile && installationId) registerChatParticipantApi({ installation_id: installationId, display_name: chatName, mobile_number: mobile }).then(() => setParticipantReady(true)).catch(() => setParticipantReady(false));
+  }, [chatName, identityReady, installationId, mobile]);
   const load = useCallback(async () => {
-    const result = await getChatApi();
+    const result = await getChatApi(installationId);
     const loaded = Array.isArray(result?.data?.messages)
       ? result.data.messages
       : [];
     setMessages(loaded);
     setUsers(Array.isArray(result?.data?.users) ? result.data.users : []);
-    await markChatReadApi(loaded[loaded.length - 1]?.id || 0);
-  }, []);
+    setParticipantId(result?.data?.participant_id || null);
+    setTimeout(() => list.current?.scrollToEnd({ animated: false }), 100);
+    await markChatReadApi(loaded[loaded.length - 1]?.id || 0, installationId);
+  }, [installationId]);
   useEffect(() => {
-    if (!identityReady || !chatName) return undefined;
+    if (!identityReady || !chatName || !mobile || !participantReady) return undefined;
     const markActive = () => socket.emit('chat_active', { active: true });
     markActive();
     socket.on('connect', markActive);
     load().catch(() => {});
     const created = m => {
       setMessages(v => (v.some(x => x.id === m.id) ? v : [...v, m]));
-      if (Number(m?.user_id) !== Number(user?.id))
-        markChatReadApi(Number(m.id)).catch(() => {});
+      if (Number(m?.participant_id) !== Number(participantId))
+        markChatReadApi(Number(m.id), installationId).catch(() => {});
     };
     const updated = m => setMessages(v => v.map(x => (x.id === m.id ? m : x)));
     const deleted = ({ id }) =>
@@ -88,10 +101,15 @@ export default function ChatScreen() {
           online: online_user_ids.map(Number).includes(Number(x.id)),
         })),
       );
+    const seen = ({ participant_id, last_read_message_id }) => {
+      if (Number(participant_id) === Number(participantId)) return;
+      setMessages(current => current.map(item => Number(item.id) <= Number(last_read_message_id) && Number(item.participant_id) !== Number(participant_id) ? { ...item, seen_count: Math.max(1, Number(item.seen_count || 0)) } : item));
+    };
     socket.on('chat_message_created', created);
     socket.on('chat_message_updated', updated);
     socket.on('chat_message_deleted', deleted);
     socket.on('chat_presence_updated', presence);
+    socket.on('chat_messages_seen', seen);
     return () => {
       clearTimeout(highlightTimer.current);
       socket.emit('chat_active', { active: false });
@@ -100,14 +118,15 @@ export default function ChatScreen() {
       socket.off('chat_message_updated', updated);
       socket.off('chat_message_deleted', deleted);
       socket.off('chat_presence_updated', presence);
+      socket.off('chat_messages_seen', seen);
     };
-  }, [chatName, identityReady, load, user?.id]);
+  }, [chatName, identityReady, installationId, load, mobile, participantId, participantReady, user?.id]);
   const save = async () => {
     if (!text.trim() || busy) return;
     setBusy(true);
     try {
       if (editing) await editChatMessageApi(editing.id, text);
-      else await sendChatMessageApi(text, replying?.id || null, chatName);
+      else await sendChatMessageApi(text, replying?.id || null, installationId);
       setText('');
       setEditing(null);
       setReplying(null);
@@ -136,7 +155,7 @@ export default function ChatScreen() {
       },
     ]);
   const canChange = item =>
-    Number(item.user_id) === Number(user?.id) || user?.role === 'superadmin';
+    Number(item.participant_id) === Number(participantId) || user?.role === 'superadmin';
   const jumpToMessage = messageId => {
     const index = messages.findIndex(item => Number(item.id) === Number(messageId));
     if (index < 0) return Alert.alert('Chat', 'The original message is not in the loaded conversation.');
@@ -148,20 +167,25 @@ export default function ChatScreen() {
   const saveChatName = async () => {
     const name = nameDraft.trim().replace(/\s+/g, ' ');
     if (name.length < 2) return Alert.alert('Plant Chat', 'Enter at least 2 characters for your name.');
+    if (!/^\d{10,15}$/.test(mobile.replace(/\D/g, ''))) return Alert.alert('Plant Chat', 'Enter a valid mobile number.');
+    await registerChatParticipantApi({ installation_id: installationId, display_name: name, mobile_number: mobile });
     await AsyncStorage.setItem(CHAT_NAME_STORAGE_KEY, name);
+    await AsyncStorage.setItem(CHAT_MOBILE_STORAGE_KEY, mobile.replace(/\D/g, ''));
     setChatName(name);
+    setParticipantReady(true);
   };
 
   if (!identityReady) {
     return <View style={styles.identityLoading}><ActivityIndicator color={COLORS.primary} /></View>;
   }
-  if (!chatName) {
+  if (!chatName || !mobile) {
     return (
       <View style={styles.identityPage}>
         <View style={styles.identityCard}>
           <Text style={styles.identityTitle}>Who is using Plant Chat?</Text>
           <Text style={styles.identityHint}>This name is saved on this device and shown with messages sent from it.</Text>
           <TextInput value={nameDraft} onChangeText={setNameDraft} placeholder="Enter your name" placeholderTextColor={COLORS.gray} maxLength={60} autoCapitalize="words" style={styles.identityInput} />
+          <TextInput value={mobile} onChangeText={setMobile} placeholder="Enter mobile number" placeholderTextColor={COLORS.gray} maxLength={15} keyboardType="phone-pad" style={styles.identityInput} />
           <TouchableOpacity style={styles.identityButton} onPress={saveChatName} disabled={nameDraft.trim().length < 2}><Text style={styles.identityButtonText}>Save and open chat</Text></TouchableOpacity>
         </View>
       </View>
@@ -206,7 +230,7 @@ export default function ChatScreen() {
         onScrollToIndexFailed={({ index }) =>
           setTimeout(() => list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }), 150)
         }
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardDismissMode="none"
         data={messages}
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.messages}
@@ -214,7 +238,7 @@ export default function ChatScreen() {
           list.current?.scrollToEnd({ animated: true })
         }
         renderItem={({ item }) => {
-          const own = Number(item.user_id) === Number(user?.id);
+          const own = Number(item.participant_id) === Number(participantId);
           return (
             <View style={[styles.bubble, own && styles.own, Number(highlightedId) === Number(item.id) && styles.highlighted]}>
               <Text style={styles.name}>{item.user_name}</Text>
@@ -230,6 +254,7 @@ export default function ChatScreen() {
                 <Text style={styles.time}>
                   {formatMessageTime(item.created_at)}
                   {item.edited_at ? ' · edited' : ''}
+                  {own ? Number(item.seen_count) > 0 ? ' · Seen' : ' · Sent' : ''}
                 </Text>
                 <View style={styles.actions}>
                     <TouchableOpacity onPress={() => { setEditing(null); setText(''); setReplying(item); }}>
@@ -274,6 +299,7 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => setReplying(null)}><X size={20} color={COLORS.gray} /></TouchableOpacity>
         </View>
       )}
+      {/@[^\s@]*$/.test(text) && <View style={styles.mentions}>{users.filter(item => item.name?.toLowerCase().includes((text.match(/@([^\s@]*)$/)?.[1] || '').toLowerCase())).slice(0, 5).map(item => <TouchableOpacity key={item.id} onPress={() => setText(value => value.replace(/@[^\s@]*$/, `@${item.name} `))}><Text style={styles.mentionName}>@{item.name}</Text><Text style={styles.role}>{item.role}</Text></TouchableOpacity>)}</View>}
       <View style={styles.composer}>
         <TextInput
           value={text}
@@ -383,6 +409,8 @@ const styles = StyleSheet.create({
   cancel: { color: COLORS.danger, fontWeight: '700' },
   replying: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: COLORS.accentSoft, borderLeftWidth: 4, borderLeftColor: COLORS.accent },
   replyingText: { flex: 1 },
+  mentions: { maxHeight: 180, padding: 10, gap: 8, backgroundColor: COLORS.white, borderTopWidth: 1, borderColor: COLORS.border },
+  mentionName: { color: COLORS.primary, fontWeight: '800' },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
