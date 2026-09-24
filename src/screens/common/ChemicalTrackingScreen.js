@@ -100,11 +100,11 @@ export default function ChemicalTrackingScreen({ navigation }) {
   });
   const fields = useMemo(
     () => [
-      ['flux_ph', '4.0 To 5.0'],
-      ['flux_density', '1.83 To 1.84 g/cm³'],
-      ['flux_temperature_c', 'Flux temperature (°C)'],
-      ['acid_ph', 'Acid pH'],
-      ['acid_density', 'Acid density (g/cm³)'],
+      { key: 'acid_ph', label: 'Acid pH', required: '2–3 pH' },
+      { key: 'acid_density', label: 'Acid density', required: '1.83–1.84 g/cm³' },
+      { key: 'flux_ph', label: 'Flux pH', required: '4–5 pH' },
+      { key: 'flux_density', label: 'Flux density', required: '1.2–1.5 g/cm³' },
+      { key: 'flux_temperature_c', label: 'Flux temperature', required: '65–71 °C' },
     ],
     [],
   );
@@ -115,14 +115,14 @@ export default function ChemicalTrackingScreen({ navigation }) {
       return setError('Enter the date as YYYY-MM-DD.');
     if (
       fields.some(
-        ([key]) =>
+        ({ key }) =>
           form[key].trim() === '' || !Number.isFinite(Number(form[key])),
       )
     )
       return setError('Enter all pH, density, and flux temperature readings.');
     mutation.mutate({
       ...form,
-      ...Object.fromEntries(fields.map(([key]) => [key, Number(form[key])])),
+      ...Object.fromEntries(fields.map(({ key }) => [key, Number(form[key])])),
     });
   };
   const generate = async () => {
@@ -242,19 +242,31 @@ export default function ChemicalTrackingScreen({ navigation }) {
                 )}
               </View>
             )}
+            <View style={styles.parameterIntro}>
+              <Info size={20} color={COLORS.accentDark} />
+              <View style={styles.infoContent}>
+                <Text style={styles.infoTitle}>Required operating parameters</Text>
+                <Text style={styles.infoText}>Use these ranges as guidance while recording the actual readings.</Text>
+              </View>
+            </View>
             <View style={styles.fieldGrid}>
-              {fields.map(([key, label]) => (
-                <TextInput
-                  key={key}
-                  style={styles.field}
-                  mode="outlined"
-                  label={label}
-                  value={form[key]}
-                  keyboardType="decimal-pad"
-                  onChangeText={value =>
-                    setForm(current => ({ ...current, [key]: value }))
-                  }
-                />
+              {fields.map(({ key, label, required }) => (
+                <View style={styles.parameterCard} key={key}>
+                  <View style={styles.parameterHeading}>
+                    <Text style={styles.parameterLabel}>{label}</Text>
+                    <Text style={styles.requiredValue}>{required}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.field}
+                    mode="outlined"
+                    label={`Enter ${label.toLowerCase()}`}
+                    value={form[key]}
+                    keyboardType="decimal-pad"
+                    onChangeText={value =>
+                      setForm(current => ({ ...current, [key]: value }))
+                    }
+                  />
+                </View>
               ))}
             </View>
             <TextInput
@@ -404,7 +416,7 @@ const styles = StyleSheet.create({
     ...UI.shadow,
   },
   sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
-  infoBox: {
+  parameterIntro: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
@@ -415,6 +427,17 @@ const styles = StyleSheet.create({
   infoContent: { flex: 1, gap: 2 },
   infoTitle: { color: COLORS.accentDark, fontSize: 13, fontWeight: '800' },
   infoText: { color: COLORS.text, fontSize: 13, lineHeight: 19 },
+  parameterCard: {
+    flexGrow: 1,
+    flexBasis: 155,
+    padding: 12,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.surfaceMuted,
+    gap: 9,
+  },
+  parameterHeading: { gap: 3 },
+  parameterLabel: { color: COLORS.text, fontSize: 14, fontWeight: '800' },
+  requiredValue: { color: COLORS.accentDark, fontSize: 12, fontWeight: '700' },
   dateLabel: {
     color: COLORS.muted,
     fontSize: 12,
@@ -446,7 +469,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   fieldGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  field: { flexGrow: 1, flexBasis: 150 },
+  field: { backgroundColor: COLORS.white },
   button: {
     minHeight: 50,
     borderRadius: UI.radiusSmall,

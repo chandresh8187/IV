@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,8 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useHeaderHeight } from '@react-navigation/elements';
-import { Pencil, Send, Trash2 } from 'lucide-react-native';
+import { Pencil, Reply, Send, Trash2, X } from 'lucide-react-native';
 import moment from 'moment';
 import { useSelector } from 'react-redux';
 import { COLORS, UI } from '../../assets/Colors';
@@ -35,14 +33,16 @@ const formatMessageTime = value => {
 };
 
 export default function ChatScreen() {
-  const headerHeight = useHeaderHeight();
   const user = useSelector(state => state.auth.user);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [text, setText] = useState('');
   const [editing, setEditing] = useState(null);
+  const [replying, setReplying] = useState(null);
+  const [highlightedId, setHighlightedId] = useState(null);
   const [busy, setBusy] = useState(false);
   const list = useRef(null);
+  const highlightTimer = useRef(null);
   const load = useCallback(async () => {
     const result = await getChatApi();
     const loaded = Array.isArray(result?.data?.messages)
@@ -77,6 +77,7 @@ export default function ChatScreen() {
     socket.on('chat_message_deleted', deleted);
     socket.on('chat_presence_updated', presence);
     return () => {
+      clearTimeout(highlightTimer.current);
       socket.emit('chat_active', { active: false });
       socket.off('connect', markActive);
       socket.off('chat_message_created', created);
@@ -90,9 +91,10 @@ export default function ChatScreen() {
     setBusy(true);
     try {
       if (editing) await editChatMessageApi(editing.id, text);
-      else await sendChatMessageApi(text);
+      else await sendChatMessageApi(text, replying?.id || null);
       setText('');
       setEditing(null);
+      setReplying(null);
     } catch (e) {
       Alert.alert(
         'Chat',
@@ -119,6 +121,14 @@ export default function ChatScreen() {
     ]);
   const canChange = item =>
     Number(item.user_id) === Number(user?.id) || user?.role === 'superadmin';
+  const jumpToMessage = messageId => {
+    const index = messages.findIndex(item => Number(item.id) === Number(messageId));
+    if (index < 0) return Alert.alert('Chat', 'The original message is not in the loaded conversation.');
+    list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    setHighlightedId(Number(messageId));
+    clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightedId(null), 1600);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -155,6 +165,9 @@ export default function ChatScreen() {
         style={styles.messageList}
         keyboardShouldPersistTaps="handled"
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        onScrollToIndexFailed={({ index }) =>
+          setTimeout(() => list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }), 150)
+        }
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         data={messages}
         keyExtractor={item => String(item.id)}
@@ -165,18 +178,28 @@ export default function ChatScreen() {
         renderItem={({ item }) => {
           const own = Number(item.user_id) === Number(user?.id);
           return (
-            <View style={[styles.bubble, own && styles.own]}>
+            <View style={[styles.bubble, own && styles.own, Number(highlightedId) === Number(item.id) && styles.highlighted]}>
               <Text style={styles.name}>{item.user_name}</Text>
+              {item.reply_to_message_id && (
+                <TouchableOpacity style={styles.replyQuote} onPress={() => jumpToMessage(item.reply_to_message_id)}>
+                  <Text style={styles.replyAuthor}>{item.reply_user_name || 'Original message'}</Text>
+                  <Text style={styles.replyText} numberOfLines={2}>{item.reply_message || 'Message unavailable'}</Text>
+                </TouchableOpacity>
+              )}
               <Text style={styles.message}>{item.message}</Text>
               <View style={styles.meta}>
                 <Text style={styles.time}>
                   {formatMessageTime(item.created_at)}
                   {item.edited_at ? ' · edited' : ''}
                 </Text>
-                {canChange(item) && (
-                  <View style={styles.actions}>
+                <View style={styles.actions}>
+                    <TouchableOpacity onPress={() => { setEditing(null); setText(''); setReplying(item); }}>
+                      <Reply size={16} color={COLORS.primary} />
+                    </TouchableOpacity>
+                  {canChange(item) && (<>
                     <TouchableOpacity
                       onPress={() => {
+                        setReplying(null);
                         setEditing(item);
                         setText(item.message);
                       }}
@@ -186,8 +209,8 @@ export default function ChatScreen() {
                     <TouchableOpacity onPress={() => remove(item)}>
                       <Trash2 size={15} color={COLORS.danger} />
                     </TouchableOpacity>
-                  </View>
-                )}
+                  </>)}
+                </View>
               </View>
             </View>
           );
@@ -206,6 +229,12 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       )}
+      {replying && !editing && (
+        <View style={styles.replying}>
+          <View style={styles.replyingText}><Text style={styles.replyAuthor}>Replying to {replying.user_name}</Text><Text numberOfLines={1}>{replying.message}</Text></View>
+          <TouchableOpacity onPress={() => setReplying(null)}><X size={20} color={COLORS.gray} /></TouchableOpacity>
+        </View>
+      )}
       <View style={styles.composer}>
         <TextInput
           value={text}
@@ -213,7 +242,10 @@ export default function ChatScreen() {
           onFocus={() =>
             setTimeout(() => list.current?.scrollToEnd({ animated: true }), 250)
           }
-          placeholder="Message the plant team"
+          placeholder={
+            replying ? `Reply to ${replying.user_name}` : 'Type a message…'
+          }
+          placeholderTextColor={COLORS.gray}
           multiline
           maxLength={1000}
           blurOnSubmit={false}
@@ -274,7 +306,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   own: { alignSelf: 'flex-end', backgroundColor: COLORS.accentSoft },
+  highlighted: { borderColor: COLORS.accent, borderWidth: 2, backgroundColor: '#fff3bf' },
   name: { fontWeight: '700', fontSize: 12, color: COLORS.primary },
+  replyQuote: { backgroundColor: COLORS.surfaceMuted, borderLeftWidth: 3, borderLeftColor: COLORS.accent, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 7, marginTop: 7 },
+  replyAuthor: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
+  replyText: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
   message: {
     color: COLORS.text,
     fontSize: 15,
@@ -297,6 +333,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accentSoft,
   },
   cancel: { color: COLORS.danger, fontWeight: '700' },
+  replying: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: COLORS.accentSoft, borderLeftWidth: 4, borderLeftColor: COLORS.accent },
+  replyingText: { flex: 1 },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
