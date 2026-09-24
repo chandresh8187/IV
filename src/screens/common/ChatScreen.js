@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -31,6 +33,7 @@ const formatMessageTime = value => {
     ? date.format('h:mm A')
     : date.format('DD MMM YYYY, h:mm A');
 };
+const CHAT_NAME_STORAGE_KEY = 'plant_chat_device_name';
 
 export default function ChatScreen() {
   const user = useSelector(state => state.auth.user);
@@ -40,9 +43,21 @@ export default function ChatScreen() {
   const [editing, setEditing] = useState(null);
   const [replying, setReplying] = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
+  const [chatName, setChatName] = useState('');
+  const [nameDraft, setNameDraft] = useState('');
+  const [identityReady, setIdentityReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const list = useRef(null);
   const highlightTimer = useRef(null);
+  useEffect(() => {
+    AsyncStorage.getItem(CHAT_NAME_STORAGE_KEY)
+      .then(value => {
+        const saved = String(value || '').trim();
+        setChatName(saved);
+        setNameDraft(saved);
+      })
+      .finally(() => setIdentityReady(true));
+  }, []);
   const load = useCallback(async () => {
     const result = await getChatApi();
     const loaded = Array.isArray(result?.data?.messages)
@@ -53,6 +68,7 @@ export default function ChatScreen() {
     await markChatReadApi(loaded[loaded.length - 1]?.id || 0);
   }, []);
   useEffect(() => {
+    if (!identityReady || !chatName) return undefined;
     const markActive = () => socket.emit('chat_active', { active: true });
     markActive();
     socket.on('connect', markActive);
@@ -85,13 +101,13 @@ export default function ChatScreen() {
       socket.off('chat_message_deleted', deleted);
       socket.off('chat_presence_updated', presence);
     };
-  }, [load, user?.id]);
+  }, [chatName, identityReady, load, user?.id]);
   const save = async () => {
     if (!text.trim() || busy) return;
     setBusy(true);
     try {
       if (editing) await editChatMessageApi(editing.id, text);
-      else await sendChatMessageApi(text, replying?.id || null);
+      else await sendChatMessageApi(text, replying?.id || null, chatName);
       setText('');
       setEditing(null);
       setReplying(null);
@@ -129,6 +145,28 @@ export default function ChatScreen() {
     clearTimeout(highlightTimer.current);
     highlightTimer.current = setTimeout(() => setHighlightedId(null), 1600);
   };
+  const saveChatName = async () => {
+    const name = nameDraft.trim().replace(/\s+/g, ' ');
+    if (name.length < 2) return Alert.alert('Plant Chat', 'Enter at least 2 characters for your name.');
+    await AsyncStorage.setItem(CHAT_NAME_STORAGE_KEY, name);
+    setChatName(name);
+  };
+
+  if (!identityReady) {
+    return <View style={styles.identityLoading}><ActivityIndicator color={COLORS.primary} /></View>;
+  }
+  if (!chatName) {
+    return (
+      <View style={styles.identityPage}>
+        <View style={styles.identityCard}>
+          <Text style={styles.identityTitle}>Who is using Plant Chat?</Text>
+          <Text style={styles.identityHint}>This name is saved on this device and shown with messages sent from it.</Text>
+          <TextInput value={nameDraft} onChangeText={setNameDraft} placeholder="Enter your name" placeholderTextColor={COLORS.gray} maxLength={60} autoCapitalize="words" style={styles.identityInput} />
+          <TouchableOpacity style={styles.identityButton} onPress={saveChatName} disabled={nameDraft.trim().length < 2}><Text style={styles.identityButtonText}>Save and open chat</Text></TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -180,6 +218,7 @@ export default function ChatScreen() {
           return (
             <View style={[styles.bubble, own && styles.own, Number(highlightedId) === Number(item.id) && styles.highlighted]}>
               <Text style={styles.name}>{item.user_name}</Text>
+              <Text style={styles.role}>{String(item.user_role || '').replace(/_/g, ' ')}</Text>
               {item.reply_to_message_id && (
                 <TouchableOpacity style={styles.replyQuote} onPress={() => jumpToMessage(item.reply_to_message_id)}>
                   <Text style={styles.replyAuthor}>{item.reply_user_name || 'Original message'}</Text>
@@ -264,6 +303,14 @@ export default function ChatScreen() {
 }
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.bg },
+  identityLoading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg },
+  identityPage: { flex: 1, padding: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg },
+  identityCard: { width: '100%', maxWidth: 460, padding: 22, gap: 14, borderRadius: UI.radius, backgroundColor: COLORS.white, ...UI.shadow },
+  identityTitle: { color: COLORS.text, fontSize: 21, fontWeight: '800' },
+  identityHint: { color: COLORS.muted, fontSize: 13, lineHeight: 20 },
+  identityInput: { minHeight: 48, borderWidth: 1, borderColor: COLORS.inputBorder, borderRadius: UI.radiusSmall, paddingHorizontal: 13, color: COLORS.text },
+  identityButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: UI.radiusSmall, backgroundColor: COLORS.primary },
+  identityButtonText: { color: COLORS.white, fontWeight: '800' },
   messageList: { flex: 1 },
   people: {
     backgroundColor: COLORS.white,
@@ -308,6 +355,7 @@ const styles = StyleSheet.create({
   own: { alignSelf: 'flex-end', backgroundColor: COLORS.accentSoft },
   highlighted: { borderColor: COLORS.accent, borderWidth: 2, backgroundColor: '#fff3bf' },
   name: { fontWeight: '700', fontSize: 12, color: COLORS.primary },
+  role: { color: COLORS.muted, fontSize: 10, textTransform: 'capitalize', marginTop: 1 },
   replyQuote: { backgroundColor: COLORS.surfaceMuted, borderLeftWidth: 3, borderLeftColor: COLORS.accent, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 7, marginTop: 7 },
   replyAuthor: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
   replyText: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
