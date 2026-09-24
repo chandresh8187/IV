@@ -19,6 +19,7 @@ import ZincStockScreen from '../../screens/common/ZincStockScreen';
 import ZincStockReportScreen from '../../screens/common/ZincStockReportScreen';
 import AshDrossReportScreen from '../../screens/common/AshDrossReportScreen';
 import ZincStockSettingsScreen from '../../screens/common/ZincStockSettingsScreen';
+import ChemicalTrackingScreen from '../../screens/common/ChemicalTrackingScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -112,6 +113,11 @@ export default function ProductionStack() {
         name="RateCalculator"
         component={RateCalculatorScreen}
         options={{ title: 'Rate Calculator' }}
+      />
+      <Stack.Screen
+        name="ChemicalTracking"
+        component={ChemicalTrackingScreen}
+        options={{ title: 'Chemical Tracking' }}
       />
 
       <Stack.Screen

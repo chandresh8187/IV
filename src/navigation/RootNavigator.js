@@ -10,11 +10,14 @@ import AccessTabs from './AccessTabs';
 import { getStoredAuth } from '../api/authApi';
 import { setAuth, stopLoading } from '../redux/slices/authSlice';
 import { COLORS, UI } from './../assets/Colors';
-import { getSharedPdf, clearSharedPdf } from '../native/ShareIntent';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { extractPlanningPdfApi } from '../api/productionPlanningApi';
-import { hasPermission } from '../utils/permissions';
 import { syncNotificationRegistration } from '../services/notificationRegistrationService';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import ChatScreen from '../screens/common/ChatScreen';
+import AppHeader from '../components/AppHeader';
+
+const Stack = createNativeStackNavigator();
+const renderHeader = props => <AppHeader {...props} />;
 
 const APP_NAVIGATION_THEME = {
   ...DefaultTheme,
@@ -31,61 +34,6 @@ const APP_NAVIGATION_THEME = {
 export default function RootNavigator() {
   const dispatch = useDispatch();
   const { token, user, isLoading } = useSelector(state => state.auth);
-  useEffect(() => {
-    // Wait until auth has finished loading and there's a logged-in,
-    // non-superadmin-only-assumption user before trying to jump into the
-    // authenticated tab tree. Without this guard, a cold start via
-    // "share PDF to app" could fire before login and try to reset into
-    // routes ('Dashboard' / 'Production' > 'ProductionPlanning') that only
-    // exist once the person is authenticated.
-    if (isLoading || !token || !user) {
-      return;
-    }
-
-    const checkSharedPdf = async () => {
-      try {
-        const file = await getSharedPdf();
-
-        if (!file?.uri) {
-          return;
-        }
-
-        if (!hasPermission(user, 'planning.import_pdf')) {
-          return;
-        }
-
-        const res = await extractPlanningPdfApi(file);
-
-        navigationRef.current?.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'Production',
-              state: {
-                index: 1,
-                routes: [
-                  {
-                    name: 'ProductionMenu',
-                  },
-                  {
-                    name: 'ProductionPlanning',
-                    params: {
-                      extractedPdfData: res?.data,
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        });
-
-        clearSharedPdf();
-      } catch (error) {}
-    };
-
-    checkSharedPdf();
-  }, [isLoading, token, user]);
-
   useEffect(() => {
     const loadAuth = async () => {
       try {
@@ -148,7 +96,14 @@ export default function RootNavigator() {
     <NavigationContainer ref={navigationRef} theme={APP_NAVIGATION_THEME}>
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="dark-content" />
-        <MainComponent />
+        {token && user ? (
+          <Stack.Navigator screenOptions={{ header: renderHeader, contentStyle: { backgroundColor: COLORS.bg } }}>
+            <Stack.Screen name="MainTabs" component={MainComponent} options={{ headerShown: false }} />
+            <Stack.Screen name="PlantChat" component={ChatScreen} options={{ title: 'Plant Chat' }} />
+          </Stack.Navigator>
+        ) : (
+          <MainComponent />
+        )}
       </SafeAreaView>
     </NavigationContainer>
   );

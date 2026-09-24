@@ -32,12 +32,14 @@ const SETTINGS_ACTIONS = [
     icon: PackageOpen,
     screen: 'Items',
     description: 'Material catalogue and production item definitions.',
+    permissions: ['items.manage'],
   },
   {
     title: 'Financial Year',
     icon: CalendarRange,
     screen: 'FinancialYear',
     description: 'Accounting periods and financial year records.',
+    permissions: ['financial_years.manage'],
   },
   {
     title: 'Control Panel',

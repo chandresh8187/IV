@@ -14,6 +14,7 @@ import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { calculateRate, defaultRateInputs } from '../../utils/rateCalculator';
 import { hasPermission } from '../../utils/permissions';
+import { getAverageZincRateApi } from '../../api/zincStockApi';
 
 const fields = [
   ['oldWeight', 'Old weight', 'kg', 'in Kg'],
@@ -38,6 +39,16 @@ export default function RateCalculatorScreen() {
   useFocusEffect(
     useCallback(() => {
       setInputs(defaultRateInputs());
+      let active = true;
+      getAverageZincRateApi()
+        .then(response => {
+          const rate = response?.data?.average_zinc_rate;
+          if (active && rate != null) {
+            setInputs(previous => ({ ...previous, zincRate: String(rate) }));
+          }
+        })
+        .catch(() => {});
+      return () => { active = false; };
     }, []),
   );
   const result = calculateRate(inputs);
@@ -91,8 +102,8 @@ export default function RateCalculatorScreen() {
               </View>
             ))}
             <Text style={styles.body}>
-              Blank drossing is treated as 0%. Each visit starts fresh, with
-              Plant cost ₹7 and Profit ₹3.
+              Zinc rate starts with the average of all saved purchase rates and
+              remains editable. Blank drossing is treated as 0%.
             </Text>
           </View>
           <View style={[styles.card, isTablet && styles.tabletCard]}>

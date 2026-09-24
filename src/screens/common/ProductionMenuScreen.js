@@ -9,6 +9,7 @@ import {
   Calculator,
   Receipt,
   Package,
+  FlaskConical,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -74,6 +75,13 @@ const PRODUCTION_ACTIONS = [
     screen: 'ZincStock',
     description: 'Track zinc in the plant and kettle tank.',
     permission: 'zinc_stock.view',
+  },
+  {
+    title: 'Chemical Tracking',
+    icon: FlaskConical,
+    screen: 'ChemicalTracking',
+    description: 'Record flux temperature and daily flux and acid readings.',
+    permission: 'chemical_checks.view',
   },
   {
     title: 'Shift Status',

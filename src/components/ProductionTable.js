@@ -17,11 +17,12 @@ const COLUMNS = [
   { key: 'challan_no', label: 'Challan', width: 120 },
   { key: 'party_name', label: 'Party', width: 170 },
   { key: 'material', label: 'Material', width: 200 },
-  { key: 'kettle_temperature', label: 'Kettle\n°C', width: 90 },
+  { key: 'kettle_temperature', label: 'Kettle °C', width: 90 },
   { key: 'dipping_qty', label: 'Qty\nNOS', width: 80 },
-  { key: 'ms_weight', label: 'MS\nKG', width: 100 },
-  { key: 'gi_weight', label: 'GI\nKG', width: 100 },
+  { key: 'ms_weight', label: 'MS KG', width: 100 },
+  { key: 'gi_weight', label: 'GI KG', width: 100 },
   { key: 'zinc_percentage', label: 'Zinc %', width: 90 },
+  { key: 'production_cost', label: 'Pro. cost\n₹/KG', width: 110, bold: true },
   { key: 'c1', label: 'C1', width: 70 },
   { key: 'c2', label: 'C2', width: 70 },
   { key: 'c3', label: 'C3', width: 70 },
@@ -46,6 +47,9 @@ const formatCellValue = (row, key) => {
   }
   if (key === 'zinc_percentage') {
     return hasValue(value) ? `${formatWeight(value)}%` : '-';
+  }
+  if (key === 'production_cost') {
+    return hasValue(value) ? `₹${formatNumber(value)}/KG` : '-';
   }
   if (['c1', 'c2', 'c3', 'c4', 'c5', 'avg_coating'].includes(key)) {
     return formatNumber(value);
@@ -212,7 +216,7 @@ const styles = StyleSheet.create({
   },
   entryGroup: { width: 155 },
   materialGroup: { width: 490 },
-  processGroup: { width: 460 },
+  processGroup: { width: 570 },
   coatingGroup: { width: 440 },
   actionGroup: { width: 110 },
   fill: { flex: 1 },

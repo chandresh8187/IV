@@ -132,6 +132,7 @@ export default function ZincStockReportScreen({ navigation }) {
             <Text style={styles.muted}>
               Plant {zincKg(item.plant_after_kg)} kg · Kettle {zincKg(item.kettle_after_kg)} kg
             </Text>
+            {item.zinc_rate_per_kg != null ? <Text style={styles.muted}>Purchase rate: ₹{Number(item.zinc_rate_per_kg).toFixed(2)} / kg</Text> : null}
             <Text style={styles.muted}>
               {item.created_at} · {item.actor_name || 'User'}
             </Text>

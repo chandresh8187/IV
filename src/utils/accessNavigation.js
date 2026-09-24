@@ -4,6 +4,7 @@ const PRODUCTION_WORKSPACE_PERMISSIONS = [
   'expense_report.view',
   'monthly_reports.view',
   'zinc_stock.view',
+  'chemical_checks.view',
   'rate_calculator.view',
   'contractors.view',
   'production.view',
@@ -21,10 +22,11 @@ export const normalizeUserRole = user =>
   String(user?.role || '').toLowerCase().trim();
 
 export const shouldShowSettingsTab = user =>
-  ['superadmin', 'plant_manager'].includes(normalizeUserRole(user));
+  ['contractors.view', 'items.manage', 'financial_years.manage', 'settings.manage', 'app_updates.manage']
+    .some(key => hasPermission(user, key));
 
 export const canUseShiftCorrection = user =>
-  ['superadmin', 'plant_manager', 'supervisor'].includes(normalizeUserRole(user));
+  hasPermission(user, 'shifts.correct');
 
 export const canOpenProductionWorkspace = user =>
   PRODUCTION_WORKSPACE_PERMISSIONS.some(key => hasPermission(user, key)) ||

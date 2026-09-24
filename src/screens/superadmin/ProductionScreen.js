@@ -1,6 +1,6 @@
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, LockKeyhole, Pencil } from 'lucide-react-native';
+import { Plus, LockKeyhole, Pencil, MessageCircle } from 'lucide-react-native';
 import moment from 'moment';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -40,6 +40,8 @@ import { formatNumber, formatQuantity } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
 import { canUseShiftCorrection } from '../../utils/accessNavigation';
 import { getDefaultProductionSelection } from '../../utils/productionDefaults';
+import { getChatApi } from '../../api/chatApi';
+import { socket } from '../../socket/socket';
 
 import { COLORS, UI } from '../../assets/Colors';
 
@@ -68,6 +70,7 @@ const canEditProductionRow = row =>
   row?.can_edit === true || Number(row?.can_edit) === 1;
 
 export default function ProductionScreen() {
+  const navigation = useNavigation();
   const queryClient = useQueryClient();
 
   const [fullForm, setFullForm] = useState(emptyFullForm);
@@ -81,6 +84,7 @@ export default function ProductionScreen() {
   const [zincError, setZincError] = useState('');
   const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const canManageCorrection = ['superadmin', 'plant_manager'].includes(
     String(loggedUser?.role || '')
       .trim()
@@ -88,6 +92,17 @@ export default function ProductionScreen() {
   );
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
   const canAddZinc = hasPermission(loggedUser, 'zinc_stock.transfer');
+  const canUseChat = hasPermission(loggedUser, 'chat.view');
+  useFocusEffect(useCallback(() => {
+    if (canUseChat) getChatApi().then(result => setUnreadChatCount(Number(result?.data?.unread_count || 0))).catch(() => {});
+  }, [canUseChat]));
+  useEffect(() => {
+    const onMessage = message => {
+      if (Number(message?.user_id) !== Number(loggedUser?.id)) setUnreadChatCount(value => value + 1);
+    };
+    socket.on('chat_message_created', onMessage);
+    return () => socket.off('chat_message_created', onMessage);
+  }, [loggedUser?.id]);
   const zincStockQuery = useQuery({
     queryKey: ['zinc-stock'],
     queryFn: getLiveZincStockApi,
@@ -554,6 +569,10 @@ export default function ProductionScreen() {
         </View>
 
         <View style={styles.headerActions}>
+          {canUseChat && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open plant chat" onPress={() => navigation.navigate('PlantChat')} style={styles.headerChatBtn}>
+            <MessageCircle size={22} color={COLORS.primary} />
+            {unreadChatCount > 0 && <View style={styles.chatBadge}><Text style={styles.chatBadgeText}>{unreadChatCount > 99 ? '99+' : unreadChatCount}</Text></View>}
+          </TouchableOpacity>}
           {canManageProduction && (
             <TouchableOpacity
               accessibilityRole="button"
@@ -846,6 +865,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 0,
   },
+  headerChatBtn: { width: 46, height: 46, borderRadius: UI.radiusSmall, backgroundColor: COLORS.accentSoft, justifyContent: 'center', alignItems: 'center' },
+  chatBadge: { position: 'absolute', top: -6, right: -6, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: COLORS.danger, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.white },
+  chatBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: '800' },
 
   title: { fontSize: 19, fontWeight: '700', color: COLORS.text },
   description: { fontSize: 13, color: COLORS.gray, marginTop: 4 },

@@ -35,25 +35,3 @@ export const downloadProductionPlanningFileApi = async id => {
     responseType: 'arraybuffer',
   });
 };
-
-export const extractPlanningPdfApi = async file => {
-  const formData = new FormData();
-
-  formData.append('pdf', {
-    uri: file.uri,
-    name: file.name || 'planning.pdf',
-    type: file.type || 'application/pdf',
-  });
-
-  const response = await apiClient.post(
-    '/production-planning/extract-pdf',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
-  );
-
-  return response.data;
-};
