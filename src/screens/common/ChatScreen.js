@@ -50,6 +50,7 @@ export default function ChatScreen() {
   const [mobile, setMobile] = useState('');
   const [installationId, setInstallationId] = useState('');
   const [identityReady, setIdentityReady] = useState(false);
+  const [identitySaved, setIdentitySaved] = useState(false);
   const [participantReady, setParticipantReady] = useState(false);
   const [participantId, setParticipantId] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -63,12 +64,13 @@ export default function ChatScreen() {
         setNameDraft(saved);
         setMobile(String(savedMobile || ''));
         setInstallationId(deviceId);
+        setIdentitySaved(Boolean(saved && String(savedMobile || '').trim()));
       })
       .finally(() => setIdentityReady(true));
   }, []);
   useEffect(() => {
-    if (identityReady && chatName && mobile && installationId) registerChatParticipantApi({ installation_id: installationId, display_name: chatName, mobile_number: mobile }).then(() => setParticipantReady(true)).catch(() => setParticipantReady(false));
-  }, [chatName, identityReady, installationId, mobile]);
+    if (identityReady && identitySaved && chatName && mobile && installationId) registerChatParticipantApi({ installation_id: installationId, display_name: chatName, mobile_number: mobile }).then(() => setParticipantReady(true)).catch(() => setParticipantReady(false));
+  }, [chatName, identityReady, identitySaved, installationId, mobile]);
   const load = useCallback(async () => {
     const result = await getChatApi(installationId);
     const loaded = Array.isArray(result?.data?.messages)
@@ -166,19 +168,29 @@ export default function ChatScreen() {
   };
   const saveChatName = async () => {
     const name = nameDraft.trim().replace(/\s+/g, ' ');
+    const normalizedMobile = mobile.replace(/\D/g, '');
     if (name.length < 2) return Alert.alert('Plant Chat', 'Enter at least 2 characters for your name.');
-    if (!/^\d{10,15}$/.test(mobile.replace(/\D/g, ''))) return Alert.alert('Plant Chat', 'Enter a valid mobile number.');
-    await registerChatParticipantApi({ installation_id: installationId, display_name: name, mobile_number: mobile });
-    await AsyncStorage.setItem(CHAT_NAME_STORAGE_KEY, name);
-    await AsyncStorage.setItem(CHAT_MOBILE_STORAGE_KEY, mobile.replace(/\D/g, ''));
-    setChatName(name);
-    setParticipantReady(true);
+    if (!/^\d{10,15}$/.test(normalizedMobile)) return Alert.alert('Plant Chat', 'Enter a valid mobile number.');
+    setBusy(true);
+    try {
+      await registerChatParticipantApi({ installation_id: installationId, display_name: name, mobile_number: normalizedMobile });
+      await AsyncStorage.setItem(CHAT_NAME_STORAGE_KEY, name);
+      await AsyncStorage.setItem(CHAT_MOBILE_STORAGE_KEY, normalizedMobile);
+      setChatName(name);
+      setMobile(normalizedMobile);
+      setParticipantReady(true);
+      setIdentitySaved(true);
+    } catch (e) {
+      Alert.alert('Plant Chat', e?.response?.data?.message || 'Could not save the chat participant.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!identityReady) {
     return <View style={styles.identityLoading}><ActivityIndicator color={COLORS.primary} /></View>;
   }
-  if (!chatName || !mobile) {
+  if (!identitySaved) {
     return (
       <View style={styles.identityPage}>
         <View style={styles.identityCard}>
@@ -186,7 +198,7 @@ export default function ChatScreen() {
           <Text style={styles.identityHint}>This name is saved on this device and shown with messages sent from it.</Text>
           <TextInput value={nameDraft} onChangeText={setNameDraft} placeholder="Enter your name" placeholderTextColor={COLORS.gray} maxLength={60} autoCapitalize="words" style={styles.identityInput} />
           <TextInput value={mobile} onChangeText={setMobile} placeholder="Enter mobile number" placeholderTextColor={COLORS.gray} maxLength={15} keyboardType="phone-pad" style={styles.identityInput} />
-          <TouchableOpacity style={styles.identityButton} onPress={saveChatName} disabled={nameDraft.trim().length < 2}><Text style={styles.identityButtonText}>Save and open chat</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.identityButton} onPress={saveChatName} disabled={busy || nameDraft.trim().length < 2}><Text style={styles.identityButtonText}>{busy ? 'Saving...' : 'Save and open chat'}</Text></TouchableOpacity>
         </View>
       </View>
     );
