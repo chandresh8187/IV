@@ -42,10 +42,12 @@ import { canUseShiftCorrection } from '../../utils/accessNavigation';
 import { getDefaultProductionSelection } from '../../utils/productionDefaults';
 import { getChatApi } from '../../api/chatApi';
 import { socket } from '../../socket/socket';
+import { getPendingLabourWeightsApi } from '../../api/labourWeightsApi';
 
 import { COLORS, UI } from '../../assets/Colors';
 
 const emptyFullForm = {
+  labour_weight_id: null,
   entry_id: 0,
   contractor_id: null,
   planning_item_id: null,
@@ -93,6 +95,14 @@ export default function ProductionScreen() {
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
   const canAddZinc = hasPermission(loggedUser, 'zinc_stock.transfer');
   const canUseChat = hasPermission(loggedUser, 'chat.view');
+  const labourQueue = useQuery({
+    queryKey: ['labour-weights', 'pending'],
+    queryFn: getPendingLabourWeightsApi,
+    enabled: canSaveProduction,
+  });
+  const canViewProductionCost = ['superadmin', 'admin'].includes(
+    String(loggedUser?.role || '').trim().toLowerCase(),
+  );
   useFocusEffect(useCallback(() => {
     if (canUseChat) getChatApi().then(result => setUnreadChatCount(Number(result?.data?.unread_count || 0))).catch(() => {});
   }, [canUseChat]));
@@ -103,6 +113,14 @@ export default function ProductionScreen() {
     socket.on('chat_message_created', onMessage);
     return () => socket.off('chat_message_created', onMessage);
   }, [loggedUser?.id]);
+  useEffect(() => {
+    const refreshLabourQueue = () =>
+      queryClient.invalidateQueries({
+        queryKey: ['labour-weights', 'pending'],
+      });
+    socket.on('labour_weights_updated', refreshLabourQueue);
+    return () => socket.off('labour_weights_updated', refreshLabourQueue);
+  }, [queryClient]);
   const zincStockQuery = useQuery({
     queryKey: ['zinc-stock'],
     queryFn: getLiveZincStockApi,
@@ -178,7 +196,7 @@ export default function ProductionScreen() {
   const { data: usersData } = useQuery({
     queryKey: ['active-users-for-production-grant'],
     queryFn: () => getUsersApi(),
-    enabled: canGrantProductionEdit,
+    enabled: canGrantProductionEdit || canManageCorrection,
   });
 
   const {
@@ -251,6 +269,9 @@ export default function ProductionScreen() {
   const saveMutation = useMutation({
     mutationFn: saveProductionApi,
     onSuccess: res => {
+      if (fullForm.labour_weight_id && !fullForm.entry_id) {
+        queryClient.invalidateQueries({ queryKey: ['labour-weights'] });
+      }
       Alert.alert('Success', res?.message || 'Saved successfully');
 
       queryClient.invalidateQueries({ queryKey: ['shift-status'] });
@@ -320,6 +341,7 @@ export default function ProductionScreen() {
   );
 
   const openEntryModal = () => {
+    const queued = labourQueue.data?.data?.[0];
     setFormContext({ shift_id: activeShiftId, shift_revision: shiftRevision });
     setFullForm({
       ...emptyFullForm,
@@ -328,9 +350,53 @@ export default function ProductionScreen() {
         selectablePlanning,
         contractors,
       ),
+      labour_weight_id: queued?.id || null,
+      ms_weight: queued ? String(queued.ms_weight) : '',
+      dipping_qty: queued ? String(queued.dipping_qty) : '',
     });
     setModalType('Full');
   };
+
+  const pendingLabourEntry = labourQueue.data?.data?.[0] || null;
+  const pendingLabourEntryId = pendingLabourEntry?.id || null;
+  const pendingLabourMsWeight = pendingLabourEntry?.ms_weight;
+  const pendingLabourDippingQty = pendingLabourEntry?.dipping_qty;
+  useEffect(() => {
+    if (modalType !== 'Full') return;
+
+    setFullForm(current => {
+      if (current.entry_id) return current;
+      if (!pendingLabourEntryId && !current.labour_weight_id) return current;
+
+      const nextId = pendingLabourEntryId;
+      const nextMsWeight = pendingLabourEntryId
+        ? String(pendingLabourMsWeight)
+        : '';
+      const nextDippingQty = pendingLabourEntryId
+        ? String(pendingLabourDippingQty)
+        : '';
+
+      if (
+        Number(current.labour_weight_id || 0) === Number(nextId || 0) &&
+        current.ms_weight === nextMsWeight &&
+        current.dipping_qty === nextDippingQty
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        labour_weight_id: nextId,
+        ms_weight: nextMsWeight,
+        dipping_qty: nextDippingQty,
+      };
+    });
+  }, [
+    modalType,
+    pendingLabourEntryId,
+    pendingLabourMsWeight,
+    pendingLabourDippingQty,
+  ]);
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
@@ -521,6 +587,9 @@ export default function ProductionScreen() {
     const payload = {
       ...formContext,
       entry_id: fullForm.entry_id || 0,
+      labour_weight_id: fullForm.entry_id
+        ? null
+        : fullForm.labour_weight_id || null,
       contractor_id: fullForm.contractor_id || null,
       planning_item_id: fullForm.planning_item_id || undefined,
       entry_type: 'full',
@@ -606,6 +675,7 @@ export default function ProductionScreen() {
             : shiftStatus
         }
         canManage={canManageCorrection}
+        correctionUsers={grantUserItems}
         canAddZinc={canAddZinc}
         zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
         onAddZinc={() => {
@@ -661,48 +731,48 @@ export default function ProductionScreen() {
           </View>
         </View>
       </Modal>
-      <View
-        style={[
-          styles.shiftInfoCard,
-          shiftStatusError && styles.shiftErrorCard,
-        ]}
-      >
-        <Text
+      {!correctionMode && (
+        <View
           style={[
-            styles.shiftInfoTitle,
-            shiftStatusError && styles.shiftErrorTitle,
+            styles.shiftInfoCard,
+            shiftStatusError && styles.shiftErrorCard,
           ]}
         >
-          {shiftStatusError
-            ? 'COULD NOT LOAD SHIFT STATUS'
-            : !productionAllowed
-            ? `PLANT ${String(plantStatus).toUpperCase()}`
-            : isShiftActive
-            ? `${(
-                activeShift.shift_name ||
-                shiftStatusData?.data?.current_shift ||
-                ''
-              ).toUpperCase()} SHIFT ${
-                correctionMode ? 'CORRECTION' : 'ACTIVE'
-              }`
-            : 'NO ACTIVE SHIFT'}
-        </Text>
+          <Text
+            style={[
+              styles.shiftInfoTitle,
+              shiftStatusError && styles.shiftErrorTitle,
+            ]}
+          >
+            {shiftStatusError
+              ? 'COULD NOT LOAD SHIFT STATUS'
+              : !productionAllowed
+              ? `PLANT ${String(plantStatus).toUpperCase()}`
+              : isShiftActive
+              ? `${(
+                  activeShift.shift_name ||
+                  shiftStatusData?.data?.current_shift ||
+                  ''
+                ).toUpperCase()} SHIFT ACTIVE`
+              : 'NO ACTIVE SHIFT'}
+          </Text>
 
-        <Text style={styles.shiftInfoText}>
-          {shiftStatusError
-            ? shiftStatusErrorObj?.response?.data?.message ||
-              shiftStatusErrorObj?.message ||
-              'Check your internet connection and pull refresh.'
-            : !productionAllowed
-            ? shiftStatusData?.data?.plant_notice?.expected_restart_at ||
-              'Production entry is blocked until the plant is marked running.'
-            : isShiftActive
-            ? `Shift Date: ${moment(activeShift.shift_date).format(
-                'DD/MM/YYYY',
-              )}`
-            : 'Automatic shift is not available. Pull refresh and try again.'}
-        </Text>
-      </View>
+          <Text style={styles.shiftInfoText}>
+            {shiftStatusError
+              ? shiftStatusErrorObj?.response?.data?.message ||
+                shiftStatusErrorObj?.message ||
+                'Check your internet connection and pull refresh.'
+              : !productionAllowed
+              ? shiftStatusData?.data?.plant_notice?.expected_restart_at ||
+                'Production entry is blocked until the plant is marked running.'
+              : isShiftActive
+              ? `Shift Date: ${moment(activeShift.shift_date).format(
+                  'DD/MM/YYYY',
+                )}`
+              : 'Automatic shift is not available. Pull refresh and try again.'}
+          </Text>
+        </View>
+      )}
       <View style={styles.tableCard}>
         {isLoading ? (
           <View style={styles.loaderBox}>
@@ -712,6 +782,7 @@ export default function ProductionScreen() {
           <ProductionTable
             rows={rows}
             shiftName={activeShift?.shift_name}
+            showProductionCost={canViewProductionCost}
             scrollRows
             renderAction={
               canGrantProductionEdit || hasEditableRow
@@ -763,6 +834,7 @@ export default function ProductionScreen() {
             formExistingEntry={formExistingEntry}
             canManageAllProduction={canManageAllProduction}
             correctionMode={correctionMode}
+            subtitle={fullForm.labour_weight_id ? `Labour queue item #${fullForm.labour_weight_id} · MS weight and dip quantity filled automatically` : undefined}
             selectablePlanning={selectablePlanning}
             activePlanning={activePlanning}
             contractors={contractors}

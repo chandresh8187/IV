@@ -30,7 +30,7 @@ import {
 import { getShiftStatusApi } from '../../api/shiftApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
-import { parseDateForPicker } from '../../utils/format';
+import { formatDisplayDate, parseDateForPicker } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
 
 const STATUS_META = {
@@ -277,7 +277,10 @@ export default function PlantControlScreen() {
             label="Automatic Shift"
             value={String(shift.current_shift || '-').toUpperCase()}
           />
-          <InfoLine label="Shift Date" value={shift.shift_date || '-'} />
+          <InfoLine
+            label="Shift Date"
+            value={formatDisplayDate(shift.shift_date)}
+          />
           <InfoLine
             label="Production"
             value={current.production_allowed === false ? 'Blocked' : 'Allowed'}
@@ -386,7 +389,7 @@ export default function PlantControlScreen() {
               label="Expected Restart Date & Time"
               value={
                 expectedRestartAt
-                  ? moment(expectedRestartAt).format('DD MMM YYYY, hh:mm A')
+                  ? moment(expectedRestartAt).format('DD/MM/YYYY, hh:mm A')
                   : ''
               }
               placeholder="Select expected restart"

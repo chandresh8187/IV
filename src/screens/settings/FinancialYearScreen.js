@@ -33,6 +33,7 @@ import {
 } from '../../api/financialYearsApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { formatDisplayDate } from '../../utils/format';
 
 const normalizeFinancialYear = value =>
   String(value || '')
@@ -63,16 +64,7 @@ const formatCreatedDetails = record => {
   }
 
   if (record?.created_at) {
-    const date = new Date(record.created_at);
-    if (!Number.isNaN(date.getTime())) {
-      details.push(
-        date.toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }),
-      );
-    }
+    details.push(formatDisplayDate(record.created_at));
   }
 
   return details.join(' · ');

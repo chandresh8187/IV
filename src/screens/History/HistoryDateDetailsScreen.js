@@ -14,8 +14,8 @@ import { getHistoryDateSummaryApi } from '../../api/historyApi';
 import { COLORS, UI } from '../../assets/Colors';
 import {
   formatQuantity,
+  formatDisplayDate,
   formatWeight,
-  parseDateForPicker,
 } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
@@ -45,11 +45,7 @@ export default function HistoryDateDetailsScreen({ navigation, route }) {
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>PRODUCTION HISTORY</Text>
         <Text style={styles.date}>
-          {parseDateForPicker(date).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-          })}
+          {formatDisplayDate(date)}
         </Text>
         <Text style={styles.heroSubtitle}>Day + night combined</Text>
         <View style={styles.heroStats}>

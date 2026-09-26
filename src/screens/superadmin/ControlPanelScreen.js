@@ -15,6 +15,7 @@ import { socket } from '../../socket/socket';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { useSelector } from 'react-redux';
 import { hasPermission } from '../../utils/permissions';
+import { formatDisplayDateTime } from '../../utils/format';
 
 const defaults = {
   zinc_alert_threshold: { enabled: true, percentage: '7.50' },
@@ -211,7 +212,7 @@ export default function ControlPanelScreen() {
           <View key={log.id} style={styles.logRow}>
             <Text style={styles.logAction}>{log.actor_name || 'System'} • {log.action}</Text>
             <Text style={styles.logMeta}>{log.entity_type} {log.entity_id || ''}</Text>
-            <Text style={styles.logMeta}>{new Date(log.created_at).toLocaleString('en-IN')}</Text>
+            <Text style={styles.logMeta}>{formatDisplayDateTime(log.created_at)}</Text>
           </View>
         )) : <Text style={styles.empty}>No audit activity found.</Text>}
       </View>

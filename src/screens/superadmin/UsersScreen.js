@@ -17,6 +17,7 @@ import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
+import { formatDisplayDate } from '../../utils/format';
 import {
   Plus,
   UserPlus,
@@ -35,6 +36,7 @@ import {
   setUserStatusApi,
   updateUserPermissionsApi,
   updateUserApi,
+  resetUserPasswordApi,
 } from '../../api/userApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
@@ -65,6 +67,7 @@ export default function UsersScreen() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [permissionUser, setPermissionUser] = useState(null);
+  const [passwordUser, setPasswordUser] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
 
@@ -117,6 +120,7 @@ export default function UsersScreen() {
     usersData?.data?.users?.filter(item => item.role === 'plant_manager') ||
     [];
   const supervisors = usersData?.data?.supervisors || [];
+  const labour = usersData?.data?.labour || [];
   const activeSupervisors = supervisors.filter(
     item =>
       String(item.status || '').toLowerCase() === 'active' &&
@@ -127,6 +131,7 @@ export default function UsersScreen() {
     ...plantManagers,
     ...admins,
     ...supervisors,
+    ...labour,
   ];
   const normalizedSearch = searchText.trim().toLowerCase();
   const filterUsers = items =>
@@ -146,6 +151,7 @@ export default function UsersScreen() {
   const filteredPlantManagers = filterUsers(plantManagers);
   const filteredAdmins = filterUsers(admins);
   const filteredSupervisors = filterUsers(supervisors);
+  const filteredLabour = filterUsers(labour);
   const activeAccountCount = allUsers.filter(
     item => item.status === 'active',
   ).length;
@@ -192,7 +198,7 @@ export default function UsersScreen() {
       role: form.role,
     };
 
-    if (!editingId) body.password = form.password.trim();
+    if (!editingId) body.password = form.password;
 
     if (form.role === 'supervisor') {
       body.assigned_shift = form.assigned_shift;
@@ -358,6 +364,7 @@ export default function UsersScreen() {
                   type="plant_manager"
                   onEdit={() => openEdit(item)}
                   onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
+                  onPassword={isSuperAdmin ? () => setPasswordUser(item) : null}
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
@@ -387,6 +394,7 @@ export default function UsersScreen() {
                   type="admin"
                   onEdit={() => openEdit(item)}
                   onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
+                  onPassword={isSuperAdmin ? () => setPasswordUser(item) : null}
                   onStatus={() =>
                     statusMutation.mutate({
                       id: item.id,
@@ -414,6 +422,7 @@ export default function UsersScreen() {
               type="supervisor"
               onEdit={canManageUsers ? () => openEdit(item) : null}
               onAccess={isSuperAdmin ? () => setPermissionUser(item) : null}
+              onPassword={isSuperAdmin ? () => setPasswordUser(item) : null}
               onStatus={
                 canManageUsers
                   ? () =>
@@ -427,6 +436,10 @@ export default function UsersScreen() {
             />
           ))
         )}
+        <Text style={styles.sectionTitle}>Labour</Text>
+        {filteredLabour.length === 0 ? <Empty text="No labour users match this filter" /> : filteredLabour.map(item => (
+          <UserCard key={item.id} item={item} type="labour" onEdit={canManageUsers ? () => openEdit(item) : null} onAccess={isSuperAdmin ? () => setPermissionUser(item) : null} onPassword={isSuperAdmin ? () => setPasswordUser(item) : null} onStatus={canManageUsers ? () => statusMutation.mutate({ id: item.id, status: item.status === 'inactive' ? 'active' : 'inactive' }) : null} />
+        ))}
       </ScrollView>
 
       {canManageUsers && (
@@ -446,11 +459,12 @@ export default function UsersScreen() {
           onClose={() => setPermissionUser(null)}
         />
       )}
+      {isSuperAdmin && <PasswordModal user={passwordUser} onClose={() => setPasswordUser(null)} />}
     </View>
   );
 }
 
-function UserCard({ item, type, onEdit, onStatus, onAccess }) {
+function UserCard({ item, type, onEdit, onStatus, onAccess, onPassword }) {
   const isAdmin = type === 'admin';
   const isPlantManager = type === 'plant_manager';
   const isSuperAdmin = type === 'superadmin';
@@ -534,7 +548,7 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
           )}
         </View>
       </View>
-      {(onEdit || onStatus || onAccess) && (
+      {(onEdit || onStatus || onAccess || onPassword) && (
         <View style={styles.userActions}>
           {onAccess && (
             <TouchableOpacity style={styles.userAccessBtn} onPress={onAccess}>
@@ -547,6 +561,12 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
               <Text style={styles.userEditText}>EDIT</Text>
             </TouchableOpacity>
           )}
+          {onPassword && (
+            <TouchableOpacity style={styles.userAccessBtn} onPress={onPassword}>
+              <LockKeyhole size={14} color={COLORS.accent} />
+              <Text style={styles.userAccessText}>PASSWORD</Text>
+            </TouchableOpacity>
+          )}
           {onStatus && (
             <TouchableOpacity style={styles.userStatusBtn} onPress={onStatus}>
               <Text style={styles.userStatusText}>
@@ -557,6 +577,54 @@ function UserCard({ item, type, onEdit, onStatus, onAccess }) {
         </View>
       )}
     </View>
+  );
+}
+
+function PasswordModal({ user, onClose }) {
+  const [password, setPassword] = useState('');
+  const mutation = useMutation({
+    mutationFn: () => resetUserPasswordApi({ id: user.id, password }),
+    onSuccess: response => {
+      Alert.alert('Password Updated', response?.message || 'Password updated successfully');
+      setPassword('');
+      onClose();
+    },
+    onError: error => Alert.alert('Error', error?.response?.data?.message || 'Could not update password'),
+  });
+
+  useEffect(() => {
+    if (!user) setPassword('');
+  }, [user]);
+
+  const save = () => {
+    if (!password || password.length > 72) {
+      Alert.alert('Required', 'Enter a password with 72 characters or fewer');
+      return;
+    }
+    mutation.mutate();
+  };
+
+  return (
+    <Modal visible={Boolean(user)} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.centeredOverlay}>
+        <View style={styles.passwordModalCard}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalIconBox}><LockKeyhole size={22} color={COLORS.primary} /></View>
+              <View style={styles.modalTitleText}><Text style={styles.modalTitle}>Set New Password</Text><Text style={styles.modalDesc}>{user?.name}</Text></View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}><X size={22} color={COLORS.primary} /></TouchableOpacity>
+          </View>
+          <View style={styles.formCard}>
+            <TextInput label="New Password" value={password} onChangeText={setPassword} maxLength={72} secureTextEntry mode="outlined" autoFocus theme={PAPER_THEME} />
+            <Text style={styles.passwordHint}>Any nonempty password up to 72 characters is accepted.</Text>
+            <TouchableOpacity style={[styles.saveBtn, mutation.isPending && styles.disabled]} disabled={mutation.isPending} onPress={save}>
+              {mutation.isPending ? <ActivityIndicator color={COLORS.white} /> : <><LockKeyhole size={20} color={COLORS.white} /><Text style={styles.saveText}>SAVE PASSWORD</Text></>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -586,13 +654,7 @@ function SummaryCard({ label, value, tone }) {
 }
 
 function formatUserDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatDisplayDate(value);
 }
 
 function PermissionModal({ user, onClose }) {
@@ -827,7 +889,7 @@ function RegisterModal({
                   {editingId ? 'Edit User' : 'Register User'}
                 </Text>
                 <Text style={styles.modalDesc}>
-                  Create plant manager, admin or supervisor
+                  Create plant manager, admin, supervisor or labour
                 </Text>
               </View>
             </View>
@@ -879,6 +941,7 @@ function RegisterModal({
               <TextInput
                 label={editingId ? 'Password (unchanged)' : 'Password'}
                 value={form.password}
+                maxLength={72}
                 editable={!editingId}
                 onChangeText={v => updateForm('password', v)}
                 mode="outlined"
@@ -908,7 +971,7 @@ function RegisterModal({
               />
 
               <Text style={styles.passwordHint}>
-                Use at least 6 characters for a stronger password.
+                Any nonempty password up to 72 characters is accepted.
               </Text>
 
               <Text style={styles.fieldLabel}>Role</Text>
@@ -930,6 +993,11 @@ function RegisterModal({
                   title="Plant Manager"
                   active={form.role === 'plant_manager'}
                   onPress={() => updateForm('role', 'plant_manager')}
+                />
+                <ChoiceButton
+                  title="Labour"
+                  active={form.role === 'labour'}
+                  onPress={() => updateForm('role', 'labour')}
                 />
               </View>
 
@@ -1014,6 +1082,17 @@ function Loader() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centeredOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(10, 20, 40, 0.48)',
+  },
+  passwordModalCard: {
+    overflow: 'hidden',
+    borderRadius: UI.radius,
+    backgroundColor: COLORS.white,
+  },
   listContent: { padding: 16 },
   disabled: { opacity: 0.6 },
   container: {
@@ -1311,12 +1390,14 @@ const styles = StyleSheet.create({
 
   choiceRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 16,
   },
 
   choiceBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '46%',
     backgroundColor: COLORS.bg,
     borderRadius: UI.radiusSmall,
     paddingVertical: 13,

@@ -21,11 +21,6 @@ const CHECK_DELAY_MS = 2500;
 const clamp = (value, minimum, maximum) =>
   Math.min(maximum, Math.max(minimum, Number(value) || 0));
 
-const getOtaReleaseNotes = manifest =>
-  manifest?.extra?.releaseNotes ||
-  manifest?.extra?.expoClient?.extra?.releaseNotes ||
-  'JavaScript, screen, and asset improvements are ready.';
-
 export default function AppUpdateManager() {
   const otaState = Updates.useUpdates();
   const [update, setUpdate] = useState(null);
@@ -95,7 +90,6 @@ export default function AppUpdateManager() {
             result?.isAvailable
               ? {
                   type: 'ota',
-                  releaseNotes: getOtaReleaseNotes(result.manifest),
                 }
               : null,
           );
@@ -109,6 +103,29 @@ export default function AppUpdateManager() {
     const handleUpdateConfigurationChanged = () => {
       checkForUpdates();
     };
+    const handleOtaUpdateRequested = async () => {
+      if (__DEV__ || !Updates.isEnabled) return;
+      try {
+        const check = await Updates.checkForUpdateAsync();
+        if (!check?.isAvailable) return;
+        if (check?.isAvailable) {
+          const fetched = await Updates.fetchUpdateAsync();
+          if (fetched?.type === 'failure') throw fetched.error;
+        }
+        if (mounted) {
+          actionLockedRef.current = false;
+          setPhase('ready');
+          setUpdate({ type: 'ota' });
+        }
+      } catch (error) {
+        if (mounted) {
+          actionLockedRef.current = false;
+          setPhase('error');
+          setErrorMessage(error?.message || 'Unable to download the OTA update.');
+          setUpdate({ type: 'ota' });
+        }
+      }
+    };
     const appStateSubscription = AppState.addEventListener(
       'change',
       nextState => {
@@ -120,6 +137,7 @@ export default function AppUpdateManager() {
       'app_update_configuration_changed',
       handleUpdateConfigurationChanged,
     );
+    socket.on('ota_update_requested', handleOtaUpdateRequested);
 
     return () => {
       mounted = false;
@@ -129,6 +147,7 @@ export default function AppUpdateManager() {
         'app_update_configuration_changed',
         handleUpdateConfigurationChanged,
       );
+      socket.off('ota_update_requested', handleOtaUpdateRequested);
     };
   }, []);
 
@@ -332,11 +351,6 @@ export default function AppUpdateManager() {
               : 'Quick app update'}
           </Text>
 
-          <View style={styles.notesBox}>
-            <Text style={styles.notesTitle}>WHAT'S NEW</Text>
-            <Text style={styles.notes}>{update.releaseNotes}</Text>
-          </View>
-
           {showProgress && (
             <View style={styles.progressArea}>
               <View style={styles.progressHeader}>
@@ -450,25 +464,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  notesBox: {
-    marginTop: 20,
-    padding: 14,
-    borderRadius: UI.radiusSmall,
-    backgroundColor: COLORS.surfaceMuted,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  notesTitle: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    marginBottom: 7,
-  },
-  notes: {
-    lineHeight: 21,
-    color: COLORS.text,
   },
   progressArea: {
     marginTop: 20,

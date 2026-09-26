@@ -12,12 +12,17 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DropDownPicker from 'react-native-dropdown-picker';
 import {
   getPreviousShiftsApi,
   openShiftCorrectionApi,
   resumeCurrentShiftApi,
 } from '../api/shiftApi';
-import { formatDateForApi, parseDateForPicker } from '../utils/format';
+import {
+  formatDateForApi,
+  formatDisplayDate,
+  parseDateForPicker,
+} from '../utils/format';
 import { COLORS, UI } from '../assets/Colors';
 
 export default function ShiftCorrectionControls({
@@ -26,6 +31,7 @@ export default function ShiftCorrectionControls({
   canAddZinc = false,
   onAddZinc,
   zincBusy = false,
+  correctionUsers = [],
 }) {
   const client = useQueryClient();
   const [visible, setVisible] = useState(false);
@@ -33,6 +39,8 @@ export default function ShiftCorrectionControls({
   const [date, setDate] = useState(() => formatDateForApi(new Date()));
   const [shiftId, setShiftId] = useState(null);
   const [revision, setRevision] = useState(0);
+  const [userId, setUserId] = useState(null);
+  const [userOpen, setUserOpen] = useState(false);
   const shifts = useQuery({
     queryKey: ['correction-shifts', date],
     queryFn: () => getPreviousShiftsApi(date),
@@ -68,26 +76,23 @@ export default function ShiftCorrectionControls({
       style={[styles.panel, status?.correction_mode && styles.correctionPanel]}
     >
       {status?.correction_mode && (
-        <>
-          <Text style={styles.title}>PREVIOUS SHIFT CORRECTION</Text>
-          <Text style={styles.text}>
-            {target?.shift_date} · {target?.shift_name?.toUpperCase()} shift
+        <View style={styles.correctionSummary}>
+          <Text style={styles.correctionTitle}>PREVIOUS SHIFT</Text>
+          <Text style={styles.correctionMeta}>
+            {formatDisplayDate(target?.shift_date)} ·{' '}
+            {target?.shift_name?.toUpperCase()}
           </Text>
-          <Text style={styles.text}>
-            Entries added or edited here belong to this previous shift. A
-            superadmin or plant manager must resume the current shift when
-            corrections are finished.
-          </Text>
-        </>
+        </View>
       )}
       {(canManage || canAddZinc) && (
         <View style={styles.actions}>
-          {canManage && (
+          {canManage && !status?.correction_active && (
             <TouchableOpacity
               style={styles.button}
               disabled={mutation.isPending || !status}
               onPress={() => {
                 setShiftId(null);
+                setUserId(null);
                 setRevision(status?.shift_revision || 0);
                 setVisible(true);
               }}
@@ -104,7 +109,7 @@ export default function ShiftCorrectionControls({
               <Text style={[styles.buttonText, styles.zincText]}>Add zinc</Text>
             </TouchableOpacity>
           )}
-          {status?.correction_mode && (
+          {(status?.correction_mode || (canManage && status?.correction_active)) && (
             <TouchableOpacity
               style={[styles.button, styles.resumeButton]}
               disabled={mutation.isPending}
@@ -146,6 +151,18 @@ export default function ShiftCorrectionControls({
               see its entries in Live Production until you resume the current
               shift.
             </Text>
+            <DropDownPicker
+              open={userOpen}
+              setOpen={setUserOpen}
+              value={userId}
+              setValue={setUserId}
+              items={correctionUsers}
+              listMode="MODAL"
+              searchable
+              placeholder="Select correction user"
+              disabled={mutation.isPending}
+              style={styles.choice}
+            />
             <TouchableOpacity
               style={styles.choice}
               onPress={() => setPicker(true)}
@@ -203,10 +220,10 @@ export default function ShiftCorrectionControls({
             <TouchableOpacity
               style={[
                 styles.button,
-                (!shiftId || mutation.isPending) && styles.disabled,
+                (!shiftId || !userId || mutation.isPending) && styles.disabled,
               ]}
-              disabled={!shiftId || mutation.isPending}
-              onPress={() => mutation.mutate({ shift_id: shiftId, revision })}
+              disabled={!shiftId || !userId || mutation.isPending}
+              onPress={() => mutation.mutate({ shift_id: shiftId, user_id: userId, revision })}
             >
               <Text style={styles.buttonText}>
                 {mutation.isPending ? 'Saving…' : 'Save and open this shift'}
@@ -240,6 +257,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warningSoft,
     borderLeftWidth: 3,
     borderLeftColor: COLORS.warning,
+    paddingVertical: 8,
+  },
+  correctionSummary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginBottom: 6,
+  },
+  correctionTitle: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  correctionMeta: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '600',
   },
   resumeButton: { backgroundColor: COLORS.primary },
   resumeText: { color: COLORS.white },

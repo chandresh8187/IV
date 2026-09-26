@@ -7,6 +7,7 @@ import { downloadZincByproductReport } from '../../utils/serverZincStockReport';
 import { hasPermission } from '../../utils/permissions';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { formatDisplayDate, formatDisplayDateTime } from '../../utils/format';
 
 const kg = value => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
 const money = value => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -46,11 +47,13 @@ export default function AshDrossReportScreen({ navigation }) {
         <TouchableOpacity style={styles.card} onPress={query.refetch}><Text style={styles.error}>Could not load transactions. Tap to retry.</Text></TouchableOpacity>
       ) : (query.data?.data || []).length ? query.data.data.map(item => (
         <View key={item.id} style={styles.card}>
-          <View style={styles.row}><Text style={styles.heading}>{item.transaction_date}</Text><Text style={styles.heading}>{kg(item.recovered_zinc_kg)} kg recovered</Text></View>
+          <View style={styles.row}><Text style={styles.heading}>{formatDisplayDate(item.transaction_date)}</Text><Text style={styles.heading}>{kg(item.recovered_zinc_kg)} kg recovered</Text></View>
           <Text style={styles.muted}>Ash: {kg(item.ash_weight_kg)} kg × ₹{money(item.ash_rate)} = ₹{money(Number(item.ash_base_amount) + Number(item.ash_gst_amount))} with GST</Text>
           <Text style={styles.muted}>Dross: {kg(item.dross_weight_kg)} kg × ₹{money(item.dross_rate)} = ₹{money(Number(item.dross_base_amount) + Number(item.dross_gst_amount))} with GST</Text>
           <Text style={styles.heading}>Total ₹{money(item.total_with_gst)} · Zinc rate ₹{money(item.zinc_rate_snapshot)}/kg</Text>
-          <Text style={styles.muted}>{item.actor_name || 'User'} · {item.created_at}</Text>
+          <Text style={styles.muted}>
+            {item.actor_name || 'User'} · {formatDisplayDateTime(item.created_at)}
+          </Text>
           {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
         </View>
       )) : <View style={styles.card}><Text style={styles.muted}>No ash or dross transactions recorded.</Text></View>}

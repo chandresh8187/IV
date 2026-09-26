@@ -1,4 +1,7 @@
 const ROLE_DEFAULTS = {
+  'labour_weights.view': ['superadmin', 'labour'],
+  'labour_weights.create': ['labour'],
+  'labour_weights.edit': ['superadmin'],
   'chat.view': ['superadmin', 'plant_manager', 'admin', 'supervisor'],
   'zinc_stock.view': ['superadmin', 'plant_manager', 'admin'],
   'zinc_stock.receive': ['superadmin', 'plant_manager'],

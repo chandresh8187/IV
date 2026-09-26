@@ -32,7 +32,7 @@ const formatMessageTime = value => {
   if (!date.isValid()) return '';
   return date.isSame(moment(), 'day')
     ? date.format('h:mm A')
-    : date.format('DD MMM YYYY, h:mm A');
+    : date.format('DD/MM/YYYY, h:mm A');
 };
 const CHAT_NAME_STORAGE_KEY = 'plant_chat_device_name';
 const CHAT_MOBILE_STORAGE_KEY = 'plant_chat_device_mobile';

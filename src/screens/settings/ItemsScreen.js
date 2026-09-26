@@ -31,6 +31,7 @@ import {
 } from '../../api/itemsApi';
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
+import { formatDisplayDate } from '../../utils/format';
 
 const formatCreatedDetails = item => {
   const details = [];
@@ -38,16 +39,7 @@ const formatCreatedDetails = item => {
   if (item?.created_by_name) details.push(`Added by ${item.created_by_name}`);
 
   if (item?.created_at) {
-    const date = new Date(item.created_at);
-    if (!Number.isNaN(date.getTime())) {
-      details.push(
-        date.toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }),
-      );
-    }
+    details.push(formatDisplayDate(item.created_at));
   }
 
   return details.join(' · ');

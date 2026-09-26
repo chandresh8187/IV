@@ -19,7 +19,7 @@ import {
 
 import moment from 'moment';
 import { getDashboardApi } from '../../api/dashboardApi';
-import { formatWeight } from '../../utils/format';
+import { formatDisplayDateTime, formatWeight } from '../../utils/format';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
@@ -79,7 +79,7 @@ export default function DashboardScreen() {
           <View style={styles.dateChip}>
             <CalendarDays size={16} color={COLORS.accent} />
             <Text style={styles.dateChipText}>
-              {moment().format('DD MMM YYYY')}
+              {moment().format('DD/MM/YYYY')}
             </Text>
           </View>
         </View>
@@ -210,16 +210,14 @@ function PlantStatusBanner({ config, data }) {
         {data?.started_at ? (
           <InfoLine
             label="Status Since"
-            value={moment(data.started_at).format('DD MMM YYYY, hh:mm A')}
+            value={formatDisplayDateTime(data.started_at)}
           />
         ) : null}
 
         {data?.expected_restart_at ? (
           <InfoLine
             label="Expected Restart"
-            value={moment(data.expected_restart_at).format(
-              'DD MMM YYYY, hh:mm A',
-            )}
+            value={formatDisplayDateTime(data.expected_restart_at)}
           />
         ) : null}
 

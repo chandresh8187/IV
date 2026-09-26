@@ -25,6 +25,7 @@ import { COLORS, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { downloadChemicalChecksReport } from '../../utils/serverChemicalChecksReport';
+import { formatDisplayDate, formatDisplayDateTime } from '../../utils/format';
 
 const pad = value => String(value).padStart(2, '0');
 const today = () => {
@@ -100,11 +101,19 @@ export default function ChemicalTrackingScreen({ navigation }) {
   });
   const fields = useMemo(
     () => [
-      { key: 'acid_ph', label: 'Acid pH', required: '2–3 pH' },
-      { key: 'acid_density', label: 'Acid density', required: '1.83–1.84 g/cm³' },
+      { key: 'acid_ph', label: 'Acid pH', required: '-1.0 to -1.5 pH' },
+      {
+        key: 'acid_density',
+        label: 'Acid density',
+        required: '1.83–1.84 g/cm³',
+      },
       { key: 'flux_ph', label: 'Flux pH', required: '4–5 pH' },
       { key: 'flux_density', label: 'Flux density', required: '1.2–1.5 g/cm³' },
-      { key: 'flux_temperature_c', label: 'Flux temperature', required: '65–71 °C' },
+      {
+        key: 'flux_temperature_c',
+        label: 'Flux temperature',
+        required: '65–71 °C',
+      },
     ],
     [],
   );
@@ -213,10 +222,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
               >
                 <View>
                   <Text style={styles.dateValue}>
-                    {parseDate(form.inspection_date).toLocaleDateString(
-                      'en-IN',
-                      { day: '2-digit', month: 'long', year: 'numeric' },
-                    )}
+                    {formatDisplayDate(form.inspection_date)}
                   </Text>
                   <Text style={styles.dateHint}>Tap to select a date</Text>
                 </View>
@@ -245,8 +251,13 @@ export default function ChemicalTrackingScreen({ navigation }) {
             <View style={styles.parameterIntro}>
               <Info size={20} color={COLORS.accentDark} />
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Required operating parameters</Text>
-                <Text style={styles.infoText}>Use these ranges as guidance while recording the actual readings.</Text>
+                <Text style={styles.infoTitle}>
+                  Required operating parameters
+                </Text>
+                <Text style={styles.infoText}>
+                  Use these ranges as guidance while recording the actual
+                  readings.
+                </Text>
               </View>
             </View>
             <View style={styles.fieldGrid}>
@@ -261,7 +272,13 @@ export default function ChemicalTrackingScreen({ navigation }) {
                     mode="outlined"
                     label={`Enter ${label.toLowerCase()}`}
                     value={form[key]}
-                    keyboardType="decimal-pad"
+                    keyboardType={
+                      key === 'acid_ph'
+                        ? Platform.OS === 'ios'
+                          ? 'numbers-and-punctuation'
+                          : 'default'
+                        : 'decimal-pad'
+                    }
                     onChangeText={value =>
                       setForm(current => ({ ...current, [key]: value }))
                     }
@@ -327,13 +344,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
             <View style={styles.card} key={item.id}>
               <View style={styles.headerRow}>
                 <Text style={styles.entryDate}>
-                  {new Date(
-                    `${item.inspection_date}T00:00:00`,
-                  ).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
+                  {formatDisplayDate(item.inspection_date)}
                 </Text>
                 <Text style={styles.checkedBy}>{item.checked_by_name}</Text>
               </View>
@@ -358,7 +369,9 @@ export default function ChemicalTrackingScreen({ navigation }) {
                 />
               </View>
               {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
-              <Text style={styles.timestamp}>Checked {item.created_at}</Text>
+              <Text style={styles.timestamp}>
+                Checked {formatDisplayDateTime(item.created_at)}
+              </Text>
             </View>
           ))
         ) : (

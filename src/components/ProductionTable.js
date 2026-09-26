@@ -77,6 +77,7 @@ function TableCell({ children, width, header = false, bold = false }) {
 
 const ProductionRows = React.memo(function ProductionRows({
   rows,
+  columns,
   renderAction,
 }) {
   if (!rows.length) {
@@ -88,7 +89,7 @@ const ProductionRows = React.memo(function ProductionRows({
       key={item.id || `${item.shift_id || 'row'}-${item.sr_no}-${index}`}
       style={[styles.row, index % 2 === 1 && styles.altRow]}
     >
-      {COLUMNS.map(column => (
+      {columns.map(column => (
         <TableCell key={column.key} width={column.width} bold={column.bold}>
           {column.key === 'row_number'
             ? String(index + 1)
@@ -113,14 +114,26 @@ export default function ProductionTable({
   scrollRows = false,
   emptyMessage = 'No production entries found',
   showsHorizontalScrollIndicator = true,
+  showProductionCost = false,
 }) {
   const sortedRows = React.useMemo(
     () => sortProductionEntries(rows, shiftName),
     [rows, shiftName],
   );
   const visibleRows = rowLimit ? sortedRows.slice(0, rowLimit) : sortedRows;
+  const visibleColumns = React.useMemo(
+    () =>
+      showProductionCost
+        ? COLUMNS
+        : COLUMNS.filter(column => column.key !== 'production_cost'),
+    [showProductionCost],
+  );
   const body = (
-    <ProductionRows rows={visibleRows} renderAction={renderAction} />
+    <ProductionRows
+      rows={visibleRows}
+      columns={visibleColumns}
+      renderAction={renderAction}
+    />
   );
 
   return (
@@ -145,7 +158,13 @@ export default function ProductionTable({
             <Text style={[styles.groupLabel, styles.materialGroup]}>
               CHALLAN / MATERIAL
             </Text>
-            <Text style={[styles.groupLabel, styles.processGroup]}>
+            <Text
+              style={[
+                styles.groupLabel,
+                styles.processGroup,
+                !showProductionCost && styles.processGroupWithoutCost,
+              ]}
+            >
               PROCESS / OUTPUT
             </Text>
             <Text style={[styles.groupLabel, styles.coatingGroup]}>
@@ -158,7 +177,7 @@ export default function ProductionTable({
             )}
           </View>
           <View style={styles.headerRow}>
-            {COLUMNS.map(column => (
+            {visibleColumns.map(column => (
               <TableCell key={column.key} width={column.width} header>
                 {column.label}
               </TableCell>
@@ -217,6 +236,7 @@ const styles = StyleSheet.create({
   entryGroup: { width: 155 },
   materialGroup: { width: 490 },
   processGroup: { width: 570 },
+  processGroupWithoutCost: { width: 460 },
   coatingGroup: { width: 440 },
   actionGroup: { width: 110 },
   fill: { flex: 1 },

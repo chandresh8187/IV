@@ -1,0 +1,28 @@
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
+import { Plus, Pencil, X, LogOut } from 'lucide-react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
+import { getLabourWeightsApi, saveLabourWeightApi } from '../../api/labourWeightsApi';
+import { hasPermission } from '../../utils/permissions';
+import { formatDisplayDateTime } from '../../utils/format';
+import { COLORS, UI } from '../../assets/Colors';
+import { socket } from '../../socket/socket';
+import { logoutApi } from '../../api/authApi';
+import { clearAuth } from '../../redux/slices/authSlice';
+
+export default function LabourWeightsScreen() {
+  const user = useSelector(state => state.auth.user); const dispatch = useDispatch(); const client = useQueryClient();
+  const canAdd = hasPermission(user, 'labour_weights.create'); const canEdit = hasPermission(user, 'labour_weights.edit');
+  const isLabour = String(user?.role || '').trim().toLowerCase() === 'labour';
+  const [editing, setEditing] = useState(null); const [ms, setMs] = useState(''); const [qty, setQty] = useState(''); const [error, setError] = useState('');
+  const query = useQuery({ queryKey: ['labour-weights'], queryFn: () => getLabourWeightsApi(false) });
+  useEffect(() => { const refresh = () => client.invalidateQueries({ queryKey: ['labour-weights'] }); socket.on('labour_weights_updated', refresh); return () => socket.off('labour_weights_updated', refresh); }, [client]);
+  const mutation = useMutation({ mutationFn: saveLabourWeightApi, onSuccess: () => { client.invalidateQueries({ queryKey: ['labour-weights'] }); setEditing(null); setMs(''); setQty(''); }, onError: e => setError(e?.response?.data?.message || 'Could not save entry.') });
+  const open = item => { setEditing(item || {}); setMs(item ? String(item.ms_weight) : ''); setQty(item ? String(item.dipping_qty) : ''); setError(''); };
+  const save = () => mutation.mutate({ id: editing?.id, ms_weight: Number(ms), dipping_qty: Number(qty) });
+  const logout = () => Alert.alert('Logout', 'Are you sure you want to logout?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Logout', style: 'destructive', onPress: async () => { await logoutApi(); dispatch(clearAuth()); } }]);
+  return <View style={styles.page}><View style={styles.header}><View style={styles.headerCopy}><Text style={styles.title}>MS Weight Queue</Text><Text style={styles.muted}>Entries are used in this order for production.</Text></View><View style={styles.headerActions}>{canAdd&&<TouchableOpacity style={styles.add} onPress={()=>open(null)}><Plus color={COLORS.white}/></TouchableOpacity>}{isLabour&&<TouchableOpacity accessibilityLabel="Logout" style={styles.logout} onPress={logout}><LogOut size={21} color={COLORS.danger}/></TouchableOpacity>}</View></View><ScrollView contentContainerStyle={styles.list}>{query.isLoading?<ActivityIndicator/>:(query.data?.data||[]).map((item,index)=><View key={item.id} style={styles.card}><View><Text style={styles.number}>#{index+1} · {item.status.toUpperCase()}</Text><Text style={styles.value}>{item.ms_weight} kg · {item.dipping_qty} NOS</Text><Text style={styles.muted}>{item.labour_name} · {formatDisplayDateTime(item.created_at)}</Text></View>{canEdit&&item.status==='pending'&&<TouchableOpacity onPress={()=>open(item)}><Pencil size={20} color={COLORS.primary}/></TouchableOpacity>}</View>)}</ScrollView><Modal transparent visible={editing!==null} animationType="fade"><View style={styles.overlay}><View style={styles.modal}><TouchableOpacity style={styles.close} onPress={()=>setEditing(null)}><X/></TouchableOpacity><Text style={styles.title}>{editing?.id?'Edit':'Add'} weight</Text><TextInput mode="outlined" label="MS Weight 1 Nos (kg)" value={ms} onChangeText={setMs} keyboardType="decimal-pad"/><TextInput mode="outlined" label="Dip Qty" value={qty} onChangeText={setQty} keyboardType="number-pad"/>{error?<Text style={styles.error}>{error}</Text>:null}<TouchableOpacity style={styles.save} disabled={mutation.isPending} onPress={save}><Text style={styles.saveText}>{mutation.isPending?'Saving…':'Save'}</Text></TouchableOpacity></View></View></Modal></View>;
+}
+const styles=StyleSheet.create({page:{flex:1,backgroundColor:COLORS.bg,padding:16},header:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10},headerCopy:{flex:1},headerActions:{flexDirection:'row',gap:8},title:{fontSize:22,fontWeight:'700',color:COLORS.text},muted:{fontSize:12,color:COLORS.muted,marginTop:4},add:{width:44,height:44,borderRadius:22,backgroundColor:COLORS.accent,alignItems:'center',justifyContent:'center'},logout:{width:44,height:44,borderRadius:22,backgroundColor:COLORS.white,alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:COLORS.border},list:{gap:10,paddingVertical:16},card:{backgroundColor:COLORS.white,borderRadius:UI.radiusSmall,padding:16,flexDirection:'row',justifyContent:'space-between',alignItems:'center'},number:{fontSize:12,fontWeight:'700',color:COLORS.accent},value:{fontSize:18,fontWeight:'700',color:COLORS.text,marginTop:5},overlay:{flex:1,backgroundColor:'rgba(0,0,0,.35)',alignItems:'center',justifyContent:'center',padding:24},modal:{width:'100%',maxWidth:420,backgroundColor:COLORS.white,borderRadius:UI.radius,padding:20,gap:14},close:{alignSelf:'flex-end'},save:{backgroundColor:COLORS.accent,padding:14,borderRadius:UI.radiusSmall,alignItems:'center'},saveText:{color:COLORS.white,fontWeight:'700'},error:{color:COLORS.danger}});

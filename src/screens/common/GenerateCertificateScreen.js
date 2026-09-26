@@ -29,7 +29,11 @@ import {
 import { getProductionPlanningApi } from '../../api/productionPlanningApi';
 import { downloadCertificatePdf } from '../../utils/serverCertificatePdf';
 import { centeredContent, useResponsive } from '../../utils/responsive';
-import { formatDateForApi, parseDateForPicker } from '../../utils/format';
+import {
+  formatDateForApi,
+  formatDisplayDate,
+  parseDateForPicker,
+} from '../../utils/format';
 import { getCoatingRange } from '../../utils/coatingRange';
 
 const DEFAULT_REFERENCE_STANDARD = 'IS 4759, IS 6745, IS 2633, IS 2629';
@@ -724,7 +728,8 @@ function ReadingPreviewRow({ row, position }) {
   return (
     <View style={styles.readingPreviewCard}>
       <Text style={styles.readingPreviewMeta}>
-        Position {position} - SR {row.sr_no || '-'} - {row.shift_date || '-'} -{' '}
+        Position {position} - SR {row.sr_no || '-'} -{' '}
+        {formatDisplayDate(row.shift_date)} -{' '}
         {String(row.shift_name || '-').toUpperCase()}
       </Text>
       <View style={styles.readingValuesRow}>

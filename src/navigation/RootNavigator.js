@@ -15,6 +15,7 @@ import { syncNotificationRegistration } from '../services/notificationRegistrati
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ChatScreen from '../screens/common/ChatScreen';
 import AppHeader from '../components/AppHeader';
+import LabourWeightsScreen from '../screens/common/LabourWeightsScreen';
 
 const Stack = createNativeStackNavigator();
 const renderHeader = props => <AppHeader {...props} />;
@@ -73,6 +74,7 @@ export default function RootNavigator() {
       .toLowerCase()
       .trim();
 
+    if (role === 'labour') return LabourWeightsScreen;
     if (['superadmin', 'plant_manager', 'admin', 'supervisor'].includes(role)) {
       return AccessTabs;
     }

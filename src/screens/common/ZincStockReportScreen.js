@@ -18,6 +18,7 @@ import { hasPermission } from '../../utils/permissions';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { zincKg } from '../../utils/zincStock';
 import { downloadZincStockReport } from '../../utils/serverZincStockReport';
+import { formatDisplayDateTime } from '../../utils/format';
 
 const labels = {
   initialize: 'Opening stock',
@@ -134,7 +135,8 @@ export default function ZincStockReportScreen({ navigation }) {
             </Text>
             {item.zinc_rate_per_kg != null ? <Text style={styles.muted}>Purchase rate: ₹{Number(item.zinc_rate_per_kg).toFixed(2)} / kg</Text> : null}
             <Text style={styles.muted}>
-              {item.created_at} · {item.actor_name || 'User'}
+              {formatDisplayDateTime(item.created_at)} ·{' '}
+              {item.actor_name || 'User'}
             </Text>
             {item.production_entry_id ? (
               <Text style={styles.muted}>Production entry #{item.production_entry_id}</Text>

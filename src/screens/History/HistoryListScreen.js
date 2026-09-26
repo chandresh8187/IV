@@ -18,7 +18,11 @@ import {
 } from '../../api/historyApi';
 import { getCurrentFinancialYearApi } from '../../api/financialYearsApi';
 import { COLORS, UI } from '../../assets/Colors';
-import { formatDateForApi, parseDateForPicker } from '../../utils/format';
+import {
+  formatDateForApi,
+  formatDisplayDate,
+  parseDateForPicker,
+} from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 
 export default function HistoryListScreen({ navigation }) {
@@ -135,11 +139,7 @@ export default function HistoryListScreen({ navigation }) {
             <CalendarDays size={21} color={COLORS.primary} />
             <View style={styles.dateTextWrap}>
               <Text style={styles.dateValue}>
-                {parseDateForPicker(selectedDate).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatDisplayDate(selectedDate)}
               </Text>
               <Text style={styles.apiDate}>{selectedDate}</Text>
             </View>
@@ -189,9 +189,7 @@ export default function HistoryListScreen({ navigation }) {
                     }}
                   >
                     <Text style={styles.dateValue}>
-                      {parseDateForPicker(row.shift_date).toLocaleDateString(
-                        'en-IN',
-                      )}
+                      {formatDisplayDate(row.shift_date)}
                     </Text>
                     <Text style={styles.apiDate}>
                       {row.entry_count} entries · View shifts

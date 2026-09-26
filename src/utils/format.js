@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 export const formatNumber = (value, fallback = '-') => {
   const num = Number(value);
   return Number.isFinite(num) ? String(Math.round(num)) : fallback;
@@ -136,6 +138,25 @@ export const formatTime12Hour = (value, fallback = '-') => {
   hour = hour % 12 || 12;
 
   return `${String(hour).padStart(2, '0')}:${minute} ${period}`;
+};
+
+export const formatDisplayDate = (value, fallback = '-') => {
+  if (value === null || value === undefined || value === '') return fallback;
+  const text = String(value).trim();
+  const parsed = /^\d{4}-\d{2}-\d{2}(?:[T\s]|$)/.test(text)
+    ? moment(text.slice(0, 10), 'YYYY-MM-DD', true)
+    : moment(value);
+  return parsed.isValid() ? parsed.format('DD/MM/YYYY') : fallback;
+};
+
+export const formatDisplayDateTime = (value, fallback = '-') => {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = moment(value, [
+    'YYYY-MM-DD HH:mm:ss',
+    'YYYY-MM-DDTHH:mm:ss',
+    moment.ISO_8601,
+  ], true);
+  return parsed.isValid() ? parsed.format('DD/MM/YYYY, hh:mm A') : fallback;
 };
 // Planning labels arrive as "material name + description". Only replace the
 // joining separator; keep any subsequent plus signs within the description.

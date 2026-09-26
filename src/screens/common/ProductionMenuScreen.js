@@ -10,6 +10,7 @@ import {
   Receipt,
   Package,
   FlaskConical,
+  Scale,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -19,6 +20,10 @@ import { hasPermission } from '../../utils/permissions';
 import { shouldShowShiftInProductionMenu } from '../../utils/accessNavigation';
 
 const PRODUCTION_ACTIONS = [
+  {
+    title: 'Labour MS Weights', icon: Scale, screen: 'LabourWeights',
+    description: 'Review queued MS weight and dip quantity entries.', permission: 'labour_weights.view',
+  },
   {
     title: 'Live Production',
     icon: Factory,
