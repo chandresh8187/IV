@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,16 +14,23 @@ import { useSelector } from 'react-redux';
 import { COLORS, UI } from '../../assets/Colors';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { calculateRate, defaultRateInputs } from '../../utils/rateCalculator';
+import { calculateThicknessRate, zincRangeForThickness } from '../../utils/thicknessRateCalculator';
 import { hasPermission } from '../../utils/permissions';
-import { getAverageZincRateApi } from '../../api/zincStockApi';
+import { getRateCalculatorContextApi } from '../../api/zincStockApi';
 
-const fields = [
+const weightFields = [
   ['oldWeight', 'Old weight', 'kg', 'in Kg'],
   ['newWeight', 'New weight', 'kg', 'in Kg'],
+];
+const costFields = [
   ['drossing', 'Drossing', '%', '0'],
   ['zincRate', 'Zinc rate', '₹ / kg', 'Rs'],
   ['plantCost', 'Plant cost', '₹ / kg', '7'],
   ['profit', 'Profit', '₹ / kg', '3'],
+];
+const thicknessFields = [
+  ['thickness', 'Thickness', 'mm', 'e.g. 2'],
+  ['zincPercentage', 'Zinc percentage', '%', 'Auto-filled'],
 ];
 const display = value =>
   value == null
@@ -36,22 +44,39 @@ export default function RateCalculatorScreen() {
   const user = useSelector(state => state.auth.user);
   const { contentMaxWidth, isTablet } = useResponsive();
   const [inputs, setInputs] = useState(defaultRateInputs);
+  const [mode, setMode] = useState('weight');
   useFocusEffect(
     useCallback(() => {
-      setInputs(defaultRateInputs());
+      setInputs({ ...defaultRateInputs(), thickness: '', zincPercentage: '' });
+      setMode('weight');
       let active = true;
-      getAverageZincRateApi()
+      getRateCalculatorContextApi()
         .then(response => {
-          const rate = response?.data?.average_zinc_rate;
-          if (active && rate != null) {
-            setInputs(previous => ({ ...previous, zincRate: String(rate) }));
+          const rate = response?.data?.current_zinc_rate;
+          const plantCost = response?.data?.running_plant_cost;
+          if (active) {
+            setInputs(previous => ({
+              ...previous,
+              ...(rate != null && { zincRate: Number(rate).toFixed(2) }),
+              ...(plantCost != null && {
+                plantCost: Number(plantCost).toFixed(2),
+              }),
+            }));
           }
         })
         .catch(() => {});
       return () => { active = false; };
     }, []),
   );
-  const result = calculateRate(inputs);
+  const result = mode === 'weight' ? calculateRate(inputs) : calculateThicknessRate(inputs);
+  const fields = [...(mode === 'weight' ? weightFields : thicknessFields), ...costFields];
+  const changeInput = (key, text) => setInputs(previous => {
+    if (key === 'thickness') {
+      const range = zincRangeForThickness(text);
+      return { ...previous, thickness: text, zincPercentage: range ? String(range.max) : '' };
+    }
+    return { ...previous, [key]: text };
+  });
   if (!hasPermission(user, 'rate_calculator.view'))
     return (
       <View style={styles.page}>
@@ -73,8 +98,13 @@ export default function RateCalculatorScreen() {
         <Text style={styles.eyebrow}>PRODUCTION / COSTING</Text>
         <Text style={styles.title}>Rate calculator</Text>
         <Text style={styles.body}>
-          Enter the weights and costs. Results update automatically as you type.
+          {mode === 'weight' ? 'Enter the weights and costs. Results update automatically as you type.' : 'Enter thickness to fill the reference zinc percentage automatically.'}
         </Text>
+        <View style={styles.modeTabs}>
+          {[['weight', 'By Weight'], ['thickness', 'By Thickness']].map(([value, label]) => (
+            <TouchableOpacity key={value} accessibilityRole="tab" accessibilityState={{ selected: mode === value }} style={[styles.modeTab, mode === value && styles.modeTabActive]} onPress={() => setMode(value)}><Text style={[styles.modeText, mode === value && styles.modeTextActive]}>{label}</Text></TouchableOpacity>
+          ))}
+        </View>
         <View style={[styles.layout, isTablet && styles.tablet]}>
           <View style={[styles.card, isTablet && styles.tabletCard]}>
             <Text style={styles.heading}>Calculation inputs</Text>
@@ -88,9 +118,7 @@ export default function RateCalculatorScreen() {
                   accessibilityLabel={`${label} (${unit})`}
                   keyboardType="decimal-pad"
                   value={inputs[key]}
-                  onChangeText={text =>
-                    setInputs(previous => ({ ...previous, [key]: text }))
-                  }
+                  onChangeText={text => changeInput(key, text)}
                   placeholder={placeholder}
                   placeholderTextColor={COLORS.muted}
                   maxLength={16}
@@ -99,17 +127,20 @@ export default function RateCalculatorScreen() {
                 {result.errors[key] && (
                   <Text style={styles.error}>{result.errors[key]}</Text>
                 )}
+                {key === 'zincPercentage' && result.range && <Text style={styles.body}>Reference range: {result.range.min}–{result.range.max}%. Higher value filled by default; you can adjust it within this range.</Text>}
               </View>
             ))}
             <Text style={styles.body}>
-              Zinc rate starts with the average of all saved purchase rates and
-              remains editable. Blank drossing is treated as 0%.
+              Zinc rate starts with the current saved zinc rate and plant cost
+              starts with this month&apos;s running plant cost. Both remain
+              editable. Blank drossing is treated as 0%.
             </Text>
+            {mode === 'thickness' && <Text style={styles.body}>Thicknesses between chart rows use a proportional percentage between the neighbouring rows.</Text>}
           </View>
           <View style={[styles.card, isTablet && styles.tabletCard]}>
             <Text style={styles.heading}>Calculated rate</Text>
             {[
-              ['Weight difference', result.weightDiff, '%'],
+              ...(mode === 'weight' ? [['Weight difference', result.weightDiff, '%']] : [['Zinc percentage', result.zincPercentage, '%']]),
               ['Total zinc', result.totalZinc, '%'],
               ['Subtotal', result.subtotal, '₹ / kg'],
             ].map(([label, value, unit, formula]) => (
@@ -153,6 +184,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   title: { color: COLORS.text, fontSize: 27, fontWeight: '700' },
+  modeTabs: { flexDirection: 'row', backgroundColor: COLORS.white, borderRadius: UI.radiusSmall, padding: 4, gap: 4 },
+  modeTab: { flex: 1, padding: 12, borderRadius: UI.radiusSmall, alignItems: 'center' },
+  modeTabActive: { backgroundColor: COLORS.accent },
+  modeText: { color: COLORS.text, fontWeight: '700' },
+  modeTextActive: { color: COLORS.white },
   body: { color: COLORS.gray, fontSize: 13, lineHeight: 20 },
   heading: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
   layout: { gap: 16 },

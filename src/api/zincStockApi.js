@@ -4,6 +4,8 @@ export const getZincStockApi = async () =>
   (await apiClient.get('/zinc-stock')).data;
 export const getAverageZincRateApi = async () =>
   (await apiClient.get('/zinc-stock/average-rate')).data;
+export const getRateCalculatorContextApi = async () =>
+  (await apiClient.get('/zinc-stock/rate-calculator-context')).data;
 export const getZincMovementsApi = async params =>
   (await apiClient.get('/zinc-stock/movements', { params })).data;
 export const saveZincMovementApi = async body =>

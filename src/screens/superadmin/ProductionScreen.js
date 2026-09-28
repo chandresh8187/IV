@@ -43,6 +43,7 @@ import { getDefaultProductionSelection } from '../../utils/productionDefaults';
 import { getChatApi } from '../../api/chatApi';
 import { socket } from '../../socket/socket';
 import { getPendingLabourWeightsApi } from '../../api/labourWeightsApi';
+import { changeGasBottleApi, getGasDashboardApi } from '../../api/gasManagementApi';
 
 import { COLORS, UI } from '../../assets/Colors';
 
@@ -84,6 +85,10 @@ export default function ProductionScreen() {
   const [zincModalVisible, setZincModalVisible] = useState(false);
   const [zincAmount, setZincAmount] = useState('');
   const [zincError, setZincError] = useState('');
+  const [gasModalVisible, setGasModalVisible] = useState(false);
+  const [gasBottleNumber, setGasBottleNumber] = useState('');
+  const [gasEmptyWeight, setGasEmptyWeight] = useState('');
+  const [gasError, setGasError] = useState('');
   const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -95,6 +100,10 @@ export default function ProductionScreen() {
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
   const canAddZinc = hasPermission(loggedUser, 'zinc_stock.transfer');
   const canUseChat = hasPermission(loggedUser, 'chat.view');
+  const canViewGas = hasPermission(loggedUser, 'gas.view');
+  const canChangeGas = hasPermission(loggedUser, 'gas.operate');
+  const gasQuery = useQuery({ queryKey: ['gas-management'], queryFn: getGasDashboardApi, enabled: canViewGas });
+  const gasMutation = useMutation({ mutationFn: changeGasBottleApi, onSuccess: response => { setGasModalVisible(false); setGasBottleNumber(''); setGasEmptyWeight(''); setGasError(''); queryClient.invalidateQueries({ queryKey: ['gas-management'] }); Alert.alert('Gas bottle changed', response.message); }, onError: error => setGasError(error?.response?.data?.message || 'Could not change gas bottle.') });
   const labourQueue = useQuery({
     queryKey: ['labour-weights', 'pending'],
     queryFn: getPendingLabourWeightsApi,
@@ -340,19 +349,52 @@ export default function ProductionScreen() {
     [canManageAllProduction, rows],
   );
 
+  const availablePlanning = useMemo(
+    () => availablePlanningData?.data || [],
+    [availablePlanningData],
+  );
+  const selectablePlanning = useMemo(() => {
+    const choices = correctionMode ? correctionPlanningData?.data || [] : availablePlanning;
+    return formExistingEntry?.planning_item_id &&
+      !choices.some(item => Number(item.planning_item_id) === Number(formExistingEntry.planning_item_id))
+      ? [...choices, {
+          ...formExistingEntry,
+          material_description: formExistingEntry.material,
+          remaining_qty: Number(formExistingEntry.remaining_qty) || 0,
+          originalFallback: true,
+        }]
+      : choices;
+  }, [correctionMode, correctionPlanningData, availablePlanning, formExistingEntry]);
+
   const openEntryModal = () => {
     const queued = labourQueue.data?.data?.[0];
+    const selection = getDefaultProductionSelection(defaults, selectablePlanning, contractors);
+    const sameMaterial = item => queued?.consumed_qty > 0 &&
+      (queued.locked_item_id && item.item_id
+        ? Number(queued.locked_item_id) === Number(item.item_id)
+        : String(queued.locked_material || '').trim().toLowerCase() === String(item.material_description || '').trim().toLowerCase());
+    const chosen = queued?.consumed_qty > 0
+      ? selectablePlanning.find(item => sameMaterial(item) && Number(item.remaining_qty) > 0)
+      : selectablePlanning.find(item => Number(item.planning_item_id) === Number(selection.planning_item_id));
     setFormContext({ shift_id: activeShiftId, shift_revision: shiftRevision });
     setFullForm({
       ...emptyFullForm,
-      ...getDefaultProductionSelection(
-        defaults,
-        selectablePlanning,
-        contractors,
-      ),
+      ...selection,
+      ...(queued?.consumed_qty > 0 && !chosen ? {
+        planning_item_id: null, planning_id: '', challan_no: '', party_name: '', material: '', material_description: '',
+      } : {}),
+      ...(chosen ? {
+        planning_item_id: Number(chosen.planning_item_id),
+        planning_id: String(chosen.planning_id),
+        challan_no: chosen.challan_no,
+        party_name: chosen.party_name,
+        material: chosen.material_description,
+        material_description: chosen.material_description,
+      } : {}),
       labour_weight_id: queued?.id || null,
+      labour_remaining_qty: Number(queued?.remaining_qty) || 0,
       ms_weight: queued ? String(queued.ms_weight) : '',
-      dipping_qty: queued ? String(queued.dipping_qty) : '',
+      dipping_qty: queued ? String(Math.min(Number(queued.remaining_qty), Number(chosen?.remaining_qty) || Number(queued.remaining_qty))) : '',
     });
     setModalType('Full');
   };
@@ -360,7 +402,7 @@ export default function ProductionScreen() {
   const pendingLabourEntry = labourQueue.data?.data?.[0] || null;
   const pendingLabourEntryId = pendingLabourEntry?.id || null;
   const pendingLabourMsWeight = pendingLabourEntry?.ms_weight;
-  const pendingLabourDippingQty = pendingLabourEntry?.dipping_qty;
+  const pendingLabourDippingQty = pendingLabourEntry?.remaining_qty;
   useEffect(() => {
     if (modalType !== 'Full') return;
 
@@ -372,8 +414,9 @@ export default function ProductionScreen() {
       const nextMsWeight = pendingLabourEntryId
         ? String(pendingLabourMsWeight)
         : '';
+      const plan = selectablePlanning.find(item => Number(item.planning_item_id) === Number(current.planning_item_id));
       const nextDippingQty = pendingLabourEntryId
-        ? String(pendingLabourDippingQty)
+        ? String(Math.min(Number(pendingLabourDippingQty), Number(plan?.remaining_qty) || Number(pendingLabourDippingQty)))
         : '';
 
       if (
@@ -387,6 +430,7 @@ export default function ProductionScreen() {
       return {
         ...current,
         labour_weight_id: nextId,
+        labour_remaining_qty: Number(pendingLabourDippingQty) || 0,
         ms_weight: nextMsWeight,
         dipping_qty: nextDippingQty,
       };
@@ -396,6 +440,8 @@ export default function ProductionScreen() {
     pendingLabourEntryId,
     pendingLabourMsWeight,
     pendingLabourDippingQty,
+    selectablePlanning,
+    fullForm.planning_item_id,
   ]);
 
   const handleRefresh = async () => {
@@ -482,15 +528,6 @@ export default function ProductionScreen() {
     setModalType('Full');
   };
 
-  const availablePlanning = useMemo(
-    () => availablePlanningData?.data || [],
-    [availablePlanningData],
-  );
-
-  const correctionPlanningItems = correctionPlanningData?.data || [];
-  const selectablePlanning = correctionMode
-    ? correctionPlanningItems
-    : availablePlanning;
   const activePlanning =
     selectablePlanning.find(
       item =>
@@ -534,7 +571,7 @@ export default function ProductionScreen() {
       );
       return;
     }
-    if (!existingEntry && !activePlanning) {
+    if (!activePlanning && (!existingEntry || Number(fullForm.planning_item_id) !== Number(existingEntry.planning_item_id))) {
       Alert.alert(
         'Select a planning challan',
         correctionMode
@@ -565,16 +602,16 @@ export default function ProductionScreen() {
       return;
     }
 
-    const planningForEntry = existingEntry ? null : activePlanning;
+    const planningForEntry = activePlanning;
     const originalQtyForPlanning =
       existingEntry &&
-      String(existingEntry.planning_id) === String(fullForm.planning_id)
+      String(existingEntry.planning_item_id) === String(fullForm.planning_item_id)
         ? Number(existingEntry.dipping_qty) || 0
         : 0;
     const maximumQty =
       Number(planningForEntry?.remaining_qty) + originalQtyForPlanning;
 
-    if (planningForEntry && dippingQty > maximumQty) {
+    if (planningForEntry && !planningForEntry.originalFallback && dippingQty > maximumQty) {
       Alert.alert(
         'Quantity Exceeds Plan',
         `Only ${formatQuantity(maximumQty)} NOS remain for challan ${
@@ -677,6 +714,9 @@ export default function ProductionScreen() {
         canManage={canManageCorrection}
         correctionUsers={grantUserItems}
         canAddZinc={canAddZinc}
+        canChangeGas={canChangeGas}
+        gasBusy={gasMutation.isPending || gasQuery.isLoading}
+        onChangeGas={() => { setGasBottleNumber(''); setGasError(''); setGasModalVisible(true); }}
         zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
         onAddZinc={() => {
           zincRequest.current = null;
@@ -730,6 +770,16 @@ export default function ProductionScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+      <Modal transparent visible={gasModalVisible} animationType="fade" onRequestClose={() => !gasMutation.isPending && setGasModalVisible(false)}>
+        <View style={styles.zincOverlay}><View style={styles.zincModal}>
+          <Text style={styles.zincTitle}>Gas bottle change</Text>
+          <Text style={styles.zincHelp}>Currently running: {gasQuery.data?.data?.summary?.running_bottle_number ? `GAS-${gasQuery.data.data.summary.running_bottle_number}` : 'No bottle started'}</Text>
+          <TextInput mode="outlined" label="New running bottle number" value={gasBottleNumber} keyboardType="number-pad" onChangeText={value => { setGasBottleNumber(value); setGasError(''); }} editable={!gasMutation.isPending} />
+          <TextInput mode="outlined" label={`GAS-${gasQuery.data?.data?.summary?.running_bottle_number || '?'} empty bottle weight (kg)`} value={gasEmptyWeight} keyboardType="decimal-pad" onChangeText={value => { setGasEmptyWeight(value); setGasError(''); }} editable={!gasMutation.isPending} />
+          {gasError ? <Text style={styles.zincError}>{gasError}</Text> : null}
+          <View style={styles.zincActions}><TouchableOpacity style={styles.zincCancel} disabled={gasMutation.isPending} onPress={() => setGasModalVisible(false)}><Text style={styles.zincCancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.zincSave} disabled={gasMutation.isPending} onPress={() => gasMutation.mutate({ bottle_number: Number(gasBottleNumber), empty_weight_kg: gasEmptyWeight === '' ? null : Number(gasEmptyWeight), changed_at: moment().format('YYYY-MM-DD HH:mm:ss') })}><Text style={styles.zincSaveText}>{gasMutation.isPending ? 'Saving…' : 'Save change'}</Text></TouchableOpacity></View>
+        </View></View>
       </Modal>
       {!correctionMode && (
         <View

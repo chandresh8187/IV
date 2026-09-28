@@ -21,6 +21,8 @@ import AshDrossReportScreen from '../../screens/common/AshDrossReportScreen';
 import ZincStockSettingsScreen from '../../screens/common/ZincStockSettingsScreen';
 import ChemicalTrackingScreen from '../../screens/common/ChemicalTrackingScreen';
 import LabourWeightsScreen from '../../screens/common/LabourWeightsScreen';
+import GasManagementScreen from '../../screens/common/GasManagementScreen';
+import GasChangeMovementsScreen from '../../screens/common/GasChangeMovementsScreen';
 import { COLORS } from '../../assets/Colors';
 import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';
 const Stack = createNativeStackNavigator();
@@ -45,6 +47,12 @@ export default function ProductionStack() {
         name="LabourWeights"
         component={LabourWeightsScreen}
         options={{ title: 'Labour MS Weights' }}
+      />
+      <Stack.Screen name="GasChangeMovements" component={GasChangeMovementsScreen} options={{ title: 'Gas Change Movements' }} />
+      <Stack.Screen
+        name="GasManagement"
+        component={GasManagementScreen}
+        options={{ title: 'Gas Stock' }}
       />
       <Stack.Screen
         name="ProductionMenu"

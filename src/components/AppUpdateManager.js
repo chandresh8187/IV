@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Modal, Platform, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { Download, RefreshCw, ShieldCheck } from 'lucide-react-native';
@@ -32,21 +32,17 @@ export default function AppUpdateManager() {
   const isNative = update?.type === 'native';
   const isOta = update?.type === 'ota';
 
-  const isMandatory = useMemo(() => {
-    if (!isNative) {
-      return false;
-    }
-
-    return (
-      Boolean(update.mandatory) ||
-      Number(update.currentVersionCode) < Number(update.minimumVersionCode)
-    );
-  }, [isNative, update]);
+  useEffect(() => {
+    if (!otaState.isUpdatePending) return;
+    setUpdate(previous => previous?.type === 'native' ? previous : { type: 'ota' });
+    setPhase(previous => previous === 'reloading' ? previous : 'ready');
+  }, [otaState.isUpdatePending]);
 
   useEffect(() => {
     let mounted = true;
 
     const checkForUpdates = async () => {
+      let nativeCheckFailed = false;
       // Native has priority. Do not offer an OTA update when the installed
       // native runtime is known to be outdated.
       if (Platform.OS === 'android' && isNativeUpdaterAvailable) {
@@ -72,13 +68,13 @@ export default function AppUpdateManager() {
             return;
           }
         } catch (error) {
-          // A failed native check must never stop the app from opening.
+          nativeCheckFailed = true;
         }
       }
 
       // expo-updates APIs are intended for configured release builds.
       if (__DEV__ || !Updates.isEnabled) {
-        if (mounted) setUpdate(null);
+        if (mounted) setUpdate(previous => previous?.type === 'native' ? previous : null);
         return;
       }
 
@@ -86,13 +82,11 @@ export default function AppUpdateManager() {
         const result = await Updates.checkForUpdateAsync();
 
         if (mounted) {
-          setUpdate(
-            result?.isAvailable
-              ? {
-                  type: 'ota',
-                }
-              : null,
-          );
+          setUpdate(previous => {
+            if (nativeCheckFailed && previous?.type === 'native') return previous;
+            if (result?.isAvailable || previous?.type === 'ota') return { type: 'ota' };
+            return null;
+          });
         }
       } catch (error) {
         // OTA errors are non-blocking; the embedded/current bundle continues.
@@ -316,22 +310,13 @@ export default function AppUpdateManager() {
     }
   };
 
-  const dismiss = () => {
-    if (!isMandatory && !busy) {
-      actionLockedRef.current = false;
-      setUpdate(null);
-      setPhase('idle');
-      setErrorMessage('');
-    }
-  };
-
   return (
     <Modal
       visible
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={dismiss}
+      onRequestClose={() => {}}
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
@@ -408,18 +393,10 @@ export default function AppUpdateManager() {
             {busy ? 'Update in progress' : actionLabel}
           </Button>
 
-          {!isMandatory && !busy && phase !== 'ready' && (
-            <Button mode="text" onPress={dismiss}>
-              Later
-            </Button>
-          )}
-
-          {isMandatory && (
-            <View style={styles.requiredRow}>
-              <ShieldCheck size={15} color={COLORS.danger} />
-              <Text style={styles.required}>This update is required to continue.</Text>
-            </View>
-          )}
+          <View style={styles.requiredRow}>
+            <ShieldCheck size={15} color={COLORS.danger} />
+            <Text style={styles.required}>This update is required to continue.</Text>
+          </View>
         </View>
       </View>
     </Modal>

@@ -174,7 +174,7 @@ export default function ProductionEntryForm({
                 </Text>
               )}
 
-            {!formExistingEntry && (
+            {(
               <View style={styles.automaticPlanCard}>
                 <Text style={styles.srHint}>
                   Select the challan for this production entry. Planned quantity
@@ -429,10 +429,16 @@ export default function ProductionEntryForm({
               label="Dipping Qty"
               value={fullForm.dipping_qty}
               keyboardType="numeric"
+              editable={!fullForm.labour_weight_id}
               onChangeText={v =>
                 setFullForm(prev => ({ ...prev, dipping_qty: v }))
               }
             />
+            {fullForm.labour_weight_id && Number(fullForm.labour_remaining_qty) > Number(fullForm.dipping_qty) ? (
+              <Text style={styles.automaticPlanRemaining}>
+                {Number(fullForm.labour_remaining_qty) - Number(fullForm.dipping_qty)} NOS will remain on this labour weight for the next same-material challan.
+              </Text>
+            ) : null}
 
             <FormInput
               label="Kettle Temperature °C"
@@ -450,6 +456,7 @@ export default function ProductionEntryForm({
                 label="MS Weight 1 Nos"
                 value={fullForm.ms_weight}
                 keyboardType="numeric"
+                editable={!fullForm.labour_weight_id}
                 onChangeText={v =>
                   setFullForm(prev => ({ ...prev, ms_weight: v }))
                 }

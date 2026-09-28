@@ -1,14 +1,18 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { Alert, Text, TouchableOpacity } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import HistoricalProductionEditScreen from '../src/screens/History/HistoricalProductionEditScreen';
 import ProductionEntryForm from '../src/components/ProductionEntryForm';
 import { updateHistoricalProductionApi } from '../src/api/historyApi';
 
 jest.mock('@tanstack/react-query', () => ({
   useMutation: jest.fn(),
+  useQuery: jest.fn(),
   useQueryClient: jest.fn(),
+}));
+jest.mock('../src/api/productionPlanningApi', () => ({
+  getProductionPlanningApi: jest.fn(),
 }));
 jest.mock('../src/api/historyApi', () => ({
   updateHistoricalProductionApi: jest.fn(),
@@ -77,6 +81,10 @@ beforeEach(() => {
   invalidateQueries = jest.fn();
   coatingRefs = {};
   useMutation.mockReturnValue({ mutate, isPending: false });
+  useQuery.mockReturnValue({ data: { data: [{ id: 5, status: 'pending', items: [
+    { id: 8, challan_no: 'DC/2025-26/123-1', party_name: 'Plant', material_description: 'MS W BEAM 1.7mm', remaining_qty: 10 },
+    { id: 9, challan_no: 'DC/2025-26/124-1', party_name: 'Other plant', material_description: 'MS ANGLE', remaining_qty: 50 },
+  ] }] } });
   useQueryClient.mockReturnValue({ invalidateQueries });
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   act(() => {
@@ -106,7 +114,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('history uses the exact shared live form, cards, previews and read-only planning context', () => {
+test('history uses the shared form and offers planning challans for reassignment', () => {
   expect(tree.root.findByType(ProductionEntryForm)).toBeTruthy();
   for (const title of [
     'Production Details',
@@ -123,7 +131,8 @@ test('history uses the exact shared live form, cards, previews and read-only pla
   );
   expect(input('Challan No')).toBeUndefined();
   expect(input('Material')).toBeUndefined();
-  expect(tree.root.findAllByType('DropDownPicker')).toHaveLength(0);
+  expect(tree.root.findAllByType('DropDownPicker')).toHaveLength(1);
+  expect(tree.root.findByType('DropDownPicker').props.items).toHaveLength(2);
   expect(input('C5').props.value).toBe('120');
 });
 
@@ -146,11 +155,19 @@ test('shared time picker edits the time and history save preserves original iden
   const body = mutate.mock.calls[0][0];
   expect(body.production_time).toBe('22:15:00');
   expect(body.dipping_qty).toBe(30);
+  expect(body.planning_item_id).toBe(8);
   expect(body).not.toHaveProperty('shift_id');
   expect(body).not.toHaveProperty('planning_id');
   expect(body).not.toHaveProperty('challan_no');
   await useMutation.mock.calls.at(-1)[0].mutationFn(body);
   expect(updateHistoricalProductionApi).toHaveBeenCalledWith({ id: 42, body });
+});
+
+test('changing the challan sends its planning item ID for the historical entry', () => {
+  act(() => tree.root.findByType('DropDownPicker').props.setValue(() => 9));
+  save();
+  expect(mutate.mock.calls[0][0].planning_item_id).toBe(9);
+  expect(texts()).toContain('DC/2025-26/124-1');
 });
 
 test('invalid quantity is blocked and failed saves keep form values', () => {

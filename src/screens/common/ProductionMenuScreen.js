@@ -11,6 +11,7 @@ import {
   Package,
   FlaskConical,
   Scale,
+  Flame,
 } from 'lucide-react-native';
 import React from 'react';
 import { useSelector } from 'react-redux';
@@ -21,16 +22,20 @@ import { shouldShowShiftInProductionMenu } from '../../utils/accessNavigation';
 
 const PRODUCTION_ACTIONS = [
   {
-    title: 'Labour MS Weights', icon: Scale, screen: 'LabourWeights',
-    description: 'Review queued MS weight and dip quantity entries.', permission: 'labour_weights.view',
-  },
-  {
     title: 'Live Production',
     icon: Factory,
     screen: 'LiveProduction',
     description: 'Record output, review readings and correct shift entries.',
     primary: true,
     permission: 'production.view',
+  },
+  {
+    title: 'Gas Stock', icon: Flame, screen: 'GasManagement',
+    description: 'Track filled gas bottles, the running bottle and gas used per ton.', permission: 'gas.view',
+  },
+  {
+    title: 'Labour MS Weights', icon: Scale, screen: 'LabourWeights',
+    description: 'Review queued MS weight and dip quantity entries.', permission: 'labour_weights.view',
   },
   {
     title: 'Production Planning',

@@ -31,6 +31,9 @@ export default function ShiftCorrectionControls({
   canAddZinc = false,
   onAddZinc,
   zincBusy = false,
+  canChangeGas = false,
+  onChangeGas,
+  gasBusy = false,
   correctionUsers = [],
 }) {
   const client = useQueryClient();
@@ -69,7 +72,7 @@ export default function ShiftCorrectionControls({
       );
     },
   });
-  if (!canManage && !status?.correction_mode && !canAddZinc) return null;
+  if (!canManage && !status?.correction_mode && !canAddZinc && !canChangeGas) return null;
   const target = status?.production_shift;
   return (
     <View
@@ -84,7 +87,7 @@ export default function ShiftCorrectionControls({
           </Text>
         </View>
       )}
-      {(canManage || canAddZinc) && (
+      {(canManage || canAddZinc || canChangeGas) && (
         <View style={styles.actions}>
           {canManage && !status?.correction_active && (
             <TouchableOpacity
@@ -107,6 +110,11 @@ export default function ShiftCorrectionControls({
               onPress={onAddZinc}
             >
               <Text style={[styles.buttonText, styles.zincText]}>Add zinc</Text>
+            </TouchableOpacity>
+          )}
+          {canChangeGas && (
+            <TouchableOpacity style={[styles.button, styles.zincButton]} disabled={gasBusy} onPress={onChangeGas}>
+              <Text style={[styles.buttonText, styles.zincText]}>Gas change</Text>
             </TouchableOpacity>
           )}
           {(status?.correction_mode || (canManage && status?.correction_active)) && (

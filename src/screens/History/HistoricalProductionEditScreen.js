@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { updateHistoricalProductionApi } from '../../api/historyApi';
+import { getProductionPlanningApi } from '../../api/productionPlanningApi';
 import ProductionEntryForm from '../../components/ProductionEntryForm';
 
 const editableFields = [
@@ -31,6 +32,22 @@ export default function HistoricalProductionEditScreen({ route, navigation }) {
     ),
   }));
   const queryClient = useQueryClient();
+  const planningQuery = useQuery({
+    queryKey: ['history-edit-planning'],
+    queryFn: () => getProductionPlanningApi(),
+  });
+  const planningChoices = (planningQuery.data?.data || [])
+    .filter(plan => plan.status !== 'canceled')
+    .flatMap(plan => (plan.items || []).map(planItem => ({
+      ...planItem,
+      planning_id: plan.id,
+      planning_item_id: planItem.id,
+    })));
+  const selectablePlanning = item.planning_item_id &&
+    !planningChoices.some(planItem => Number(planItem.planning_item_id) === Number(item.planning_item_id))
+    ? [...planningChoices, { ...item, planning_item_id: item.planning_item_id, material_description: item.material, remaining_qty: 0 }]
+    : planningChoices;
+  const activePlanning = selectablePlanning.find(planItem => Number(planItem.planning_item_id) === Number(form.planning_item_id)) || null;
   const mutation = useMutation({
     mutationFn: body => updateHistoricalProductionApi({ id: item.id, body }),
     onSuccess: res => {
@@ -43,6 +60,7 @@ export default function HistoricalProductionEditScreen({ route, navigation }) {
         'history-party-summary',
         'productions',
         'production-planning',
+        'history-edit-planning',
         'available-production-planning',
         'correction-planning-items',
         'contractor-report',
@@ -74,15 +92,16 @@ export default function HistoricalProductionEditScreen({ route, navigation }) {
       );
       return;
     }
-    // Keep the historical entry's original shift and planning links. This endpoint
-    // edits by immutable entry ID, never by the current live shift.
     mutation.mutate(
-      Object.fromEntries(
+      {
+        planning_item_id: form.planning_item_id,
+        ...Object.fromEntries(
         editableFields.map(key => [
           key,
           key === 'dipping_qty' ? quantity : form[key],
         ]),
-      ),
+        ),
+      },
     );
   };
   return (
@@ -91,6 +110,8 @@ export default function HistoricalProductionEditScreen({ route, navigation }) {
       setFullForm={setForm}
       formExistingEntry={item}
       canManageAllProduction
+      selectablePlanning={selectablePlanning}
+      activePlanning={activePlanning}
       subtitle={
         date +
         ' · ' +

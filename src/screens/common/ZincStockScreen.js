@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ import { COLORS, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { parseZincAmount, zincKg, zincTransferPreview } from '../../utils/zincStock';
+import { downloadZincStockReport } from '../../utils/serverZincStockReport';
 
 const requestId = () => `zinc_${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
 const currentMonth = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; };
@@ -22,6 +23,7 @@ export default function ZincStockScreen({ navigation }) {
   const canReceive = hasPermission(user, 'zinc_stock.receive');
   const canTransfer = hasPermission(user, 'zinc_stock.transfer');
   const canAdjust = hasPermission(user, 'zinc_stock.adjust');
+  const canGenerateReport = hasPermission(user, 'zinc_stock.report');
   const canManageByproducts = hasPermission(user, 'zinc_byproduct.manage');
   const { contentMaxWidth } = useResponsive();
   const client = useQueryClient();
@@ -33,6 +35,7 @@ export default function ZincStockScreen({ navigation }) {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [ashWeight, setAshWeight] = useState(''); const [ashRate, setAshRate] = useState('');
   const [drossWeight, setDrossWeight] = useState(''); const [drossRate, setDrossRate] = useState('');
   const [byproductNote, setByproductNote] = useState(''); const [byproductError, setByproductError] = useState('');
@@ -70,6 +73,18 @@ export default function ZincStockScreen({ navigation }) {
     movement.mutate(pendingRequest.current.body);
   };
   const currentRate = Number(stock?.current_zinc_rate || 0);
+  const averageRate = Number(stock?.average_zinc_rate || 0);
+  const generateTransactionsPdf = async () => {
+    setGeneratingReport(true);
+    try {
+      const pdf = await downloadZincStockReport();
+      navigation.navigate('PdfViewer', { ...pdf, title: 'Zinc Stock Transactions' });
+    } catch (failure) {
+      Alert.alert('Could not generate PDF', failure?.response?.data?.message || failure?.message || 'Please try again.');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
   const ashBase = money(Number(ashWeight || 0) * Number(ashRate || 0)); const drossBase = money(Number(drossWeight || 0) * Number(drossRate || 0));
   const ashGst = money(ashBase * 0.18); const drossGst = money(drossBase * 0.18); const total = money(ashBase + ashGst + drossBase + drossGst);
   const recovered = currentRate > 0 ? total / currentRate : 0;
@@ -80,8 +95,8 @@ export default function ZincStockScreen({ navigation }) {
     <View style={styles.tabs}><TouchableOpacity style={[styles.tab, tab === 'stock' && styles.activeTab]} onPress={() => setTab('stock')}><Text style={[styles.tabText, tab === 'stock' && styles.activeTabText]}>Zinc Stock</Text></TouchableOpacity><TouchableOpacity style={[styles.tab, tab === 'byproducts' && styles.activeTab]} onPress={() => setTab('byproducts')}><Text style={[styles.tabText, tab === 'byproducts' && styles.activeTabText]}>Ash & Dross</Text></TouchableOpacity></View>
     {success ? <Text style={styles.success}>{success}</Text> : null}
     {stockQuery.isLoading ? <ActivityIndicator color={COLORS.accent} /> : stockQuery.isError ? <View style={styles.card}><Text style={styles.error}>Could not load zinc stock.</Text><TouchableOpacity onPress={refresh}><Text style={styles.link}>Retry stock</Text></TouchableOpacity></View> : tab === 'stock' ? <>
-      <TouchableOpacity style={styles.reportButton} onPress={() => navigation.navigate('ZincStockReport')}><Text style={styles.reportButtonText}>View Zinc Transactions</Text></TouchableOpacity>
-      <View style={styles.options}>{[{ key: 'plant', title: 'Stock in Plant', Icon: Factory, kg: stock.plant_kg }, { key: 'kettle', title: 'Stock in Kettle', Icon: Package, kg: stock.kettle_kg }].map(({ key, title, Icon, kg: value }) => <TouchableOpacity key={key} style={[styles.stockCard, selected === key && styles.selectedCard]} onPress={() => setSelected(key)}><Icon size={24} color={COLORS.accent} /><Text style={styles.heading}>{title}</Text><Text style={styles.balance}>{stock.initialized ? `${zincKg(value)} kg` : 'Not set'}</Text></TouchableOpacity>)}</View>
+      {canGenerateReport && <TouchableOpacity style={[styles.reportButton, generatingReport && styles.disabled]} disabled={generatingReport} onPress={generateTransactionsPdf}>{generatingReport ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.reportButtonText}>Generate Zinc Transactions PDF</Text>}</TouchableOpacity>}
+      <View style={styles.options}>{[{ key: 'plant', title: 'Stock in Plant', Icon: Factory, value: stock.initialized ? `${zincKg(stock.plant_kg)} kg` : 'Not set', selectable: true }, { key: 'kettle', title: 'Stock in Kettle', Icon: Package, value: stock.initialized ? `${zincKg(stock.kettle_kg)} kg` : 'Not set', selectable: true }, { key: 'current-rate', title: 'Current Zinc Rate', Icon: Package, value: currentRate ? `₹${currentRate.toFixed(2)} / kg` : 'Not recorded' }, { key: 'average-rate', title: `Average Zinc Rate${stock.financial_year ? ` · FY ${stock.financial_year}` : ''}`, Icon: Package, value: averageRate ? `₹${averageRate.toFixed(2)} / kg` : 'Not recorded' }].map(({ key, title, Icon, value, selectable }) => <TouchableOpacity key={key} disabled={!selectable} style={[styles.stockCard, selectable && selected === key && styles.selectedCard]} onPress={() => selectable && setSelected(key)}><Icon size={24} color={COLORS.accent} /><Text style={styles.heading}>{title}</Text><Text style={styles.balance}>{value}</Text></TouchableOpacity>)}</View>
       {!stock.initialized ? <View style={styles.card}><Text style={styles.heading}>Opening stock is not set</Text><Text style={styles.muted}>Use Settings to enter opening plant and kettle stock.</Text></View> : <>
         {!action && ((selected === 'plant' && canReceive) || (selected === 'kettle' && canTransfer)) && <TouchableOpacity style={styles.button} onPress={() => { setAction(selected === 'plant' ? 'receive' : 'transfer'); setAmount(''); setReceiptRate(''); setError(''); }}><ArrowRightLeft size={18} color={COLORS.white} /><Text style={styles.buttonText}>{selected === 'plant' ? 'Add zinc to plant' : 'Add zinc to kettle'}</Text></TouchableOpacity>}
         {action && <View style={styles.card}><Text style={styles.heading}>{action === 'receive' ? 'Receive zinc in plant' : 'Transfer zinc to kettle'}</Text><TextInput mode="outlined" label="Zinc amount (kg)" value={amount} onChangeText={value => { setAmount(value); setError(''); pendingRequest.current = null; }} keyboardType="decimal-pad" />{action === 'receive' && <TextInput mode="outlined" label="Zinc rate per kg (₹)" value={receiptRate} onChangeText={value => { setReceiptRate(value); setError(''); pendingRequest.current = null; }} keyboardType="decimal-pad" />}<TextInput mode="outlined" label="Note (optional)" value={note} onChangeText={setNote} maxLength={255} />{preview && !preview.error ? <View style={styles.preview}><Text style={styles.heading}>Plant: {zincKg(preview.plant_kg)} kg</Text><Text style={styles.heading}>Kettle: {zincKg(preview.kettle_kg)} kg</Text><Text style={styles.muted}>Estimated fill: {preview.level_mm.toFixed(1)} mm</Text></View> : null}{preview?.error || error ? <Text style={styles.error}>{preview?.error || error}</Text> : null}<View style={styles.row}><TouchableOpacity style={styles.secondary} onPress={() => setAction(null)}><Text style={styles.link}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.button} onPress={saveMovement}><Text style={styles.buttonText}>{movement.isPending ? 'Saving…' : action === 'receive' ? 'Save plant receipt' : 'Confirm transfer'}</Text></TouchableOpacity></View></View>}
@@ -98,5 +113,5 @@ export default function ZincStockScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: COLORS.bg }, content: { padding: 18, gap: 16, paddingBottom: 120 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center' }, titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, title: { color: COLORS.text, fontSize: 25, fontWeight: '700' }, heading: { color: COLORS.text, fontSize: 16, fontWeight: '700', flexShrink: 1 }, balance: { color: COLORS.text, fontSize: 22, fontWeight: '700' }, muted: { color: COLORS.muted, fontSize: 13, lineHeight: 20 }, settingsButton: { flexDirection: 'row', gap: 7, alignItems: 'center', backgroundColor: COLORS.primary, padding: 12, borderRadius: UI.radiusSmall }, tabs: { flexDirection: 'row', backgroundColor: COLORS.white, padding: 5, borderRadius: UI.radius }, tab: { flex: 1, padding: 13, borderRadius: UI.radiusSmall, alignItems: 'center' }, activeTab: { backgroundColor: COLORS.accent }, tabText: { color: COLORS.muted, fontWeight: '700' }, activeTabText: { color: COLORS.white }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, stockCard: { flexGrow: 1, flexBasis: 145, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: UI.radius, padding: 18, gap: 10 }, selectedCard: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft }, card: { backgroundColor: COLORS.white, padding: 18, gap: 14, borderRadius: UI.radius }, row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }, fullInput: { width: '100%' }, button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.accent, borderRadius: UI.radiusSmall, padding: 15, minHeight: 48 }, buttonText: { color: COLORS.white, fontWeight: '700' }, secondary: { padding: 15, borderRadius: UI.radiusSmall, backgroundColor: COLORS.accentSoft }, link: { color: COLORS.accent, fontWeight: '600' }, reportButton: { alignSelf: 'flex-start', backgroundColor: COLORS.primary, borderRadius: UI.radiusSmall, minHeight: 44, paddingHorizontal: 18, justifyContent: 'center' }, reportButtonText: { color: COLORS.white, fontWeight: '700' }, preview: { padding: 14, gap: 7, backgroundColor: COLORS.accentSoft, borderRadius: UI.radiusSmall }, error: { color: COLORS.danger, fontSize: 14 }, success: { color: COLORS.success, fontWeight: '600' },
+  page: { flex: 1, backgroundColor: COLORS.bg }, content: { padding: 18, gap: 16, paddingBottom: 120 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center' }, titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, title: { color: COLORS.text, fontSize: 25, fontWeight: '700' }, heading: { color: COLORS.text, fontSize: 16, fontWeight: '700', flexShrink: 1 }, balance: { color: COLORS.text, fontSize: 22, fontWeight: '700' }, muted: { color: COLORS.muted, fontSize: 13, lineHeight: 20 }, settingsButton: { flexDirection: 'row', gap: 7, alignItems: 'center', backgroundColor: COLORS.primary, padding: 12, borderRadius: UI.radiusSmall }, tabs: { flexDirection: 'row', backgroundColor: COLORS.white, padding: 5, borderRadius: UI.radius }, tab: { flex: 1, padding: 13, borderRadius: UI.radiusSmall, alignItems: 'center' }, activeTab: { backgroundColor: COLORS.accent }, tabText: { color: COLORS.muted, fontWeight: '700' }, activeTabText: { color: COLORS.white }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, stockCard: { flexGrow: 1, flexBasis: 145, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: UI.radius, padding: 18, gap: 10 }, selectedCard: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft }, card: { backgroundColor: COLORS.white, padding: 18, gap: 14, borderRadius: UI.radius }, row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }, fullInput: { width: '100%' }, button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.accent, borderRadius: UI.radiusSmall, padding: 15, minHeight: 48 }, buttonText: { color: COLORS.white, fontWeight: '700' }, secondary: { padding: 15, borderRadius: UI.radiusSmall, backgroundColor: COLORS.accentSoft }, link: { color: COLORS.accent, fontWeight: '600' }, reportButton: { alignSelf: 'flex-start', backgroundColor: COLORS.primary, borderRadius: UI.radiusSmall, minHeight: 44, paddingHorizontal: 18, justifyContent: 'center' }, reportButtonText: { color: COLORS.white, fontWeight: '700' }, preview: { padding: 14, gap: 7, backgroundColor: COLORS.accentSoft, borderRadius: UI.radiusSmall }, error: { color: COLORS.danger, fontSize: 14 }, success: { color: COLORS.success, fontWeight: '600' }, disabled: { opacity: 0.6 },
 });
