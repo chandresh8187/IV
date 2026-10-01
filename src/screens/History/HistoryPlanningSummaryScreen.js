@@ -11,7 +11,7 @@ import {
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
 import { COLORS, UI } from '../../assets/Colors';
-import { formatQuantity } from '../../utils/format';
+import { formatQuantity, formatWeight } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
 
@@ -160,6 +160,12 @@ function PlanningItemCard({ item, shiftName }) {
               ? `${item.target_zinc_percentage}%`
               : '—'
           }
+        />
+        <Metric
+          label="Actual zinc"
+          value={item.actual_zinc_percentage == null
+            ? '—'
+            : `${formatWeight(item.actual_zinc_percentage)}% · ${formatWeight(item.actual_zinc_consumption_kg)} kg`}
         />
       </View>
     </View>

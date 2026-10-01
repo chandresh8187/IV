@@ -21,6 +21,7 @@ const defaults = {
   zinc_alert_threshold: { enabled: true, percentage: '7.50' },
   shift_schedule: { automatic: true, day_start: '08:00', night_start: '20:00' },
   maintenance_mode: { enabled: false, message: '' },
+  labour_timer_limits: { pickling: '7', flux: '2', hot_drier: '5', zinc_kettle: '5' },
 };
 
 const getNightShiftStart = dayStart => {
@@ -70,6 +71,7 @@ export default function ControlPanelScreen() {
           zinc_alert_threshold: { ...defaults.zinc_alert_threshold, ...server.zinc_alert_threshold, percentage: String(server.zinc_alert_threshold?.percentage ?? '7.50') },
           shift_schedule: { ...defaults.shift_schedule, ...server.shift_schedule },
           maintenance_mode: { ...defaults.maintenance_mode, ...server.maintenance_mode },
+          labour_timer_limits: Object.fromEntries(Object.entries({ ...defaults.labour_timer_limits, ...server.labour_timer_limits }).filter(([key]) => key !== 'updated_at').map(([key, value]) => [key, String(value)])),
         });
         setLogs(Array.isArray(auditResponse?.data) ? auditResponse.data : []);
       }
@@ -189,6 +191,10 @@ export default function ControlPanelScreen() {
         <SaveButton loading={saving === 'android-release'} onPress={saveRelease} />
       </SettingCard>}
       {canManageSettings && <>
+      <SettingCard title="Labour Process Timer Limits" subtitle="Minutes. New limits apply when a timer starts; running timers keep their original limit.">
+        {([['pickling', 'Pickling'], ['flux', 'Flux'], ['hot_drier', 'Hot drier'], ['zinc_kettle', 'Zinc kettle']]).map(([key, label]) => <Input key={key} label={`${label} limit (minutes)`} keyboardType="number-pad" value={settings.labour_timer_limits[key]} onChangeText={value => update('labour_timer_limits', key, value)} />)}
+        <SaveButton loading={saving === 'labour_timer_limits'} onPress={() => save('labour_timer_limits')} />
+      </SettingCard>
       <SettingCard title="Monthly Zinc Consumption Alert" subtitle="Planning targets are managed separately per challan.">
         <SwitchRow label="Enable monthly alert" value={settings.zinc_alert_threshold.enabled} onChange={value => update('zinc_alert_threshold', 'enabled', value)} />
         <Input label="Alert Percentage" keyboardType="decimal-pad" value={settings.zinc_alert_threshold.percentage} onChangeText={value => update('zinc_alert_threshold', 'percentage', value)} />

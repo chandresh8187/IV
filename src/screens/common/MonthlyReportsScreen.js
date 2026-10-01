@@ -8,7 +8,7 @@ import{getMonthlyReportApi}from'../../api/monthlyReportApi';
 import{COLORS,UI}from'../../assets/Colors';
 import{hasPermission}from'../../utils/permissions';
 import{centeredContent,useResponsive}from'../../utils/responsive';
-import{downloadMonthlyReport}from'../../utils/serverMonthlyReport';
+import{downloadMonthlyReport,downloadDailyProductionReport}from'../../utils/serverMonthlyReport';
 
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const indiaMonth=()=>new Date(Date.now()+330*60*1000).getUTCMonth()+1;
@@ -22,6 +22,7 @@ export default function MonthlyReportsScreen({navigation}){
  const startYear=Number(year?.start_date?.slice(0,4));const items=year?.start_date?Array.from({length:12},(_,index)=>{const value=((index+3)%12)+1;return{value,label:`${MONTHS[value-1]} ${startYear+(value<4?1:0)}`};}):[];
  const query=useQuery({queryKey:['monthly-report',year?.id,month],queryFn:()=>getMonthlyReportApi({month,financial_year_id:year.id}),enabled:canView&&Boolean(year?.id),retry:false});const report=query.data?.data;
  const generate=async()=>{setGenerating(true);try{const pdf=await downloadMonthlyReport({month,financial_year_id:year.id});navigation.navigate('PdfViewer',{...pdf,title:`Monthly Report · ${report.period.label}`});}catch(error){Alert.alert('Could not generate PDF',error?.response?.data?.message||error?.message||'Please try again.');}finally{setGenerating(false);}};
+ const generateDaily=async()=>{setGenerating(true);try{const pdf=await downloadDailyProductionReport({month,financial_year_id:year.id});navigation.navigate('PdfViewer',{...pdf,title:`Daily Production · ${report.period.label}`});}catch(error){Alert.alert('Could not generate daily production PDF',error?.response?.data?.message||error?.message||'Please try again.');}finally{setGenerating(false);}};
  if(!canView)return<View style={styles.center}><Text style={styles.muted}>You do not have monthly reports access.</Text></View>;
  return<ScrollView style={styles.page} contentContainerStyle={[styles.content,centeredContent(contentMaxWidth)]}>
   <Text style={styles.title}>Monthly Reports</Text><Text style={styles.muted}>Complete historical production, zinc, Ash & Dross, planning, contractor, and expense report.</Text>
@@ -35,8 +36,9 @@ export default function MonthlyReportsScreen({navigation}){
     <Section title="Expense & Plant Cost"><Grid data={[["Total expense",`₹${money(report.expenses.totals.total_expense)}`],["Running plant cost",`₹${money(report.expenses.totals.running_plant_cost)}/kg`],["Average production/day",`${num(report.expenses.totals.average_ms_production_per_day_kg/1000)} ton`]]}/></Section>
     <Section title="Expense Breakdown">{Object.entries(report.expenses.expenses).map(([key,value])=><View key={key}style={styles.listRow}><Text style={[styles.muted,styles.flex]}>{key.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}</Text><Text style={styles.value}>₹{money(value)}</Text></View>)}</Section>
     <List title="Shift Production"rows={report.shifts}name="shift_name"/><List title="Material Production"rows={report.materials}name="material"/><List title="Contractor Production"rows={report.contractors}name="contractor_name"/>
+    <Section title="Date-wise production">{report.daily_production?.length?report.daily_production.map(day=><View key={day.production_date}style={styles.listRow}><View style={styles.flex}><Text style={styles.heading}>{day.production_date}</Text><Text style={styles.muted}>Day {num(day.day_ms_kg)} kg · Night {num(day.night_ms_kg)} kg</Text></View><Text style={styles.value}>{num(day.total_ms_kg)} kg</Text></View>):<Text style={styles.muted}>No production recorded this month.</Text>}</Section>
     <Section title={`Planning (${report.planning.length})`}>{report.planning.length?report.planning.map(item=><View key={item.id}style={styles.listRow}><View style={styles.flex}><Text style={styles.heading}>{item.challan_no||'Challan'} · {item.party_name}</Text><Text style={styles.muted}>{item.material_description}</Text></View><Text style={styles.value}>{num(item.produced_qty)} / {num(item.planned_qty)} NOS</Text></View>):<Text style={styles.muted}>No planning activity for this month.</Text>}</Section>
-    {canPdf&&<TouchableOpacity style={styles.pdfButton}disabled={generating}onPress={generate}>{generating?<ActivityIndicator color={COLORS.white}/>:<Text style={styles.buttonText}>Generate Complete PDF Report</Text>}</TouchableOpacity>}
+    {canPdf&&<><TouchableOpacity style={styles.pdfButton}disabled={generating}onPress={generateDaily}>{generating?<ActivityIndicator color={COLORS.white}/>:<Text style={styles.buttonText}>Generate Daily Production PDF</Text>}</TouchableOpacity><TouchableOpacity style={styles.pdfButton}disabled={generating}onPress={generate}>{generating?<ActivityIndicator color={COLORS.white}/>:<Text style={styles.buttonText}>Generate Complete PDF Report</Text>}</TouchableOpacity></>}
    </>:null}
   </>}
  </ScrollView>;

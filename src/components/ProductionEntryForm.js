@@ -66,6 +66,9 @@ export default function ProductionEntryForm({
   onSave,
   onClose,
   subtitle,
+  weightMode = 'manual',
+  labourWeights = [],
+  onSelectLabourWeight,
   contractors = null,
   contractorsLoading = false,
   contractorsError = false,
@@ -79,6 +82,7 @@ export default function ProductionEntryForm({
   const coatingInputs = useRef([]);
   const [contractorOpen, setContractorOpen] = useState(false);
   const [correctionPlanOpen, setCorrectionPlanOpen] = useState(false);
+  const [labourWeightOpen, setLabourWeightOpen] = useState(false);
   const [showProductionTimePicker, setShowProductionTimePicker] =
     useState(false);
   const [productionTimePickerValue, setProductionTimePickerValue] = useState(
@@ -425,11 +429,16 @@ export default function ProductionEntryForm({
               </View>
             </TouchableOpacity>
 
+            {!fullForm.entry_id && <Text style={styles.srHint}>Weight mode: {weightMode === 'auto' ? 'Auto weight' : weightMode === 'selection' ? 'Selection weight' : 'Manual weight'}</Text>}
+            {!fullForm.entry_id && weightMode === 'selection' && <View style={styles.automaticPlanCard}>
+              <Text style={styles.srHint}>Select the dip currently on the kettle</Text>
+              <DropDownPicker open={labourWeightOpen} setOpen={setLabourWeightOpen} value={fullForm.labour_weight_id} items={labourWeights.map(item => ({ value: Number(item.id), label: `Dip #${item.dip_number} · Weight #${item.id} · ${item.ms_weight} kg/NOS · ${item.remaining_qty} NOS · ${item.created_at}` }))} setValue={callback => { const id = typeof callback === 'function' ? callback(fullForm.labour_weight_id) : callback; onSelectLabourWeight?.(id); }} placeholder="Choose current dip weight" listMode="SCROLLVIEW" zIndex={3000} zIndexInverse={1000} />
+            </View>}
             <FormInput
               label="Dipping Qty"
               value={fullForm.dipping_qty}
               keyboardType="numeric"
-              editable={!fullForm.labour_weight_id}
+              editable={Boolean(fullForm.entry_id) || weightMode === 'manual'}
               onChangeText={v =>
                 setFullForm(prev => ({ ...prev, dipping_qty: v }))
               }
@@ -456,7 +465,7 @@ export default function ProductionEntryForm({
                 label="MS Weight 1 Nos"
                 value={fullForm.ms_weight}
                 keyboardType="numeric"
-                editable={!fullForm.labour_weight_id}
+                editable={Boolean(fullForm.entry_id) || weightMode === 'manual'}
                 onChangeText={v =>
                   setFullForm(prev => ({ ...prev, ms_weight: v }))
                 }

@@ -29,7 +29,7 @@ import { COLORS, UI, PAPER_THEME } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import { formatMaterialDescription } from '../../utils/format';
-import { downloadProductionPlanningFile } from '../../utils/serverProductionReport';
+import { downloadProductionPlanningFile, downloadCompletedPlanningItemReport } from '../../utils/serverProductionReport';
 import {
   emptyPlanningChallan,
   planningChallanNumber,
@@ -64,6 +64,7 @@ export default function ProductionPlanningScreen({ navigation }) {
   const client = useQueryClient();
   const { contentMaxWidth, formMaxWidth } = useResponsive();
   const [status, setStatus] = useState('pending');
+  const [search, setSearch] = useState('');
   const [visible, setVisible] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyPlanningChallan);
@@ -185,6 +186,24 @@ export default function ProductionPlanningScreen({ navigation }) {
       setDownloading(null);
     }
   };
+  const openProductionReport = async item => {
+    if (downloading != null) return;
+    setDownloading(`production-${item.id}`);
+    try {
+      const pdf = await downloadCompletedPlanningItemReport({ itemId: item.id, challanNo: item.challan_no });
+      navigation.navigate('PdfViewer', { ...pdf, title: `Production report · ${item.challan_no}` });
+    } catch (error) {
+      Alert.alert('Could not open production report', error?.response?.data?.message || error.message);
+    } finally { setDownloading(null); }
+  };
+  const searchText = search.trim().toLowerCase();
+  const visiblePlans = (plans.data?.data || []).map(plan => {
+    if (!searchText) return plan;
+    const planMatches = [plan.financial_year, plan.challan_no, plan.party_name].some(value => String(value || '').toLowerCase().includes(searchText));
+    return { ...plan, items: planMatches ? plan.items : (plan.items || []).filter(item =>
+      [item.challan_no, item.party_name, item.material_description, item.item_name, item.planning_source]
+        .some(value => String(value || '').toLowerCase().includes(searchText))) };
+  }).filter(plan => (plan.items || []).length);
   const field = (key, label, numeric = false) => (
     <TextInput
       key={key}
@@ -251,6 +270,7 @@ export default function ProductionPlanningScreen({ navigation }) {
             />
           )}
         </View>
+        <TextInput mode="outlined" label="Search challan, party or material" value={search} onChangeText={setSearch} style={styles.searchInput} />
         {plans.isLoading && <ActivityIndicator color={COLORS.primary} />}
         {plans.isError && (
           <Button
@@ -258,11 +278,11 @@ export default function ProductionPlanningScreen({ navigation }) {
             onPress={plans.refetch}
           />
         )}
-        {!plans.isLoading && !plans.isError && !plans.data?.data?.length && (
-          <Text style={styles.body}>No {status} planning challans.</Text>
+        {!plans.isLoading && !plans.isError && !visiblePlans.length && (
+          <Text style={styles.body}>{searchText ? 'No planning challans match your search.' : `No ${status} planning challans.`}</Text>
         )}
         <ResponsiveGrid minColumnWidth={400}>
-          {(plans.data?.data || []).map(plan => (
+          {visiblePlans.map(plan => (
             <View key={plan.id} style={styles.card}>
               {(plan.items || []).map(item => (
                 <View key={item.id} style={styles.item}>
@@ -291,6 +311,11 @@ export default function ProductionPlanningScreen({ navigation }) {
                   <Text style={styles.body}>
                     Target zinc: {item.target_zinc_percentage}%
                   </Text>
+                  {item.status === 'completed' && <Button
+                    label={downloading === `production-${item.id}` ? 'Generating production PDF…' : 'Production report PDF'}
+                    disabled={downloading != null}
+                    onPress={() => openProductionReport(item)}
+                  />}
                   {canManage && (
                     <Button
                       label="Edit challan"
@@ -497,6 +522,7 @@ const styles = StyleSheet.create({
   title: { color: COLORS.text, fontSize: 25, fontWeight: '700' },
   heading: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
   body: { color: COLORS.gray, fontSize: 13, lineHeight: 21 },
+  searchInput: { backgroundColor: COLORS.white },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
     backgroundColor: COLORS.white,

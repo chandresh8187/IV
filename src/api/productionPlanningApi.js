@@ -35,3 +35,8 @@ export const downloadProductionPlanningFileApi = async id => {
     responseType: 'arraybuffer',
   });
 };
+
+export const downloadCompletedPlanningItemReportApi = async itemId => apiClient.get(
+  `/production-planning/items/${itemId}/production-report`,
+  { responseType: 'arraybuffer' },
+);

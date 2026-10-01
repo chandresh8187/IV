@@ -84,6 +84,8 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {(dashboard?.stock_alerts || []).map((message, index) => <View key={`${index}-${message}`} style={styles.stockAlert}><Text style={styles.stockAlertText}>{message}</Text></View>)}
+
         <View style={styles.monthCard}>
           <View style={styles.monthHeader}>
             <Text style={styles.monthTitle}>Monthly production</Text>
@@ -294,6 +296,8 @@ function SectionTitle({ title }) {
 }
 
 const styles = StyleSheet.create({
+  stockAlert: { backgroundColor: '#fff1e8', borderColor: '#ed9a54', borderWidth: 1, borderRadius: UI.radiusSmall, padding: 13, marginBottom: 10 },
+  stockAlertText: { color: '#8a3b0a', fontWeight: '700' },
   bannerPadding: { padding: 20 },
   screen: {
     flex: 1,

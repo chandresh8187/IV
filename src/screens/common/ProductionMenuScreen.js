@@ -116,6 +116,13 @@ const PRODUCTION_ACTIONS = [
   },
 ];
 
+const PRODUCTION_SECTIONS = [
+  { title: 'Production', screens: ['LiveProduction', 'LabourWeights', 'ProductionPlanning', 'ShiftControl'] },
+  { title: 'Stock & Plant', screens: ['ZincStock', 'GasManagement', 'ChemicalTracking', 'PlantControl'] },
+  { title: 'Reports & Quality', screens: ['ProductionHistory', 'MonthlyReports', 'GenerateCertificate', 'Contractors'] },
+  { title: 'Costs & Rates', screens: ['RateCalculator', 'ExpenseReport'] },
+];
+
 export default function ProductionMenuScreen({ navigation }) {
   const user = useSelector(state => state.auth.user);
   const actions = PRODUCTION_ACTIONS.filter(item =>
@@ -130,6 +137,8 @@ export default function ProductionMenuScreen({ navigation }) {
       title="Production"
       description="Plan, record and review your galvanizing operations."
       actions={actions}
+      sections={PRODUCTION_SECTIONS}
+      searchable
       onSelect={item => navigation.navigate(item.screen)}
     />
   );

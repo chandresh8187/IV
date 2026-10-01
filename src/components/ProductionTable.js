@@ -14,6 +14,10 @@ import {
 const COLUMNS = [
   { key: 'row_number', label: 'No.', width: 55, bold: true },
   { key: 'production_time', label: 'Time', width: 100 },
+  { key: 'pickling_duration_seconds', label: 'Pickling\nduration', width: 110 },
+  { key: 'flux_duration_seconds', label: 'Flux\nduration', width: 110 },
+  { key: 'hot_drier_duration_seconds', label: 'Hot drier\nduration', width: 110 },
+  { key: 'zinc_kettle_duration_seconds', label: 'Zinc kettle\nduration', width: 110 },
   { key: 'challan_no', label: 'Challan', width: 120 },
   { key: 'party_name', label: 'Party', width: 170 },
   { key: 'material', label: 'Material', width: 200 },
@@ -37,7 +41,16 @@ const formatCellValue = (row, key) => {
   const value = row?.[key];
 
   if (key === 'material') return formatMaterialDescription(value) || '-';
-  if (key === 'production_time') return formatTime12Hour(value);
+  if (key === 'production_time') {
+    return hasValue(value) ? formatTime12Hour(value) : '-';
+  }
+  if (['pickling_duration_seconds', 'flux_duration_seconds', 'hot_drier_duration_seconds', 'zinc_kettle_duration_seconds'].includes(key)) {
+    if (!hasValue(value)) return '-';
+    const seconds = Math.max(0, Math.floor(Number(value) || 0));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return [hours && `${hours}h`, minutes && `${minutes}m`, `${seconds % 60}s`].filter(Boolean).join(' ');
+  }
   if (key === 'dipping_qty') return formatQuantity(value, '-');
   if (key === 'kettle_temperature') {
     return hasValue(value) ? `${formatNumber(value)}\u00B0` : '-';

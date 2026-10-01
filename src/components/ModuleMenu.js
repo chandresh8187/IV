@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
+  TextInput,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ArrowUpRight, Factory, Settings2 } from 'lucide-react-native';
+import { ArrowUpRight, Factory, Search, Settings2, X } from 'lucide-react-native';
 import { COLORS, UI } from '../assets/Colors';
 import { centeredContent, useResponsive } from '../utils/responsive';
 
@@ -16,15 +17,32 @@ export default function ModuleMenu({
   title,
   description,
   actions,
+  sections,
+  searchable = false,
   onSelect,
 }) {
+  const [search, setSearch] = useState('');
   const { isTablet, wideMaxWidth, width, fontScale } = useResponsive();
+  const searchText = search.trim().toLowerCase();
   const columns = isTablet && fontScale <= 1.15
     ? 4
     : actions.length > 4 && width >= 380 && fontScale <= 1.15
     ? 3
     : 2;
   const HeadingIcon = actions.some(item => item.primary) ? Factory : Settings2;
+  const availableSections = sections
+    ? sections.map(section => ({
+        ...section,
+        actions: actions.filter(item => section.screens.includes(item.screen)),
+      }))
+    : [{ title: null, actions }];
+  const visibleSections = availableSections.map(section => ({
+    ...section,
+    actions: section.actions.filter(item =>
+      !searchText || [item.title, item.description, section.title].some(value =>
+        String(value || '').toLowerCase().includes(searchText))),
+  })).filter(section => section.actions.length);
+  const visibleCount = visibleSections.reduce((count, section) => count + section.actions.length, 0);
   return (
     <ScrollView
       style={styles.screen}
@@ -55,10 +73,17 @@ export default function ModuleMenu({
                 Choose an operation to continue
               </Text>
             </View>
-            <Text style={styles.count}>{actions.length} modules</Text>
+            <Text style={styles.count}>{searchText ? `${visibleCount} found` : `${actions.length} modules`}</Text>
           </View>
-          <View style={styles.grid}>
-            {actions.map(item => {
+          {searchable && <View style={styles.searchBox}>
+            <Search size={19} color={COLORS.gray} />
+            <TextInput style={styles.searchInput} value={search} onChangeText={setSearch} placeholder="Search production menus" placeholderTextColor={COLORS.gray} accessibilityLabel="Search production menus" autoCapitalize="none" returnKeyType="search" />
+            {!!search && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Clear menu search" onPress={() => setSearch('')}><X size={19} color={COLORS.gray} /></TouchableOpacity>}
+          </View>}
+          {visibleSections.map(section => <View key={section.title || 'all'} style={styles.actionSection}>
+            {section.title && <Text style={styles.groupTitle} accessibilityRole="header">{section.title}</Text>}
+            <View style={styles.grid}>
+            {section.actions.map(item => {
               const Icon = item.icon;
               return (
                 <TouchableOpacity
@@ -99,12 +124,14 @@ export default function ModuleMenu({
                 </TouchableOpacity>
               );
             })}
-          </View>
+            </View>
+          </View>)}
           {!actions.length && (
             <Text style={styles.empty}>
               No modules are available for your access permissions.
             </Text>
           )}
+          {!!actions.length && !!searchText && !visibleCount && <Text style={styles.empty}>No menus match “{search.trim()}”.</Text>}
           <View style={styles.note}>
             <Text style={styles.noteTitle}>Configured for your role</Text>
             <Text style={styles.noteText}>
@@ -197,6 +224,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 5,
   },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13, borderWidth: 1, borderColor: COLORS.border, borderRadius: UI.radiusSmall, backgroundColor: COLORS.white, marginBottom: 22 },
+  searchInput: { flex: 1, minHeight: 46, color: COLORS.text, fontSize: 14 },
   count: {
     color: COLORS.accent,
     fontSize: 11,
@@ -207,9 +236,11 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    columnGap: 12,
     rowGap: 14,
   },
+  actionSection: { marginBottom: 24 },
+  groupTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', marginBottom: 12 },
   tile: {
     minHeight: 128,
     paddingHorizontal: 9,

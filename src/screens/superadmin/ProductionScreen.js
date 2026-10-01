@@ -1,13 +1,15 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, LockKeyhole, Pencil, MessageCircle } from 'lucide-react-native';
+import { Plus, LockKeyhole, Pencil, MessageCircle, Maximize2, X } from 'lucide-react-native';
 import moment from 'moment';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -42,7 +44,7 @@ import { canUseShiftCorrection } from '../../utils/accessNavigation';
 import { getDefaultProductionSelection } from '../../utils/productionDefaults';
 import { getChatApi } from '../../api/chatApi';
 import { socket } from '../../socket/socket';
-import { getPendingLabourWeightsApi } from '../../api/labourWeightsApi';
+import { getPendingLabourWeightsApi, getLabourWeightModeApi } from '../../api/labourWeightsApi';
 import { changeGasBottleApi, getGasDashboardApi } from '../../api/gasManagementApi';
 
 import { COLORS, UI } from '../../assets/Colors';
@@ -79,6 +81,7 @@ export default function ProductionScreen() {
   const [fullForm, setFullForm] = useState(emptyFullForm);
   const [formContext, setFormContext] = useState(null);
   const [modalType, setModalType] = useState(null);
+  const [fullTableVisible, setFullTableVisible] = useState(false);
   const [grantRow, setGrantRow] = useState(null);
   const [selectedGrantUserId, setSelectedGrantUserId] = useState(null);
   const [grantUserOpen, setGrantUserOpen] = useState(false);
@@ -87,7 +90,8 @@ export default function ProductionScreen() {
   const [zincError, setZincError] = useState('');
   const [gasModalVisible, setGasModalVisible] = useState(false);
   const [gasBottleNumber, setGasBottleNumber] = useState('');
-  const [gasEmptyWeight, setGasEmptyWeight] = useState('');
+  const [gasEndTime, setGasEndTime] = useState(new Date());
+  const [gasTimePickerMode, setGasTimePickerMode] = useState(null);
   const [gasError, setGasError] = useState('');
   const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
@@ -103,12 +107,25 @@ export default function ProductionScreen() {
   const canViewGas = hasPermission(loggedUser, 'gas.view');
   const canChangeGas = hasPermission(loggedUser, 'gas.operate');
   const gasQuery = useQuery({ queryKey: ['gas-management'], queryFn: getGasDashboardApi, enabled: canViewGas });
-  const gasMutation = useMutation({ mutationFn: changeGasBottleApi, onSuccess: response => { setGasModalVisible(false); setGasBottleNumber(''); setGasEmptyWeight(''); setGasError(''); queryClient.invalidateQueries({ queryKey: ['gas-management'] }); Alert.alert('Gas bottle changed', response.message); }, onError: error => setGasError(error?.response?.data?.message || 'Could not change gas bottle.') });
+  const gasMutation = useMutation({ mutationFn: changeGasBottleApi, onSuccess: response => { setGasModalVisible(false); setGasBottleNumber(''); setGasError(''); queryClient.invalidateQueries({ queryKey: ['gas-management'] }); Alert.alert('Gas bottle changed', response.message); }, onError: error => setGasError(error?.response?.data?.message || 'Could not change gas bottle.') });
   const labourQueue = useQuery({
     queryKey: ['labour-weights', 'pending'],
     queryFn: getPendingLabourWeightsApi,
     enabled: canSaveProduction,
   });
+  const weightModeQuery = useQuery({ queryKey: ['labour-weight-mode'], queryFn: getLabourWeightModeApi, enabled: canSaveProduction });
+  const weightMode = weightModeQuery.data?.data?.mode || 'manual';
+  useEffect(() => {
+    const refreshMode = () => {
+      queryClient.invalidateQueries({ queryKey: ['labour-weight-mode'] });
+      if (modalType === 'Full' && !fullForm.entry_id) {
+        setModalType(null);
+        Alert.alert('Weight mode changed', 'Reopen the production form to use the current weight mode.');
+      }
+    };
+    socket.on('labour_weight_mode_changed', refreshMode);
+    return () => socket.off('labour_weight_mode_changed', refreshMode);
+  }, [queryClient, modalType, fullForm.entry_id]);
   const canViewProductionCost = ['superadmin', 'admin'].includes(
     String(loggedUser?.role || '').trim().toLowerCase(),
   );
@@ -366,8 +383,21 @@ export default function ProductionScreen() {
       : choices;
   }, [correctionMode, correctionPlanningData, availablePlanning, formExistingEntry]);
 
-  const openEntryModal = () => {
-    const queued = labourQueue.data?.data?.[0];
+  const openEntryModal = async () => {
+    let latestMode;
+    let latestQueue;
+    try {
+      [latestMode, latestQueue] = await Promise.all([weightModeQuery.refetch(), labourQueue.refetch()]);
+    } catch {
+      Alert.alert('Weight mode unavailable', 'Refresh production and try again.');
+      return;
+    }
+    if (latestMode.isError || latestQueue.isError) {
+      Alert.alert('Weight mode unavailable', 'Refresh production and try again.');
+      return;
+    }
+    const currentMode = latestMode.data?.data?.mode || 'manual';
+    const queued = currentMode === 'auto' ? latestQueue.data?.data?.[0] : null;
     const selection = getDefaultProductionSelection(defaults, selectablePlanning, contractors);
     const sameMaterial = item => queued?.consumed_qty > 0 &&
       (queued.locked_item_id && item.item_id
@@ -406,17 +436,23 @@ export default function ProductionScreen() {
   useEffect(() => {
     if (modalType !== 'Full') return;
 
+    if (weightMode === 'manual') return;
+
     setFullForm(current => {
       if (current.entry_id) return current;
-      if (!pendingLabourEntryId && !current.labour_weight_id) return current;
+      const selected = weightMode === 'selection'
+        ? (labourQueue.data?.data || []).find(item => Number(item.id) === Number(current.labour_weight_id))
+        : pendingLabourEntry;
+      if (weightMode === 'selection' && !current.labour_weight_id) return current;
+      if (!selected && !current.labour_weight_id) return current;
 
-      const nextId = pendingLabourEntryId;
-      const nextMsWeight = pendingLabourEntryId
-        ? String(pendingLabourMsWeight)
+      const nextId = selected?.id || null;
+      const nextMsWeight = nextId
+        ? String(selected.ms_weight)
         : '';
       const plan = selectablePlanning.find(item => Number(item.planning_item_id) === Number(current.planning_item_id));
-      const nextDippingQty = pendingLabourEntryId
-        ? String(Math.min(Number(pendingLabourDippingQty), Number(plan?.remaining_qty) || Number(pendingLabourDippingQty)))
+      const nextDippingQty = nextId
+        ? String(Math.min(Number(selected.remaining_qty), Number(plan?.remaining_qty) || Number(selected.remaining_qty)))
         : '';
 
       if (
@@ -430,19 +466,43 @@ export default function ProductionScreen() {
       return {
         ...current,
         labour_weight_id: nextId,
-        labour_remaining_qty: Number(pendingLabourDippingQty) || 0,
+        labour_remaining_qty: Number(selected?.remaining_qty) || 0,
         ms_weight: nextMsWeight,
         dipping_qty: nextDippingQty,
       };
     });
   }, [
     modalType,
+    weightMode,
+    labourQueue.data,
+    pendingLabourEntry,
     pendingLabourEntryId,
     pendingLabourMsWeight,
     pendingLabourDippingQty,
     selectablePlanning,
     fullForm.planning_item_id,
   ]);
+
+  const selectLabourWeight = id => {
+    const queued = (labourQueue.data?.data || []).find(item => Number(item.id) === Number(id));
+    const sameMaterial = item => queued?.consumed_qty > 0 &&
+      (queued.locked_item_id && item.item_id
+        ? Number(queued.locked_item_id) === Number(item.item_id)
+        : String(queued.locked_material || '').trim().toLowerCase() === String(item.material_description || '').trim().toLowerCase());
+    setFullForm(current => {
+      const chosen = queued?.consumed_qty > 0
+        ? selectablePlanning.find(item => sameMaterial(item) && Number(item.remaining_qty) > 0)
+        : selectablePlanning.find(item => Number(item.planning_item_id) === Number(current.planning_item_id));
+      return { ...current,
+        labour_weight_id: queued?.id || null,
+        labour_remaining_qty: Number(queued?.remaining_qty) || 0,
+        ms_weight: queued ? String(queued.ms_weight) : '',
+        dipping_qty: queued ? String(Math.min(Number(queued.remaining_qty), Number(chosen?.remaining_qty) || Number(queued.remaining_qty))) : '',
+        ...(queued?.consumed_qty > 0 && !chosen ? { planning_item_id: null, planning_id: '', challan_no: '', party_name: '', material: '', material_description: '' } : {}),
+        ...(chosen ? { planning_item_id: Number(chosen.planning_item_id), planning_id: String(chosen.planning_id), challan_no: chosen.challan_no, party_name: chosen.party_name, material: chosen.material_description, material_description: chosen.material_description } : {}),
+      };
+    });
+  };
 
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
@@ -601,6 +661,10 @@ export default function ProductionScreen() {
       );
       return;
     }
+    if (!fullForm.entry_id && weightMode !== 'manual' && !fullForm.labour_weight_id) {
+      Alert.alert('Select a labour weight', weightMode === 'selection' ? 'Choose the dip currently on the kettle.' : 'No pending labour weight is available.');
+      return;
+    }
 
     const planningForEntry = activePlanning;
     const originalQtyForPlanning =
@@ -716,7 +780,7 @@ export default function ProductionScreen() {
         canAddZinc={canAddZinc}
         canChangeGas={canChangeGas}
         gasBusy={gasMutation.isPending || gasQuery.isLoading}
-        onChangeGas={() => { setGasBottleNumber(''); setGasError(''); setGasModalVisible(true); }}
+        onChangeGas={() => { setGasBottleNumber(''); setGasEndTime(new Date()); setGasError(''); setGasModalVisible(true); }}
         zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
         onAddZinc={() => {
           zincRequest.current = null;
@@ -772,15 +836,16 @@ export default function ProductionScreen() {
         </View>
       </Modal>
       <Modal transparent visible={gasModalVisible} animationType="fade" onRequestClose={() => !gasMutation.isPending && setGasModalVisible(false)}>
-        <View style={styles.zincOverlay}><View style={styles.zincModal}>
+        <View style={styles.zincOverlay}><ScrollView style={styles.gasModal} contentContainerStyle={styles.gasModalContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.zincTitle}>Gas bottle change</Text>
           <Text style={styles.zincHelp}>Currently running: {gasQuery.data?.data?.summary?.running_bottle_number ? `GAS-${gasQuery.data.data.summary.running_bottle_number}` : 'No bottle started'}</Text>
           <TextInput mode="outlined" label="New running bottle number" value={gasBottleNumber} keyboardType="number-pad" onChangeText={value => { setGasBottleNumber(value); setGasError(''); }} editable={!gasMutation.isPending} />
-          <TextInput mode="outlined" label={`GAS-${gasQuery.data?.data?.summary?.running_bottle_number || '?'} empty bottle weight (kg)`} value={gasEmptyWeight} keyboardType="decimal-pad" onChangeText={value => { setGasEmptyWeight(value); setGasError(''); }} editable={!gasMutation.isPending} />
+          <TouchableOpacity style={styles.gasTimeButton} onPress={() => setGasTimePickerMode('date')}><Text style={styles.zincCancelText}>Old bottle ended: {moment(gasEndTime).format('DD MMM YYYY, hh:mm A')}</Text></TouchableOpacity>
           {gasError ? <Text style={styles.zincError}>{gasError}</Text> : null}
-          <View style={styles.zincActions}><TouchableOpacity style={styles.zincCancel} disabled={gasMutation.isPending} onPress={() => setGasModalVisible(false)}><Text style={styles.zincCancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.zincSave} disabled={gasMutation.isPending} onPress={() => gasMutation.mutate({ bottle_number: Number(gasBottleNumber), empty_weight_kg: gasEmptyWeight === '' ? null : Number(gasEmptyWeight), changed_at: moment().format('YYYY-MM-DD HH:mm:ss') })}><Text style={styles.zincSaveText}>{gasMutation.isPending ? 'Saving…' : 'Save change'}</Text></TouchableOpacity></View>
-        </View></View>
+          <View style={styles.zincActions}><TouchableOpacity style={styles.zincCancel} disabled={gasMutation.isPending} onPress={() => setGasModalVisible(false)}><Text style={styles.zincCancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.zincSave} disabled={gasMutation.isPending} onPress={() => gasMutation.mutate({ bottle_number: Number(gasBottleNumber), changed_at: moment(gasEndTime).format('YYYY-MM-DD HH:mm:ss') })}><Text style={styles.zincSaveText}>{gasMutation.isPending ? 'Saving…' : 'Save change'}</Text></TouchableOpacity></View>
+        </ScrollView></View>
       </Modal>
+      {gasTimePickerMode && <DateTimePicker value={gasEndTime} mode={gasTimePickerMode} is24Hour={false} onChange={(event, value) => { if (event.type !== 'set' || !value) { setGasTimePickerMode(null); return; } setGasEndTime(previous => { const next = new Date(previous); if (gasTimePickerMode === 'date') next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate()); else next.setHours(value.getHours(), value.getMinutes(), 0, 0); return next; }); setGasTimePickerMode(gasTimePickerMode === 'date' ? 'time' : null); }} />}
       {!correctionMode && (
         <View
           style={[
@@ -824,6 +889,13 @@ export default function ProductionScreen() {
         </View>
       )}
       <View style={styles.tableCard}>
+        <View style={styles.tableHeading}>
+          <Text style={styles.tableHeadingTitle}>Live production table · {rows.length} entries</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="View live production table full screen" onPress={() => setFullTableVisible(true)} style={styles.fullViewButton}>
+            <Maximize2 size={16} color={COLORS.primary} />
+            <Text style={styles.fullViewText}>FULL VIEW</Text>
+          </TouchableOpacity>
+        </View>
         {isLoading ? (
           <View style={styles.loaderBox}>
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -872,6 +944,21 @@ export default function ProductionScreen() {
         )}
       </View>
 
+      <Modal visible={fullTableVisible} animationType="slide" onRequestClose={() => setFullTableVisible(false)}>
+        <View style={styles.fullTableScreen}>
+          <View style={styles.fullTableHeader}>
+            <View>
+              <Text style={styles.fullTableTitle}>Live production table</Text>
+              <Text style={styles.fullTableSubtitle}>{activeShift?.shift_name || 'Current shift'} · {rows.length} entries</Text>
+            </View>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close full production table" onPress={() => setFullTableVisible(false)} style={styles.fullTableClose}>
+              <X size={22} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+          <ProductionTable rows={rows} shiftName={activeShift?.shift_name} showProductionCost={canViewProductionCost} scrollRows />
+        </View>
+      </Modal>
+
       <Modal
         visible={modalType === 'Full'}
         animationType="slide"
@@ -884,7 +971,10 @@ export default function ProductionScreen() {
             formExistingEntry={formExistingEntry}
             canManageAllProduction={canManageAllProduction}
             correctionMode={correctionMode}
-            subtitle={fullForm.labour_weight_id ? `Labour queue item #${fullForm.labour_weight_id} · MS weight and dip quantity filled automatically` : undefined}
+            subtitle={fullForm.labour_weight_id ? `Weight #${fullForm.labour_weight_id} · MS weight and dip quantity ${weightMode === 'selection' ? 'filled from your selection' : 'filled automatically'}` : undefined}
+            weightMode={weightMode}
+            labourWeights={labourQueue.data?.data || []}
+            onSelectLabourWeight={selectLabourWeight}
             selectablePlanning={selectablePlanning}
             activePlanning={activePlanning}
             contractors={contractors}
@@ -1004,6 +1094,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     elevation: 0,
   },
+  tableHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, gap: 8 },
+  tableHeadingTitle: { color: COLORS.text, fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  fullViewButton: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: COLORS.primary, borderRadius: UI.radiusSmall, paddingHorizontal: 10, paddingVertical: 7 },
+  fullViewText: { color: COLORS.primary, fontSize: 11, fontWeight: '800' },
+  fullTableScreen: { flex: 1, backgroundColor: COLORS.white },
+  fullTableHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  fullTableTitle: { color: COLORS.text, fontSize: 19, fontWeight: '700' },
+  fullTableSubtitle: { color: COLORS.gray, fontSize: 12, marginTop: 3 },
+  fullTableClose: { padding: 8 },
 
   loaderBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -1111,6 +1210,9 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
   },
+  gasModal: { width: '100%', maxWidth: 480, maxHeight: '85%', borderRadius: UI.radius, backgroundColor: COLORS.white },
+  gasModalContent: { padding: 20, gap: 14 },
+  gasTimeButton: { minHeight: 48, paddingHorizontal: 12, borderRadius: UI.radiusSmall, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   zincTitle: { color: COLORS.text, fontSize: 20, fontWeight: '700' },
   zincHelp: { color: COLORS.gray, fontSize: 13, lineHeight: 19 },
   zincError: { color: COLORS.danger, fontSize: 13 },
