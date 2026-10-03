@@ -52,7 +52,7 @@ export default function GasChangeMovementsScreen({ navigation }) {
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Gas Change Movements</Text>
-      <Text style={styles.muted}>Bottle finish time, running duration, production, and the next started bottle.</Text>
+      <Text style={styles.muted}>Bottle connection, automatic lunch breaks, production-active time, and output.</Text>
       {canReport && <TouchableOpacity style={styles.button} onPress={async () => {
         try {
           navigation.navigate('PdfViewer', { ...(await downloadGasReport()), title: 'Gas Stock Report' });
@@ -68,7 +68,8 @@ export default function GasChangeMovementsScreen({ navigation }) {
           <Text style={styles.muted}>Ended: {plantDateTime(run.finished_at)}</Text>
           <Text style={styles.muted}>Bottle connected time: {run.elapsed_seconds == null ? duration(run.started_at, run.finished_at) : secondsDuration(run.elapsed_seconds)}</Text>
           <Text style={styles.muted}>Production stopped time: {secondsDuration(run.stopped_seconds)}</Text>
-          <Text style={styles.muted}>Production-active time: {secondsDuration(run.production_active_seconds)}</Text>
+          <Text style={styles.muted}>Lunch break deducted: {secondsDuration(run.lunch_break_seconds)}</Text>
+          <Text style={styles.muted}>Bottle run time after deductions: {secondsDuration(run.production_active_seconds)}</Text>
           <Text style={styles.muted}>Filled weight: {run.filled_weight_kg == null ? '-' : `${run.filled_weight_kg} kg`}</Text>
           <Text style={styles.muted}>Empty weight: {run.empty_weight_kg == null ? run.finished_at && run.consumed_gas_kg == null ? 'Pending' : '-' : `${run.empty_weight_kg} kg`}</Text>
           <Text style={styles.muted}>Production: {run.production_ton == null ? '-' : `${run.production_ton} ton`}</Text>
