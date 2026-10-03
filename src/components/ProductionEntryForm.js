@@ -17,6 +17,7 @@ import ResponsiveGrid from './ResponsiveGrid';
 import { planningFormFields } from '../utils/productionDefaults';
 import { centeredContent, useResponsive } from '../utils/responsive';
 import {
+  formatDisplayDateTime,
   formatMaterialDescription,
   formatNumber,
   formatQuantity,
@@ -88,6 +89,16 @@ export default function ProductionEntryForm({
   const [productionTimePickerValue, setProductionTimePickerValue] = useState(
     new Date(),
   );
+  const selectedLabourWeight = labourWeights.find(
+    item => Number(item.id) === Number(fullForm.labour_weight_id),
+  );
+  const splitLabourWeight = !fullForm.entry_id &&
+    Number(selectedLabourWeight?.consumed_qty) > 0
+    ? selectedLabourWeight
+    : null;
+  const pendingSplitWeights = !fullForm.entry_id && weightMode === 'manual'
+    ? labourWeights.filter(item => Number(item.consumed_qty) > 0)
+    : [];
   const openProductionTimePicker = () => {
     const selectedDate = parseTimeForPicker(fullForm.production_time);
 
@@ -430,9 +441,34 @@ export default function ProductionEntryForm({
             </TouchableOpacity>
 
             {!fullForm.entry_id && <Text style={styles.srHint}>Weight mode: {weightMode === 'auto' ? 'Auto weight' : weightMode === 'selection' ? 'Selection weight' : 'Manual weight'}</Text>}
+            {pendingSplitWeights.length > 0 ? (
+              <View style={styles.splitDipNotice} accessibilityRole="alert">
+                <Text style={styles.splitDipTitle}>PENDING SPLIT DIP IN LABOUR QUEUE</Text>
+                {pendingSplitWeights.map(item => (
+                  <Text key={item.id} style={styles.splitDipText}>
+                    Dip #{item.dip_number} · Weight #{item.id}: {item.consumed_qty} of {item.dipping_qty} NOS used, {item.remaining_qty} NOS remain.
+                  </Text>
+                ))}
+                <Text style={styles.splitDipEmphasis}>
+                  Manual mode does not link this weight. Check the physical dip before entering quantity.
+                </Text>
+              </View>
+            ) : null}
             {!fullForm.entry_id && weightMode === 'selection' && <View style={styles.automaticPlanCard}>
               <Text style={styles.srHint}>Select the dip currently on the kettle</Text>
-              <DropDownPicker open={labourWeightOpen} setOpen={setLabourWeightOpen} value={fullForm.labour_weight_id} items={labourWeights.map(item => ({ value: Number(item.id), label: `Dip #${item.dip_number} · Weight #${item.id} · ${item.ms_weight} kg/NOS · ${item.remaining_qty} NOS · ${item.created_at}` }))} setValue={callback => { const id = typeof callback === 'function' ? callback(fullForm.labour_weight_id) : callback; onSelectLabourWeight?.(id); }} placeholder="Choose current dip weight" listMode="SCROLLVIEW" zIndex={3000} zIndexInverse={1000} />
+              <DropDownPicker
+                testID="labour-weight-selector"
+                open={labourWeightOpen}
+                setOpen={setLabourWeightOpen}
+                value={fullForm.labour_weight_id}
+                items={labourWeights.map(item => ({ value: Number(item.id), label: `Dip #${item.dip_number} · Weight #${item.id} · ${item.ms_weight} kg/NOS · ${item.remaining_qty} NOS${Number(item.consumed_qty) > 0 ? ` · SPLIT (${item.consumed_qty} already used)` : ''} · ${formatDisplayDateTime(item.created_at)}` }))}
+                setValue={callback => { const id = typeof callback === 'function' ? callback(fullForm.labour_weight_id) : callback; onSelectLabourWeight?.(id); }}
+                placeholder="Choose current dip weight"
+                listMode="MODAL"
+                modalTitle="Select current dip weight"
+                searchable
+                searchPlaceholder="Search dip or weight number"
+              />
             </View>}
             <FormInput
               label="Dipping Qty"
@@ -443,6 +479,17 @@ export default function ProductionEntryForm({
                 setFullForm(prev => ({ ...prev, dipping_qty: v }))
               }
             />
+            {splitLabourWeight ? (
+              <View style={styles.splitDipNotice} accessibilityRole="alert">
+                <Text style={styles.splitDipTitle}>SPLIT DIP · FROM PREVIOUS ENTRY</Text>
+                <Text style={styles.splitDipText}>
+                  Dip #{splitLabourWeight.dip_number} · Weight #{splitLabourWeight.id}: labour recorded {splitLabourWeight.dipping_qty} NOS. {splitLabourWeight.consumed_qty} NOS were already used; {splitLabourWeight.remaining_qty} NOS remain from the same physical dip.
+                </Text>
+                <Text style={styles.splitDipEmphasis}>
+                  This is not a new dip. Current entry quantity: {fullForm.dipping_qty || '0'} NOS.
+                </Text>
+              </View>
+            ) : null}
             {fullForm.labour_weight_id && Number(fullForm.labour_remaining_qty) > Number(fullForm.dipping_qty) ? (
               <Text style={styles.automaticPlanRemaining}>
                 {Number(fullForm.labour_remaining_qty) - Number(fullForm.dipping_qty)} NOS will remain on this labour weight for the next same-material challan.
@@ -675,6 +722,17 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 14,
   },
+  splitDipNotice: {
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+    borderRadius: UI.radiusSmall,
+    backgroundColor: COLORS.warningSoft,
+    padding: 13,
+    marginBottom: 14,
+  },
+  splitDipTitle: { color: COLORS.warning, fontSize: 12, fontWeight: '700', marginBottom: 5 },
+  splitDipText: { color: COLORS.text, fontSize: 13, lineHeight: 19 },
+  splitDipEmphasis: { color: COLORS.primary, fontSize: 12, fontWeight: '700', marginTop: 6 },
   automaticPlanTop: {
     flexDirection: 'row',
     alignItems: 'center',

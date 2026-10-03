@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { Clock3, Flame, PackagePlus, RotateCcw } from 'lucide-react-native';
 import {
   getPreviousShiftsApi,
   openShiftCorrectionApi,
@@ -35,6 +36,7 @@ export default function ShiftCorrectionControls({
   onChangeGas,
   gasBusy = false,
   correctionUsers = [],
+  iconOnly = false,
 }) {
   const client = useQueryClient();
   const [visible, setVisible] = useState(false);
@@ -76,9 +78,9 @@ export default function ShiftCorrectionControls({
   const target = status?.production_shift;
   return (
     <View
-      style={[styles.panel, status?.correction_mode && styles.correctionPanel]}
+      style={iconOnly ? styles.iconPanel : [styles.panel, status?.correction_mode && styles.correctionPanel]}
     >
-      {status?.correction_mode && (
+      {status?.correction_mode && !iconOnly && (
         <View style={styles.correctionSummary}>
           <Text style={styles.correctionTitle}>PREVIOUS SHIFT</Text>
           <Text style={styles.correctionMeta}>
@@ -88,10 +90,12 @@ export default function ShiftCorrectionControls({
         </View>
       )}
       {(canManage || canAddZinc || canChangeGas) && (
-        <View style={styles.actions}>
+        <View style={iconOnly ? styles.iconActions : styles.actions}>
           {canManage && !status?.correction_active && (
             <TouchableOpacity
-              style={styles.button}
+              style={iconOnly ? styles.iconButton : styles.button}
+              accessibilityRole="button"
+              accessibilityLabel="Correct previous shift"
               disabled={mutation.isPending || !status}
               onPress={() => {
                 setShiftId(null);
@@ -100,26 +104,30 @@ export default function ShiftCorrectionControls({
                 setVisible(true);
               }}
             >
-              <Text style={styles.buttonText}>Correct previous shift</Text>
+              {iconOnly ? <Clock3 size={21} color={COLORS.primary} /> : <Text style={styles.buttonText}>Correct previous shift</Text>}
             </TouchableOpacity>
           )}
           {canAddZinc && (
             <TouchableOpacity
-              style={[styles.button, styles.zincButton]}
+              style={iconOnly ? styles.iconButton : [styles.button, styles.zincButton]}
+              accessibilityRole="button"
+              accessibilityLabel="Add zinc"
               disabled={zincBusy}
               onPress={onAddZinc}
             >
-              <Text style={[styles.buttonText, styles.zincText]}>Add zinc</Text>
+              {iconOnly ? <PackagePlus size={21} color={COLORS.primary} /> : <Text style={[styles.buttonText, styles.zincText]}>Add zinc</Text>}
             </TouchableOpacity>
           )}
           {canChangeGas && (
-            <TouchableOpacity style={[styles.button, styles.zincButton]} disabled={gasBusy} onPress={onChangeGas}>
-              <Text style={[styles.buttonText, styles.zincText]}>Gas change</Text>
+            <TouchableOpacity style={iconOnly ? styles.iconButton : [styles.button, styles.zincButton]} accessibilityRole="button" accessibilityLabel="Gas change" disabled={gasBusy} onPress={onChangeGas}>
+              {iconOnly ? <Flame size={21} color={COLORS.primary} /> : <Text style={[styles.buttonText, styles.zincText]}>Gas change</Text>}
             </TouchableOpacity>
           )}
-          {(status?.correction_mode || (canManage && status?.correction_active)) && (
+          {canManage && status?.correction_active && (
             <TouchableOpacity
-              style={[styles.button, styles.resumeButton]}
+              style={iconOnly ? styles.iconButton : [styles.button, styles.resumeButton]}
+              accessibilityRole="button"
+              accessibilityLabel="Close shift correction"
               disabled={mutation.isPending}
               onPress={() => {
                 Alert.alert(
@@ -139,9 +147,7 @@ export default function ShiftCorrectionControls({
                 );
               }}
             >
-              <Text style={[styles.buttonText, styles.resumeText]}>
-                {mutation.isPending ? 'Resuming…' : 'Resume current shift'}
-              </Text>
+              {iconOnly ? <RotateCcw size={21} color={COLORS.primary} /> : <Text style={[styles.buttonText, styles.resumeText]}>{mutation.isPending ? 'Resuming…' : 'Resume current shift'}</Text>}
             </TouchableOpacity>
           )}
         </View>
@@ -176,7 +182,7 @@ export default function ShiftCorrectionControls({
               onPress={() => setPicker(true)}
               disabled={mutation.isPending}
             >
-              <Text style={styles.title}>Production date: {date}</Text>
+              <Text style={styles.title}>Production date: {formatDisplayDate(date)}</Text>
             </TouchableOpacity>
             {picker && (
               <DateTimePicker
@@ -252,6 +258,9 @@ export default function ShiftCorrectionControls({
 }
 
 const styles = StyleSheet.create({
+  iconPanel: { flexDirection: 'row' },
+  iconActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconButton: { width: 46, height: 46, borderRadius: UI.radiusSmall, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center' },
   panel: {
     marginTop: 10,
     marginBottom: 10,

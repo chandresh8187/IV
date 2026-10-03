@@ -139,6 +139,7 @@ test('receipt adds only to plant and a network retry preserves request ID and re
   render();
   tap('Add zinc to plant');
   change('Zinc amount (kg)', '1000');
+  change('Zinc rate per kg (₹)', '105');
   tap('Save plant receipt');
   const first = mutate.mock.calls[0][0];
   act(() => mutationOptions.onError(new Error('timeout')));

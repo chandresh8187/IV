@@ -141,7 +141,6 @@ export default function HistoryListScreen({ navigation }) {
               <Text style={styles.dateValue}>
                 {formatDisplayDate(selectedDate)}
               </Text>
-              <Text style={styles.apiDate}>{selectedDate}</Text>
             </View>
           </TouchableOpacity>
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-labelledby="title description">
+  <title id="title">IV Square Structure monogram</title>
+  <desc id="description">IV lettermark with solar mounting rail and W-beam profile.</desc>
+  <g transform="translate(25 46)">
+    <path fill="#172D58" d="M43 52h104v46h-22v335h22v46H43v-46h22V98H43z"/>
+    <path fill="#00A9E7" d="M177 52h80l108 284L473 52h80L399 479h-68z"/>
+    <path fill="#172D58" d="M391 61l144-16-15 43-145 16z"/>
+    <path fill="#E8F8FD" d="M412 61l2 35-8 1-2-35zm36-4l2 35-8 1-2-35zm36-4l2 35-8 1-2-35z"/>
+    <path d="M268 265l26 16 25-16 25 16 25-16 26 16" fill="none" stroke="#172D58" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M258 308h150" stroke="#172D58" stroke-width="9" stroke-linecap="round"/>
+  </g>
+</svg>

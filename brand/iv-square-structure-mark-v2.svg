@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-labelledby="title description">
+  <title id="title">IV Square Structure material-profile monogram</title>
+  <desc id="description">C-channel post, solar rafter and column, and W-beam crash barrier form an IV mark.</desc>
+  <g transform="translate(24 45)">
+    <path fill="#172D58" d="M38 58h127v43H93v350h72v43H38v-43h22V101H38z"/>
+    <path fill="#FFFFFF" d="M127 101h12v350h-12zM126 77l28-11v15l-28 11zM126 462l28-11v15l-28 11z"/>
+    <path fill="#00A9E7" d="M190 58h81l104 284L479 58h81L410 494h-70z"/>
+    <path fill="#172D58" d="M395 101l157-48 13 42-156 48z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="7" d="M434 90l13 42M472 79l13 42M510 67l13 42"/>
+    <path fill="#172D58" d="M470 121h22v126h-22zM455 241h53v16h-53z"/>
+    <path fill="#172D58" d="M254 299c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0v61c-21 17-42 17-63 0s-42-17-63 0-42 17-63 0-42-17-62 0z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="8" d="M254 311c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0M254 347c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0"/>
+    <circle cx="285" cy="330" r="7" fill="#FFFFFF"/>
+    <circle cx="379" cy="330" r="7" fill="#FFFFFF"/>
+    <circle cx="473" cy="330" r="7" fill="#FFFFFF"/>
+  </g>
+</svg>

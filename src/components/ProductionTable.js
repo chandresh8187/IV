@@ -34,6 +34,7 @@ const COLUMNS = [
   { key: 'c5', label: 'C5', width: 70 },
   { key: 'avg_coating', label: 'Avg\nµm', width: 90, bold: true },
 ];
+const ACTION_COLUMN_WIDTH = 170;
 
 const hasValue = value => value !== null && value !== undefined && value !== '';
 
@@ -196,7 +197,7 @@ export default function ProductionTable({
               </TableCell>
             ))}
             {renderAction && (
-              <TableCell width={110} header>
+              <TableCell width={ACTION_COLUMN_WIDTH} header>
                 Action
               </TableCell>
             )}
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
   processGroup: { width: 570 },
   processGroupWithoutCost: { width: 460 },
   coatingGroup: { width: 440 },
-  actionGroup: { width: 110 },
+  actionGroup: { width: ACTION_COLUMN_WIDTH },
   fill: { flex: 1 },
   table: { backgroundColor: COLORS.white },
   groupRow: {
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: '600',
   },
-  actionCell: { width: 110 },
+  actionCell: { width: ACTION_COLUMN_WIDTH },
   emptyText: {
     color: COLORS.gray,
     fontSize: 12,

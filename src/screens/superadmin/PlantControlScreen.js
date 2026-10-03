@@ -1,651 +1,95 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import {
-  CalendarClock,
-  Factory,
-  PlayCircle,
-  Settings,
-  Square,
-} from 'lucide-react-native';
-
-import {
-  changePlantStatusApi,
-  getPlantStatusApi,
-  getPlantStatusHistoryApi,
-} from '../../api/plantStatusApi';
-import { getShiftStatusApi } from '../../api/shiftApi';
-import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
-import { centeredContent, useResponsive } from '../../utils/responsive';
-import { formatDisplayDate, parseDateForPicker } from '../../utils/format';
+import { PlayCircle, Square } from 'lucide-react-native';
+import { changePlantStatusApi, getPlantStatusApi, getPlantStatusHistoryApi } from '../../api/plantStatusApi';
+import { COLORS } from '../../assets/Colors';
+import { formatDisplayDateTime } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
 
-const STATUS_META = {
-  running: {
-    label: 'Running',
-    color: COLORS.success,
-    background: COLORS.tealSoft,
-    icon: PlayCircle,
-  },
-  maintenance: {
-    label: 'Maintenance',
-    color: COLORS.warning,
-    background: COLORS.warningSoft,
-    icon: Settings,
-  },
-  stopped: {
-    label: 'Stopped',
-    color: COLORS.danger,
-    background: COLORS.dangerSoft,
-    icon: Square,
-  },
+const displayDuration = minutes => {
+  const total = Math.max(0, Number(minutes) || 0);
+  const days = Math.floor(total / 1440);
+  const hours = Math.floor((total % 1440) / 60);
+  return [days && `${days}d`, hours && `${hours}h`, `${total % 60}m`].filter(Boolean).join(' ');
 };
 
-const CalendarClockIcon = () => (
-  <CalendarClock size={21} color={COLORS.primary} />
-);
-
 export default function PlantControlScreen() {
-  const queryClient = useQueryClient();
-  const { contentMaxWidth } = useResponsive();
   const user = useSelector(state => state.auth.user);
-  const canManagePlant = hasPermission(user, 'plant.manage');
-  const [selectedStatus, setSelectedStatus] = useState('maintenance');
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [expectedRestartAt, setExpectedRestartAt] = useState(null);
-  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
-  const [restartPickerMode, setRestartPickerMode] = useState('date');
-
-  const statusQuery = useQuery({
-    queryKey: ['plant-status'],
-    queryFn: getPlantStatusApi,
-  });
-
-  const shiftQuery = useQuery({
-    queryKey: ['shift-status'],
-    queryFn: getShiftStatusApi,
-    refetchInterval: 60 * 1000,
-  });
-
-  const historyQuery = useQuery({
-    queryKey: ['plant-status-history'],
-    queryFn: () => getPlantStatusHistoryApi({ page: 1, limit: 10 }),
-  });
-
-  const mutation = useMutation({
+  const canControl = hasPermission(user, 'production.status');
+  const client = useQueryClient();
+  const statusQuery = useQuery({ queryKey: ['plant-status'], queryFn: getPlantStatusApi });
+  const historyQuery = useQuery({ queryKey: ['plant-status-history'], queryFn: getPlantStatusHistoryApi });
+  const [reason, setReason] = useState('');
+  const [eventTime, setEventTime] = useState(new Date());
+  const [timeEdited, setTimeEdited] = useState(false);
+  const [picker, setPicker] = useState(null);
+  const status = statusQuery.data?.data;
+  const stopped = status?.status !== 'running';
+  const change = useMutation({
     mutationFn: changePlantStatusApi,
-    onSuccess: response => {
-      Alert.alert('Success', response?.message || 'Plant status updated');
-      setTitle('');
-      setMessage('');
-      setExpectedRestartAt(null);
-      invalidatePlantData();
+    onSuccess: async response => {
+      setReason(''); setEventTime(new Date()); setTimeEdited(false);
+      await Promise.all(['plant-status', 'plant-status-history', 'shift-status', 'dashboard'].map(key => client.invalidateQueries({ queryKey: [key] })));
+      Alert.alert('Production status', response?.message || 'Status updated.');
     },
-    onError: error => {
-      Alert.alert(
-        'Error',
-        error?.response?.data?.message || 'Unable to update plant status',
-      );
-    },
+    onError: error => Alert.alert('Could not change status', error?.response?.data?.message || 'Please try again.'),
   });
-
-  const invalidatePlantData = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['plant-status'] });
-    queryClient.invalidateQueries({ queryKey: ['plant-status-history'] });
-    queryClient.invalidateQueries({ queryKey: ['shift-status'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['productions'] });
-  }, [queryClient]);
-
-  const current = statusQuery.data?.data || {};
-  const currentStatus = current.status || 'running';
-  const meta = STATUS_META[currentStatus] || STATUS_META.running;
-  const CurrentIcon = meta.icon;
-
-  const shift = shiftQuery.data?.data || {};
-  const history = useMemo(
-    () => historyQuery.data?.data || [],
-    [historyQuery.data],
-  );
-
-  const selectStatus = status => {
-    if (!['maintenance', 'stopped'].includes(status)) {
-      return;
-    }
-
-    setSelectedStatus(status);
-  };
-
-  const openRestartPicker = () => {
-    setRestartPickerMode('date');
-    setShowDateTimePicker(true);
-  };
-
-  const handleRestartPickerChange = (event, selectedValue) => {
-    if (event?.type !== 'set' || !selectedValue) {
-      setShowDateTimePicker(false);
-      return;
-    }
-
-    const currentValue = expectedRestartAt
-      ? parseDateForPicker(expectedRestartAt)
-      : new Date();
-
-    if (restartPickerMode === 'date') {
-      const combinedDateTime = new Date(currentValue);
-
-      combinedDateTime.setFullYear(
-        selectedValue.getFullYear(),
-        selectedValue.getMonth(),
-        selectedValue.getDate(),
-      );
-
-      setExpectedRestartAt(combinedDateTime);
-      setShowDateTimePicker(false);
-
-      setTimeout(() => {
-        setRestartPickerMode('time');
-        setShowDateTimePicker(true);
-      }, 250);
-
-      return;
-    }
-
-    const combinedDateTime = new Date(currentValue);
-
-    combinedDateTime.setHours(
-      selectedValue.getHours(),
-      selectedValue.getMinutes(),
-      0,
-      0,
-    );
-
-    setExpectedRestartAt(combinedDateTime);
-    setShowDateTimePicker(false);
-  };
-
-  const submit = statusOverride => {
-    const statusToSave = statusOverride || selectedStatus;
-
-    if (!['running', 'maintenance', 'stopped'].includes(statusToSave)) {
-      Alert.alert('Invalid Status', 'Please select a valid plant status');
-      return;
-    }
-
-    if (statusToSave !== 'running' && (!title.trim() || !message.trim())) {
-      Alert.alert('Required', 'Please enter title and reason');
-      return;
-    }
-
-    Alert.alert(
-      'Confirm Plant Status',
-      `Change plant status to ${STATUS_META[statusToSave].label}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () =>
-            mutation.mutate({
-              status: statusToSave,
-              title: statusToSave === 'running' ? null : title.trim(),
-              message: statusToSave === 'running' ? null : message.trim(),
-              expected_restart_at:
-                statusToSave === 'running' || !expectedRestartAt
-                  ? null
-                  : moment(expectedRestartAt).format('YYYY-MM-DD HH:mm:ss'),
-            }),
-        },
-      ],
-    );
-  };
-
-  const refreshing =
-    statusQuery.isRefetching ||
-    shiftQuery.isRefetching ||
-    historyQuery.isRefetching;
-
-  const refresh = () =>
-    Promise.all([
-      statusQuery.refetch(),
-      shiftQuery.refetch(),
-      historyQuery.refetch(),
+  const save = () => {
+    if (!stopped && !reason.trim()) return Alert.alert('Reason required', 'Enter why production stopped.');
+    const effectiveTime = timeEdited ? eventTime : new Date();
+    Alert.alert(stopped ? 'Resume production?' : 'Stop production?', `Recorded time: ${moment(effectiveTime).format('DD/MM/YYYY, hh:mm A')}`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', onPress: () => change.mutate({ status: stopped ? 'running' : 'stopped', message: stopped ? null : reason.trim(), occurred_at: moment(effectiveTime).format('YYYY-MM-DD HH:mm:ss') }) },
     ]);
-
-  if (statusQuery.isLoading || shiftQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        centeredContent(contentMaxWidth),
-      ]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-      }
-    >
-      <View style={styles.headerCard}>
-        <View>
-          <Text style={styles.title}>Plant Control</Text>
-          <Text style={styles.description}>
-            Control production availability
-          </Text>
-        </View>
-        <View style={styles.headerIcon}>
-          <Factory size={25} color={COLORS.primary} />
-        </View>
-      </View>
-
-      <View style={styles.currentCard}>
-        <View
-          style={[styles.currentIcon, { backgroundColor: meta.background }]}
-        >
-          <CurrentIcon size={36} color={meta.color} />
-        </View>
-        <Text style={styles.label}>Current Plant Status</Text>
-        <Text style={[styles.currentStatus, { color: meta.color }]}>
-          {meta.label.toUpperCase()}
-        </Text>
-        <Text style={styles.currentMessage}>
-          {current.message ||
-            (currentStatus === 'running'
-              ? 'Production entry is allowed.'
-              : 'Production entry is blocked.')}
-        </Text>
-
-        <View style={styles.infoBox}>
-          <InfoLine
-            label="Automatic Shift"
-            value={String(shift.current_shift || '-').toUpperCase()}
-          />
-          <InfoLine
-            label="Shift Date"
-            value={formatDisplayDate(shift.shift_date)}
-          />
-          <InfoLine
-            label="Production"
-            value={current.production_allowed === false ? 'Blocked' : 'Allowed'}
-          />
-        </View>
-      </View>
-
-      {canManagePlant && <View style={styles.controlCard}>
-        <Text style={styles.sectionTitle}>Change Plant Status</Text>
-        <View style={styles.statusRow}>
-          <TouchableOpacity
-            style={[
-              styles.statusChoice,
-              selectedStatus === 'maintenance' && styles.statusChoiceActive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => selectStatus('maintenance')}
-          >
-            <Text
-              style={[
-                styles.statusChoiceText,
-                selectedStatus === 'maintenance' &&
-                  styles.statusChoiceTextActive,
-              ]}
-            >
-              Maintenance
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.statusChoice,
-              selectedStatus === 'stopped' && styles.statusChoiceActive,
-            ]}
-            activeOpacity={0.8}
-            onPress={() => selectStatus('stopped')}
-          >
-            <Text
-              style={[
-                styles.statusChoiceText,
-                selectedStatus === 'stopped' && styles.statusChoiceTextActive,
-              ]}
-            >
-              Stopped
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.selectedStatusHint}>
-          Selected status:{' '}
-          <Text style={styles.selectedStatusValue}>
-            {STATUS_META[selectedStatus].label}
-          </Text>
-        </Text>
-
-        {currentStatus !== 'running' && (
-          <TouchableOpacity
-            style={[
-              styles.runningButton,
-              mutation.isPending && styles.disabled,
-            ]}
-            disabled={mutation.isPending}
-            onPress={() => submit('running')}
-          >
-            <PlayCircle size={20} color={COLORS.white} />
-            <Text style={styles.actionText}>MARK PLANT RUNNING</Text>
-          </TouchableOpacity>
-        )}
-
-        <TextInput
-          label="Title"
-          value={title}
-          onChangeText={setTitle}
-          mode="outlined"
-          style={styles.input}
-          textColor={COLORS.text}
-          cursorColor={COLORS.primary}
-          selectionColor={COLORS.lightBlue}
-          placeholderTextColor={COLORS.gray}
-          outlineColor={COLORS.inputBorder}
-          activeOutlineColor={COLORS.accent}
-          theme={PAPER_THEME}
-        />
-
-        <TextInput
-          label="Reason / Message"
-          value={message}
-          onChangeText={setMessage}
-          mode="outlined"
-          multiline
-          numberOfLines={4}
-          style={[styles.input, styles.messageInput]}
-          contentStyle={styles.messageInputContent}
-          textColor={COLORS.text}
-          cursorColor={COLORS.primary}
-          selectionColor={COLORS.lightBlue}
-          placeholderTextColor={COLORS.gray}
-          outlineColor={COLORS.inputBorder}
-          activeOutlineColor={COLORS.accent}
-          theme={PAPER_THEME}
-        />
-
-        <TouchableOpacity activeOpacity={0.8} onPress={openRestartPicker}>
-          <View pointerEvents="none">
-            <TextInput
-              label="Expected Restart Date & Time"
-              value={
-                expectedRestartAt
-                  ? moment(expectedRestartAt).format('DD/MM/YYYY, hh:mm A')
-                  : ''
-              }
-              placeholder="Select expected restart"
-              mode="outlined"
-              editable={false}
-              style={styles.input}
-              textColor={COLORS.text}
-              placeholderTextColor={COLORS.gray}
-              outlineColor={COLORS.inputBorder}
-              activeOutlineColor={COLORS.accent}
-              theme={PAPER_THEME}
-              right={
-                <TextInput.Icon icon={CalendarClockIcon} />
-              }
-            />
-          </View>
-        </TouchableOpacity>
-
-        {expectedRestartAt ? (
-          <TouchableOpacity
-            style={styles.clearDateButton}
-            onPress={() => setExpectedRestartAt(null)}
-          >
-            <Text style={styles.clearDateText}>CLEAR EXPECTED RESTART</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            selectedStatus === 'stopped'
-              ? styles.stopButton
-              : styles.maintenanceButton,
-            mutation.isPending && styles.disabled,
-          ]}
-          disabled={mutation.isPending}
-          onPress={() => submit()}
-        >
-          {mutation.isPending ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <Text style={styles.actionText}>
-              SET {STATUS_META[selectedStatus].label.toUpperCase()}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>}
-
-      <View style={styles.historyCard}>
-        <Text style={styles.sectionTitle}>Recent Status History</Text>
-        {history.length === 0 ? (
-          <Text style={styles.emptyText}>No plant status history found</Text>
-        ) : (
-          history.map(item => (
-            <View key={item.id} style={styles.historyRow}>
-              <View style={styles.flex}>
-                <Text style={styles.historyTitle}>
-                  {(item.title || item.status || '-').toUpperCase()}
-                </Text>
-                <Text style={styles.historyMessage}>{item.message || '-'}</Text>
-              </View>
-              <Text style={styles.historyStatus}>
-                {String(item.status || '').toUpperCase()}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
-
-      {showDateTimePicker && (
-        <DateTimePicker
-          value={parseDateForPicker(expectedRestartAt)}
-          mode={restartPickerMode}
-          display={restartPickerMode === 'time' ? 'clock' : 'default'}
-          is24Hour={false}
-          minimumDate={restartPickerMode === 'date' ? new Date() : undefined}
-          onChange={handleRestartPickerChange}
-        />
-      )}
-    </ScrollView>
-  );
-}
-
-function InfoLine({ label, value }) {
-  return (
-    <View style={styles.infoLine}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
+  };
+  const onPickerChange = (event, value) => {
+    if (event.type !== 'set' || !value) return setPicker(null);
+    const next = new Date(eventTime);
+    if (picker === 'date') { next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate()); setEventTime(next); setTimeEdited(true); setPicker('time'); }
+    else { next.setHours(value.getHours(), value.getMinutes(), 0, 0); setEventTime(next); setTimeEdited(true); setPicker(null); }
+  };
+  const refresh = () => Promise.all([statusQuery.refetch(), historyQuery.refetch()]);
+  return <ScrollView style={styles.page} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={statusQuery.isRefetching || historyQuery.isRefetching} onRefresh={refresh} />}>
+    <Text style={styles.title}>Production status</Text>
+    <Text style={styles.help}>Production continues across shifts until a stop is recorded.</Text>
+    {statusQuery.isLoading ? <ActivityIndicator color={COLORS.primary} /> : <View style={[styles.card, stopped && styles.stopped]}>
+      <View style={styles.row}>{stopped ? <Square color={COLORS.danger} /> : <PlayCircle color={COLORS.success} />}<Text style={styles.status}>{stopped ? 'STOPPED' : 'RUNNING'}</Text></View>
+      <Text style={styles.help}>{stopped ? status?.message || 'Production is paused.' : 'Production is running.'}</Text>
+      <Text style={styles.help}>Since {formatDisplayDateTime(status?.started_at || status?.updated_at)}</Text>
+    </View>}
+    {canControl && <View style={styles.card}>
+      <Text style={styles.heading}>{stopped ? 'Resume production' : 'Stop production'}</Text>
+      {!stopped && <TextInput mode="outlined" label="Reason for stop" value={reason} onChangeText={setReason} multiline />}
+      <Text style={styles.help}>Uses the current time unless you choose an earlier actual time.</Text>
+      <TouchableOpacity style={styles.timeButton} onPress={() => { if (!timeEdited) setEventTime(new Date()); setPicker('date'); }}><Text style={styles.timeText}>{stopped ? 'Resume' : 'Stop'} time: {timeEdited ? moment(eventTime).format('DD/MM/YYYY, hh:mm A') : 'Current time (tap to change)'}</Text></TouchableOpacity>
+      <TouchableOpacity style={[styles.action, stopped ? styles.resume : styles.stop]} disabled={change.isPending} onPress={save}><Text style={styles.actionText}>{change.isPending ? 'Saving…' : stopped ? 'Resume production' : 'Stop production'}</Text></TouchableOpacity>
+    </View>}
+    <Text style={styles.heading}>Production stop records</Text>
+    <Text style={styles.help}>These intervals help review downtime, holidays and gas-bottle active time.</Text>
+    {(historyQuery.data?.data || []).map(record => <View key={record.id} style={styles.card}>
+      <Text style={styles.recordReason}>{record.message || record.title || 'Production stopped'}{record.status === 'maintenance' ? ' (earlier maintenance record)' : ''}</Text>
+      <Text style={styles.help}>Stopped: {formatDisplayDateTime(record.started_at)} · {record.started_by_name || 'System'}</Text>
+      <Text style={styles.help}>Resumed: {record.ended_at ? formatDisplayDateTime(record.ended_at) : 'Still stopped'}{record.ended_by_name ? ` · ${record.ended_by_name}` : ''}</Text>
+      <Text style={styles.help}>Duration: {displayDuration(record.duration_minutes)}</Text>
+      <Text style={styles.help}>Recorded at: {formatDisplayDateTime(record.created_at)}</Text>
+    </View>)}
+    {historyQuery.isLoading && <ActivityIndicator color={COLORS.primary} />}
+    {picker && <DateTimePicker value={eventTime} mode={picker} is24Hour={false} maximumDate={new Date()} onChange={onPickerChange} />}
+  </ScrollView>;
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { padding: 16, paddingBottom: 40 },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.bg,
-  },
-  headerCard: { borderWidth: 0, borderColor: COLORS.border,
-    padding: 18,
-    borderRadius: UI.radius,
-    backgroundColor: COLORS.white,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 1,
-  },
-  title: { color: COLORS.text, fontSize: 27, fontWeight: '700' },
-  description: { color: COLORS.gray, marginTop: 4 },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: UI.radiusSmall,
-    backgroundColor: COLORS.lightBlue,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  currentCard: { borderWidth: 0, borderColor: COLORS.border,
-    marginTop: 16,
-    padding: 22,
-    borderRadius: UI.radius,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    elevation: 1,
-  },
-  currentIcon: {
-    width: 78,
-    height: 78,
-    borderRadius: UI.radiusSmall,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: { marginTop: 12, color: COLORS.gray, fontWeight: '600' },
-  currentStatus: { marginTop: 4, fontSize: 28, fontWeight: '600' },
-  currentMessage: {
-    marginTop: 8,
-    color: COLORS.gray,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  infoBox: {
-    width: '100%',
-    marginTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  infoLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  infoLabel: { color: COLORS.gray, fontWeight: '600' },
-  infoValue: { color: COLORS.text, fontWeight: '700' },
-  controlCard: { borderWidth: 0, borderColor: COLORS.border,
-    marginTop: 16,
-    padding: 18,
-    borderRadius: UI.radius,
-    backgroundColor: COLORS.white,
-    elevation: 1,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  statusRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
-  selectedStatusHint: {
-    color: COLORS.gray,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 6,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-
-  selectedStatusValue: {
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
-
-  statusChoice: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: UI.radiusSmall,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  statusChoiceActive: {
-    backgroundColor: COLORS.lightBlue,
-    borderColor: COLORS.accent,
-  },
-  statusChoiceText: { color: COLORS.gray, fontWeight: '600' },
-  statusChoiceTextActive: { color: COLORS.primary },
-  input: { marginTop: 12, backgroundColor: COLORS.white },
-  actionButton: {
-    minHeight: 52,
-    marginTop: 16,
-    borderRadius: UI.radiusSmall,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  maintenanceButton: { backgroundColor: COLORS.warning },
-  stopButton: { backgroundColor: COLORS.danger },
-  runningButton: {
-    minHeight: 52,
-    marginTop: 12,
-    borderRadius: UI.radiusSmall,
-    backgroundColor: COLORS.success,
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionText: { color: COLORS.white, fontWeight: '600' },
-  disabled: { opacity: 0.6 },
-  historyCard: { borderWidth: 0, borderColor: COLORS.border,
-    marginTop: 16,
-    padding: 18,
-    borderRadius: UI.radius,
-    backgroundColor: COLORS.white,
-    elevation: 1,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  historyTitle: { color: COLORS.text, fontWeight: '700' },
-  historyMessage: { color: COLORS.gray, marginTop: 3 },
-  historyStatus: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
-  emptyText: { color: COLORS.gray, paddingVertical: 12 },
-
-  messageInput: {
-    minHeight: 112,
-  },
-  messageInputContent: {
-    paddingTop: 12,
-    textAlignVertical: 'top',
-  },
-  clearDateButton: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 4,
-    paddingVertical: 9,
-  },
-  clearDateText: {
-    color: COLORS.danger,
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  page: { flex: 1, backgroundColor: COLORS.bg }, content: { padding: 16, gap: 12, paddingBottom: 32 },
+  title: { fontSize: 23, fontWeight: '800', color: COLORS.text }, heading: { fontSize: 17, fontWeight: '700', color: COLORS.text },
+  help: { color: COLORS.muted, fontSize: 13, lineHeight: 19 },
+  card: { padding: 16, backgroundColor: COLORS.white, borderRadius: 12, gap: 10, borderWidth: 1, borderColor: COLORS.border },
+  stopped: { borderColor: COLORS.danger }, row: { flexDirection: 'row', alignItems: 'center', gap: 10 }, status: { fontSize: 19, fontWeight: '800', color: COLORS.text },
+  timeButton: { padding: 12, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border }, timeText: { color: COLORS.primary, fontWeight: '700' },
+  action: { padding: 14, borderRadius: 8, alignItems: 'center' }, stop: { backgroundColor: COLORS.danger }, resume: { backgroundColor: COLORS.success }, actionText: { color: COLORS.white, fontWeight: '800' },
+  recordReason: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
 });

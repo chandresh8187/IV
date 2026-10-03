@@ -63,7 +63,7 @@ describe('financial-year production archive', () => {
 
   test('picker is restricted to the selected financial year, not the current calendar year', () => {
     renderScreen();
-    act(() => buttonWithText('2026-03-31').props.onPress());
+    act(() => buttonWithText('31/03/2026').props.onPress());
     const picker = tree.root.findByType('DateTimePicker');
     expect(formatDateForApi(picker.props.minimumDate)).toBe('2025-04-01');
     expect(formatDateForApi(picker.props.maximumDate)).toBe('2026-03-31');

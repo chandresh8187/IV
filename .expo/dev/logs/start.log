@@ -7685,3 +7685,446 @@
 {"_e":"metro:client_log","_t":1790850848488,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
 {"_e":"metro:client_log","_t":1790850848495,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
 {"_e":"metro:client_log","_t":1790850848892,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"root:init","_t":1790911373840,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"devserver:start","_t":1790911373863,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1790911374796,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1790911406335,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1790911431086,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1790911431087,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790911431092,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790911431805,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1790911431914,"id":"1","progress":0.010000000000000002,"total":5,"current":1}
+{"_e":"metro:bundling:progress","_t":1790911431927,"id":"1","progress":0.04000000000000001,"total":5,"current":2}
+{"_e":"metro:bundling:progress","_t":1790911432031,"id":"1","progress":0.04000000000000001,"total":97,"current":3}
+{"_e":"metro:bundling:progress","_t":1790911432162,"id":"1","progress":0.04000000000000001,"total":102,"current":6}
+{"_e":"metro:bundling:progress","_t":1790911432265,"id":"1","progress":0.04000000000000001,"total":112,"current":8}
+{"_e":"metro:bundling:progress","_t":1790911432366,"id":"1","progress":0.04000000000000001,"total":118,"current":12}
+{"_e":"metro:bundling:progress","_t":1790911432482,"id":"1","progress":0.04000000000000001,"total":121,"current":15}
+{"_e":"metro:bundling:progress","_t":1790911432598,"id":"1","progress":0.04000000000000001,"total":128,"current":20}
+{"_e":"metro:bundling:progress","_t":1790911432698,"id":"1","progress":0.04000000000000001,"total":152,"current":26}
+{"_e":"metro:bundling:progress","_t":1790911432828,"id":"1","progress":0.04000000000000001,"total":163,"current":29}
+{"_e":"metro:bundling:progress","_t":1790911432931,"id":"1","progress":0.06391238479989901,"total":178,"current":45}
+{"_e":"metro:bundling:progress","_t":1790911433031,"id":"1","progress":0.10776961534537292,"total":198,"current":65}
+{"_e":"metro:bundling:progress","_t":1790911433131,"id":"1","progress":0.12946545549829677,"total":214,"current":77}
+{"_e":"metro:bundling:progress","_t":1790911433231,"id":"1","progress":0.20013850415512466,"total":228,"current":102}
+{"_e":"metro:bundling:progress","_t":1790911433332,"id":"1","progress":0.25,"total":254,"current":127}
+{"_e":"metro:bundling:progress","_t":1790911433437,"id":"1","progress":0.25,"total":301,"current":142}
+{"_e":"metro:bundling:progress","_t":1790911433537,"id":"1","progress":0.25,"total":343,"current":151}
+{"_e":"metro:bundling:progress","_t":1790911433637,"id":"1","progress":0.25,"total":355,"current":163}
+{"_e":"metro:bundling:progress","_t":1790911433738,"id":"1","progress":0.25,"total":400,"current":187}
+{"_e":"metro:bundling:progress","_t":1790911433838,"id":"1","progress":0.25,"total":420,"current":208}
+{"_e":"metro:bundling:progress","_t":1790911433938,"id":"1","progress":0.27313629942056883,"total":442,"current":231}
+{"_e":"metro:bundling:progress","_t":1790911434040,"id":"1","progress":0.2847530361705431,"total":461,"current":246}
+{"_e":"metro:bundling:progress","_t":1790911434140,"id":"1","progress":0.3313501871336769,"total":476,"current":274}
+{"_e":"metro:bundling:progress","_t":1790911434241,"id":"1","progress":0.36,"total":500,"current":300}
+{"_e":"metro:bundling:progress","_t":1790911434343,"id":"1","progress":0.37001216480293375,"total":531,"current":323}
+{"_e":"metro:bundling:progress","_t":1790911434444,"id":"1","progress":0.37001216480293375,"total":580,"current":338}
+{"_e":"metro:bundling:progress","_t":1790911434549,"id":"1","progress":0.37001216480293375,"total":602,"current":352}
+{"_e":"metro:bundling:progress","_t":1790911434649,"id":"1","progress":0.37001216480293375,"total":609,"current":370}
+{"_e":"metro:bundling:progress","_t":1790911434751,"id":"1","progress":0.38810077397597426,"total":618,"current":385}
+{"_e":"metro:bundling:progress","_t":1790911434850,"id":"1","progress":0.43033600000000005,"total":625,"current":410}
+{"_e":"metro:bundling:progress","_t":1790911434950,"id":"1","progress":0.4672328152539657,"total":632,"current":432}
+{"_e":"metro:bundling:progress","_t":1790911435050,"id":"1","progress":0.5137232716416741,"total":639,"current":458}
+{"_e":"metro:bundling:progress","_t":1790911435150,"id":"1","progress":0.5289256198347108,"total":671,"current":488}
+{"_e":"metro:bundling:progress","_t":1790911435251,"id":"1","progress":0.5461253343194503,"total":682,"current":504}
+{"_e":"metro:bundling:progress","_t":1790911435351,"id":"1","progress":0.571254732287723,"total":688,"current":520}
+{"_e":"metro:bundling:progress","_t":1790911435453,"id":"1","progress":0.6024610495071108,"total":697,"current":541}
+{"_e":"metro:bundling:progress","_t":1790911435582,"id":"1","progress":0.6130556813037574,"total":705,"current":552}
+{"_e":"metro:bundling:progress","_t":1790911435684,"id":"1","progress":0.6130556813037574,"total":2425,"current":554}
+{"_e":"metro:bundling:progress","_t":1790911435785,"id":"1","progress":0.6130556813037574,"total":2485,"current":565}
+{"_e":"metro:bundling:progress","_t":1790911435909,"id":"1","progress":0.6130556813037574,"total":2498,"current":574}
+{"_e":"metro:bundling:progress","_t":1790911436008,"id":"1","progress":0.6130556813037574,"total":2519,"current":599}
+{"_e":"metro:bundling:progress","_t":1790911436109,"id":"1","progress":0.6130556813037574,"total":2527,"current":614}
+{"_e":"metro:bundling:progress","_t":1790911436208,"id":"1","progress":0.6130556813037574,"total":2534,"current":625}
+{"_e":"metro:bundling:progress","_t":1790911436311,"id":"1","progress":0.6130556813037574,"total":2547,"current":634}
+{"_e":"metro:bundling:progress","_t":1790911436411,"id":"1","progress":0.6130556813037574,"total":2557,"current":649}
+{"_e":"metro:bundling:progress","_t":1790911436511,"id":"1","progress":0.6130556813037574,"total":2568,"current":665}
+{"_e":"metro:bundling:progress","_t":1790911436613,"id":"1","progress":0.6130556813037574,"total":2578,"current":680}
+{"_e":"metro:bundling:progress","_t":1790911436714,"id":"1","progress":0.6130556813037574,"total":2595,"current":693}
+{"_e":"metro:bundling:progress","_t":1790911436828,"id":"1","progress":0.6130556813037574,"total":2597,"current":726}
+{"_e":"metro:bundling:progress","_t":1790911436928,"id":"1","progress":0.6130556813037574,"total":2598,"current":756}
+{"_e":"metro:bundling:progress","_t":1790911437028,"id":"1","progress":0.6130556813037574,"total":2598,"current":794}
+{"_e":"metro:bundling:progress","_t":1790911437136,"id":"1","progress":0.6130556813037574,"total":2598,"current":832}
+{"_e":"metro:bundling:progress","_t":1790911437239,"id":"1","progress":0.6130556813037574,"total":2601,"current":873}
+{"_e":"metro:bundling:progress","_t":1790911437340,"id":"1","progress":0.6130556813037574,"total":2601,"current":921}
+{"_e":"metro:bundling:progress","_t":1790911437440,"id":"1","progress":0.6130556813037574,"total":2601,"current":974}
+{"_e":"metro:bundling:progress","_t":1790911437541,"id":"1","progress":0.6130556813037574,"total":2601,"current":1027}
+{"_e":"metro:bundling:progress","_t":1790911437642,"id":"1","progress":0.6130556813037574,"total":2601,"current":1080}
+{"_e":"metro:bundling:progress","_t":1790911437742,"id":"1","progress":0.6130556813037574,"total":2601,"current":1139}
+{"_e":"metro:bundling:progress","_t":1790911437842,"id":"1","progress":0.6130556813037574,"total":2601,"current":1193}
+{"_e":"metro:bundling:progress","_t":1790911437942,"id":"1","progress":0.6130556813037574,"total":2601,"current":1242}
+{"_e":"metro:bundling:progress","_t":1790911438042,"id":"1","progress":0.6130556813037574,"total":2601,"current":1289}
+{"_e":"metro:bundling:progress","_t":1790911438166,"id":"1","progress":0.6130556813037574,"total":2603,"current":1315}
+{"_e":"metro:bundling:progress","_t":1790911438265,"id":"1","progress":0.6130556813037574,"total":2603,"current":1378}
+{"_e":"metro:bundling:progress","_t":1790911438366,"id":"1","progress":0.6130556813037574,"total":2603,"current":1436}
+{"_e":"metro:bundling:progress","_t":1790911438466,"id":"1","progress":0.6130556813037574,"total":2603,"current":1504}
+{"_e":"metro:bundling:progress","_t":1790911438566,"id":"1","progress":0.6130556813037574,"total":2603,"current":1574}
+{"_e":"metro:bundling:progress","_t":1790911438668,"id":"1","progress":0.6130556813037574,"total":2603,"current":1643}
+{"_e":"metro:bundling:progress","_t":1790911438769,"id":"1","progress":0.6130556813037574,"total":2603,"current":1706}
+{"_e":"metro:bundling:progress","_t":1790911438869,"id":"1","progress":0.6130556813037574,"total":2603,"current":1772}
+{"_e":"metro:bundling:progress","_t":1790911438970,"id":"1","progress":0.6130556813037574,"total":2603,"current":1836}
+{"_e":"metro:bundling:progress","_t":1790911439069,"id":"1","progress":0.6130556813037574,"total":2603,"current":1902}
+{"_e":"metro:bundling:progress","_t":1790911439169,"id":"1","progress":0.6130556813037574,"total":2603,"current":1973}
+{"_e":"metro:bundling:progress","_t":1790911439273,"id":"1","progress":0.6148053997803002,"total":2603,"current":2041}
+{"_e":"metro:bundling:progress","_t":1790911439373,"id":"1","progress":0.655210328695177,"total":2603,"current":2107}
+{"_e":"metro:bundling:progress","_t":1790911439474,"id":"1","progress":0.6988266294586952,"total":2603,"current":2176}
+{"_e":"metro:bundling:progress","_t":1790911439575,"id":"1","progress":0.7241009627326488,"total":2603,"current":2215}
+{"_e":"metro:bundling:progress","_t":1790911439674,"id":"1","progress":0.7631898475841802,"total":2603,"current":2274}
+{"_e":"metro:bundling:progress","_t":1790911439775,"id":"1","progress":0.8053735095989157,"total":2603,"current":2336}
+{"_e":"metro:bundling:progress","_t":1790911439875,"id":"1","progress":0.8451563542111121,"total":2603,"current":2393}
+{"_e":"metro:bundling:progress","_t":1790911439975,"id":"1","progress":0.854566167472758,"total":2620,"current":2422}
+{"_e":"metro:bundling:progress","_t":1790911440076,"id":"1","progress":0.8651683579428869,"total":2634,"current":2450}
+{"_e":"metro:bundling:progress","_t":1790911440177,"id":"1","progress":0.8651683579428869,"total":2671,"current":2465}
+{"_e":"metro:bundling:progress","_t":1790911440277,"id":"1","progress":0.8651683579428869,"total":2696,"current":2476}
+{"_e":"metro:bundling:progress","_t":1790911440379,"id":"1","progress":0.8651683579428869,"total":2741,"current":2501}
+{"_e":"metro:bundling:progress","_t":1790911440479,"id":"1","progress":0.8651683579428869,"total":2775,"current":2528}
+{"_e":"metro:bundling:progress","_t":1790911440579,"id":"1","progress":0.8651683579428869,"total":2808,"current":2561}
+{"_e":"metro:bundling:progress","_t":1790911440679,"id":"1","progress":0.8651683579428869,"total":2823,"current":2590}
+{"_e":"metro:bundling:progress","_t":1790911440779,"id":"1","progress":0.8651683579428869,"total":2837,"current":2636}
+{"_e":"metro:bundling:progress","_t":1790911440884,"id":"1","progress":0.8737329639889198,"total":2850,"current":2664}
+{"_e":"metro:bundling:progress","_t":1790911440984,"id":"1","progress":0.882560613854984,"total":2857,"current":2684}
+{"_e":"metro:bundling:progress","_t":1790911441085,"id":"1","progress":0.8985874083938507,"total":2862,"current":2713}
+{"_e":"metro:bundling:progress","_t":1790911441185,"id":"1","progress":0.9159792768838573,"total":2865,"current":2742}
+{"_e":"metro:bundling:progress","_t":1790911441288,"id":"1","progress":0.9160846251116737,"total":2892,"current":2768}
+{"_e":"metro:bundling:progress","_t":1790911441389,"id":"1","progress":0.9160846251116737,"total":2932,"current":2801}
+{"_e":"metro:bundling:progress","_t":1790911441490,"id":"1","progress":0.9172144314172135,"total":2956,"current":2831}
+{"_e":"metro:bundling:progress","_t":1790911441591,"id":"1","progress":0.9235623337958146,"total":2976,"current":2860}
+{"_e":"metro:bundling:progress","_t":1790911441696,"id":"1","progress":0.935331008947307,"total":2981,"current":2883}
+{"_e":"metro:bundling:progress","_t":1790911441796,"id":"1","progress":0.9433768449836659,"total":2994,"current":2908}
+{"_e":"metro:bundling:progress","_t":1790911441899,"id":"1","progress":0.9462747077829646,"total":3011,"current":2929}
+{"_e":"metro:bundling:progress","_t":1790911442014,"id":"1","progress":0.9535328494364282,"total":3020,"current":2949}
+{"_e":"metro:bundling:progress","_t":1790911442117,"id":"1","progress":0.9535328494364282,"total":3119,"current":2973}
+{"_e":"metro:bundling:progress","_t":1790911442219,"id":"1","progress":0.9535328494364282,"total":3133,"current":2988}
+{"_e":"metro:bundling:progress","_t":1790911442319,"id":"1","progress":0.9535328494364282,"total":3137,"current":3009}
+{"_e":"metro:bundling:progress","_t":1790911442429,"id":"1","progress":0.9535328494364282,"total":3144,"current":3027}
+{"_e":"metro:bundling:progress","_t":1790911442530,"id":"1","progress":0.9535328494364282,"total":3144,"current":3041}
+{"_e":"metro:bundling:progress","_t":1790911442632,"id":"1","progress":0.9535328494364282,"total":3147,"current":3064}
+{"_e":"metro:bundling:progress","_t":1790911442731,"id":"1","progress":0.9636052030269036,"total":3158,"current":3100}
+{"_e":"metro:bundling:progress","_t":1790911442832,"id":"1","progress":0.9798810548829641,"total":3165,"current":3133}
+{"_e":"metro:bundling:progress","_t":1790911442941,"id":"1","progress":0.9911950114070134,"total":3173,"current":3159}
+{"_e":"metro:bundling:progress","_t":1790911443047,"id":"1","progress":0.9981105341962042,"total":3174,"current":3171}
+{"_e":"metro:bundling:progress","_t":1790911443148,"id":"1","progress":0.999,"total":3174,"current":3173}
+{"_e":"metro:bundling:progress","_t":1790911443411,"id":"1","progress":0.999,"total":3174,"current":3174}
+{"_e":"metro:bundling:progress","_t":1790911443512,"id":"1","progress":0.999,"total":3184,"current":3184}
+{"_e":"metro:bundling:done","_t":1790911443765,"id":"1","total":3184,"ms":12678.7331}
+{"_e":"metro:client_log","_t":1790911452781,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790911452781,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1790911452862,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790911452862,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1790911452863,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790911452863,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onNotificationOpenedApp`. Please use `onNotificationOpenedApp()` instead."]}
+{"_e":"metro:client_log","_t":1790911452863,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790911452863,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getInitialNotification`. Please use `getInitialNotification()` instead."]}
+{"_e":"metro:client_log","_t":1790912757841,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790912757847,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790912757848,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790912757848,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790912758305,"level":"info","data":["Notification device check:","REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913144187,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913144191,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913144195,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913144195,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913144487,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913146211,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913146216,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913146216,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913146216,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913146522,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913158070,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913158075,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913158075,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913158075,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913158355,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913281697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913281697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913281697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913281697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913281978,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913319287,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913319292,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913319293,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913319293,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913319626,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790913321689,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913321696,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790913321697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790913321697,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790913322030,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"root:init","_t":1790919883192,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1790919883193,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1790919883195,"mode":"development","files":["../..\\..\\.env.development"],"env":{"API_BASE_URL":"http://localhost:5000/api","SOCKET_URL":"http://localhost:5000"}}
+{"_e":"devserver:start","_t":1790919883450,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1790919883959,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1790919912059,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"root:init","_t":1790920640856,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1790920640857,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1790920640860,"mode":"development","files":["../..\\..\\.env.development"],"env":{"API_BASE_URL":"http://localhost:5000/api","SOCKET_URL":"http://localhost:5000"}}
+{"_e":"devserver:start","_t":1790920641111,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1790920641382,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1790920667769,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1790920695595,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1790920695595,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790920695600,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1790920695700,"id":"1","progress":0.11576935658821302,"total":241,"current":82}
+{"_e":"metro:bundling:progress","_t":1790920695807,"id":"1","progress":0.29510671038982106,"total":451,"current":245}
+{"_e":"metro:bundling:progress","_t":1790920695907,"id":"1","progress":0.4946262528680112,"total":637,"current":448}
+{"_e":"metro:bundling:progress","_t":1790920696007,"id":"1","progress":0.4946262528680112,"total":1071,"current":555}
+{"_e":"metro:bundling:progress","_t":1790920696107,"id":"1","progress":0.4946262528680112,"total":2492,"current":578}
+{"_e":"metro:bundling:progress","_t":1790920696207,"id":"1","progress":0.5700530672599882,"total":2690,"current":2031}
+{"_e":"metro:bundling:progress","_t":1790920696307,"id":"1","progress":0.8259582341840447,"total":2709,"current":2462}
+{"_e":"metro:bundling:progress","_t":1790920696407,"id":"1","progress":0.8618276546515401,"total":2861,"current":2656}
+{"_e":"metro:bundling:progress","_t":1790920696537,"id":"1","progress":0.8645623234683687,"total":2864,"current":2663}
+{"_e":"metro:bundling:progress","_t":1790920696640,"id":"1","progress":0.9196855869548141,"total":2927,"current":2807}
+{"_e":"metro:bundling:progress","_t":1790920696742,"id":"1","progress":0.9210494506320694,"total":2929,"current":2811}
+{"_e":"metro:bundling:progress","_t":1790920696882,"id":"1","progress":0.9404718653526307,"total":2945,"current":2856}
+{"_e":"metro:bundling:progress","_t":1790920696983,"id":"1","progress":0.9404718653526307,"total":3024,"current":2913}
+{"_e":"metro:bundling:progress","_t":1790920697083,"id":"1","progress":0.9404718653526307,"total":3082,"current":2932}
+{"_e":"metro:bundling:progress","_t":1790920697183,"id":"1","progress":0.9404718653526307,"total":3107,"current":2989}
+{"_e":"metro:bundling:progress","_t":1790920697286,"id":"1","progress":0.9538985801631129,"total":3130,"current":3057}
+{"_e":"metro:bundling:progress","_t":1790920697401,"id":"1","progress":0.9968528737057474,"total":3175,"current":3170}
+{"_e":"metro:bundling:progress","_t":1790920697640,"id":"1","progress":0.9974819021638044,"total":3175,"current":3171}
+{"_e":"metro:bundling:progress","_t":1790920697749,"id":"1","progress":0.9981129112554413,"total":3178,"current":3175}
+{"_e":"metro:bundling:progress","_t":1790920697900,"id":"1","progress":0.999,"total":3184,"current":3183}
+{"_e":"metro:bundling:progress","_t":1790920697971,"id":"1","progress":0.999,"total":3184,"current":3184}
+{"_e":"metro:bundling:done","_t":1790920698092,"id":"1","total":3184,"ms":2497.3209}
+{"_e":"metro:client_log","_t":1790920706961,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920706961,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1790920706961,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920707066,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1790920707066,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920707066,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onNotificationOpenedApp`. Please use `onNotificationOpenedApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920707066,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920707066,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getInitialNotification`. Please use `getInitialNotification()` instead."]}
+{"_e":"metro:client_log","_t":1790920708134,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920708137,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790920708137,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790920708137,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790920708574,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:bundling:failed","_t":1790920986372,"id":null,"message":"Unable to resolve \"../../screens/common/GasChangeMovementsScreen\" from \"src\\navigation\\comman\\ProductionStock.js\"\n  23 | import LabourWeightsScreen from '../../screens/common/LabourWeightsScreen';\n  24 | import GasManagementScreen from '../../screens/common/GasManagementScreen';\n> 25 | import GasChangeMovementsScreen from '../../screens/common/GasChangeMovementsScreen';\n     |                                       ^\n  26 | import { COLORS } from '../../assets/Colors';\n  27 | import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';\n  28 | const Stack = createNativeStackNavigator();","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"../../screens/common/GasChangeMovementsScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\AccessTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./AccessTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"../../screens/common/GasChangeMovementsScreen","originModulePath":"src\\navigation\\comman\\ProductionStock.js"}
+{"_e":"metro:bundling:failed","_t":1790920986558,"id":null,"message":"Unable to resolve \"../../screens/common/GasChangeMovementsScreen\" from \"src\\navigation\\comman\\ProductionStock.js\"\n  23 | import LabourWeightsScreen from '../../screens/common/LabourWeightsScreen';\n  24 | import GasManagementScreen from '../../screens/common/GasManagementScreen';\n> 25 | import GasChangeMovementsScreen from '../../screens/common/GasChangeMovementsScreen';\n     |                                       ^\n  26 | import { COLORS } from '../../assets/Colors';\n  27 | import { shouldOpenLiveProductionDirectly } from '../../utils/accessNavigation';\n  28 | const Stack = createNativeStackNavigator();","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"../../screens/common/GasChangeMovementsScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\AccessTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./AccessTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"../../screens/common/GasChangeMovementsScreen","originModulePath":"src\\navigation\\comman\\ProductionStock.js"}
+{"_e":"metro:client_log","_t":1790921067395,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790921067402,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790921067443,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790921067443,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790921067876,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790921149015,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790921149015,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790921149015,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790921149015,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790921149234,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1790921225534,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1790922578771,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790922578772,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1790922578772,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1790922578772,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1790922579358,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:bundling:started","_t":1790922581603,"id":"7","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1790922581603,"id":"7","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1790922581657,"id":"7","total":1,"ms":54.0528}
+{"_e":"root:init","_t":1791007273771,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"devserver:start","_t":1791007273788,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1791007274104,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1791007301962,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1791007345992,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:progress","_t":1791007345992,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791007346001,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1791007346504,"id":"1","progress":0.010000000000000002,"total":1,"current":1}
+{"_e":"metro:bundling:progress","_t":1791007346605,"id":"1","progress":0.031141868512110732,"total":17,"current":3}
+{"_e":"metro:bundling:progress","_t":1791007346709,"id":"1","progress":0.031141868512110732,"total":41,"current":7}
+{"_e":"metro:bundling:progress","_t":1791007346809,"id":"1","progress":0.08506944444444446,"total":48,"current":14}
+{"_e":"metro:bundling:progress","_t":1791007346911,"id":"1","progress":0.140625,"total":56,"current":21}
+{"_e":"metro:bundling:progress","_t":1791007347020,"id":"1","progress":0.2330558858501784,"total":58,"current":28}
+{"_e":"metro:bundling:progress","_t":1791007347132,"id":"1","progress":0.3128411376041367,"total":59,"current":33}
+{"_e":"metro:bundling:progress","_t":1791007347253,"id":"1","progress":0.36381960191484,"total":63,"current":38}
+{"_e":"metro:bundling:progress","_t":1791007347358,"id":"1","progress":0.36381960191484,"total":84,"current":45}
+{"_e":"metro:bundling:progress","_t":1791007347462,"id":"1","progress":0.3686224489795918,"total":84,"current":51}
+{"_e":"metro:bundling:progress","_t":1791007347566,"id":"1","progress":0.3686224489795918,"total":89,"current":54}
+{"_e":"metro:bundling:progress","_t":1791007347680,"id":"1","progress":0.38189622522408784,"total":89,"current":55}
+{"_e":"metro:bundling:progress","_t":1791007347781,"id":"1","progress":0.4259279778393352,"total":95,"current":62}
+{"_e":"metro:bundling:progress","_t":1791007347891,"id":"1","progress":0.4259279778393352,"total":110,"current":70}
+{"_e":"metro:bundling:progress","_t":1791007348001,"id":"1","progress":0.45621729763004,"total":114,"current":77}
+{"_e":"metro:bundling:progress","_t":1791007348143,"id":"1","progress":0.45621729763004,"total":207,"current":82}
+{"_e":"metro:bundling:progress","_t":1791007348149,"id":"1","progress":0.45621729763004,"total":207,"current":83}
+{"_e":"metro:bundling:progress","_t":1791007348250,"id":"1","progress":0.45621729763004,"total":229,"current":93}
+{"_e":"metro:bundling:progress","_t":1791007348353,"id":"1","progress":0.45621729763004,"total":264,"current":100}
+{"_e":"metro:bundling:progress","_t":1791007348461,"id":"1","progress":0.45621729763004,"total":280,"current":104}
+{"_e":"metro:bundling:progress","_t":1791007348570,"id":"1","progress":0.45621729763004,"total":308,"current":111}
+{"_e":"metro:bundling:progress","_t":1791007348680,"id":"1","progress":0.45621729763004,"total":309,"current":115}
+{"_e":"metro:bundling:progress","_t":1791007348782,"id":"1","progress":0.45621729763004,"total":327,"current":125}
+{"_e":"metro:bundling:progress","_t":1791007348890,"id":"1","progress":0.45621729763004,"total":337,"current":133}
+{"_e":"metro:bundling:progress","_t":1791007348990,"id":"1","progress":0.45621729763004,"total":348,"current":137}
+{"_e":"metro:bundling:progress","_t":1791007349090,"id":"1","progress":0.45621729763004,"total":374,"current":156}
+{"_e":"metro:bundling:progress","_t":1791007349190,"id":"1","progress":0.45621729763004,"total":395,"current":178}
+{"_e":"metro:bundling:progress","_t":1791007349290,"id":"1","progress":0.45621729763004,"total":407,"current":205}
+{"_e":"metro:bundling:progress","_t":1791007349391,"id":"1","progress":0.45621729763004,"total":418,"current":223}
+{"_e":"metro:bundling:progress","_t":1791007349490,"id":"1","progress":0.45621729763004,"total":444,"current":242}
+{"_e":"metro:bundling:progress","_t":1791007349590,"id":"1","progress":0.45621729763004,"total":462,"current":261}
+{"_e":"metro:bundling:progress","_t":1791007349690,"id":"1","progress":0.45621729763004,"total":495,"current":271}
+{"_e":"metro:bundling:progress","_t":1791007349790,"id":"1","progress":0.45621729763004,"total":516,"current":277}
+{"_e":"metro:bundling:progress","_t":1791007349890,"id":"1","progress":0.45621729763004,"total":565,"current":293}
+{"_e":"metro:bundling:progress","_t":1791007350008,"id":"1","progress":0.45621729763004,"total":593,"current":304}
+{"_e":"metro:bundling:progress","_t":1791007350107,"id":"1","progress":0.45621729763004,"total":618,"current":323}
+{"_e":"metro:bundling:progress","_t":1791007350207,"id":"1","progress":0.45621729763004,"total":636,"current":347}
+{"_e":"metro:bundling:progress","_t":1791007350314,"id":"1","progress":0.45621729763004,"total":651,"current":362}
+{"_e":"metro:bundling:progress","_t":1791007350415,"id":"1","progress":0.45621729763004,"total":690,"current":386}
+{"_e":"metro:bundling:progress","_t":1791007350515,"id":"1","progress":0.45621729763004,"total":708,"current":409}
+{"_e":"metro:bundling:progress","_t":1791007350615,"id":"1","progress":0.45621729763004,"total":715,"current":427}
+{"_e":"metro:bundling:progress","_t":1791007350715,"id":"1","progress":0.45621729763004,"total":716,"current":436}
+{"_e":"metro:bundling:progress","_t":1791007350821,"id":"1","progress":0.45621729763004,"total":727,"current":447}
+{"_e":"metro:bundling:progress","_t":1791007350925,"id":"1","progress":0.45621729763004,"total":731,"current":454}
+{"_e":"metro:bundling:progress","_t":1791007351028,"id":"1","progress":0.45621729763004,"total":734,"current":472}
+{"_e":"metro:bundling:progress","_t":1791007351130,"id":"1","progress":0.45621729763004,"total":777,"current":488}
+{"_e":"metro:bundling:progress","_t":1791007351269,"id":"1","progress":0.45621729763004,"total":779,"current":493}
+{"_e":"metro:bundling:progress","_t":1791007351389,"id":"1","progress":0.45621729763004,"total":2493,"current":494}
+{"_e":"metro:bundling:progress","_t":1791007351490,"id":"1","progress":0.45621729763004,"total":2531,"current":500}
+{"_e":"metro:bundling:progress","_t":1791007351590,"id":"1","progress":0.45621729763004,"total":2536,"current":502}
+{"_e":"metro:bundling:progress","_t":1791007351738,"id":"1","progress":0.45621729763004,"total":2550,"current":512}
+{"_e":"metro:bundling:progress","_t":1791007351840,"id":"1","progress":0.45621729763004,"total":2554,"current":523}
+{"_e":"metro:bundling:progress","_t":1791007351942,"id":"1","progress":0.45621729763004,"total":2574,"current":548}
+{"_e":"metro:bundling:progress","_t":1791007352042,"id":"1","progress":0.45621729763004,"total":2589,"current":566}
+{"_e":"metro:bundling:progress","_t":1791007352142,"id":"1","progress":0.45621729763004,"total":2607,"current":585}
+{"_e":"metro:bundling:progress","_t":1791007352245,"id":"1","progress":0.45621729763004,"total":2609,"current":598}
+{"_e":"metro:bundling:progress","_t":1791007352347,"id":"1","progress":0.45621729763004,"total":2614,"current":611}
+{"_e":"metro:bundling:progress","_t":1791007352449,"id":"1","progress":0.45621729763004,"total":2619,"current":621}
+{"_e":"metro:bundling:progress","_t":1791007352549,"id":"1","progress":0.45621729763004,"total":2633,"current":636}
+{"_e":"metro:bundling:progress","_t":1791007352649,"id":"1","progress":0.45621729763004,"total":2640,"current":662}
+{"_e":"metro:bundling:progress","_t":1791007352749,"id":"1","progress":0.45621729763004,"total":2648,"current":686}
+{"_e":"metro:bundling:progress","_t":1791007352852,"id":"1","progress":0.45621729763004,"total":2654,"current":706}
+{"_e":"metro:bundling:progress","_t":1791007352954,"id":"1","progress":0.45621729763004,"total":2667,"current":732}
+{"_e":"metro:bundling:progress","_t":1791007353058,"id":"1","progress":0.45621729763004,"total":2688,"current":755}
+{"_e":"metro:bundling:progress","_t":1791007353173,"id":"1","progress":0.45621729763004,"total":2700,"current":775}
+{"_e":"metro:bundling:progress","_t":1791007353273,"id":"1","progress":0.45621729763004,"total":2717,"current":792}
+{"_e":"metro:bundling:progress","_t":1791007353373,"id":"1","progress":0.45621729763004,"total":2717,"current":825}
+{"_e":"metro:bundling:progress","_t":1791007353473,"id":"1","progress":0.45621729763004,"total":2717,"current":858}
+{"_e":"metro:bundling:progress","_t":1791007353609,"id":"1","progress":0.45621729763004,"total":2717,"current":873}
+{"_e":"metro:bundling:progress","_t":1791007353677,"id":"1","progress":0.45621729763004,"total":2717,"current":874}
+{"_e":"metro:bundling:progress","_t":1791007353756,"id":"1","progress":0.45621729763004,"total":2720,"current":903}
+{"_e":"metro:bundling:progress","_t":1791007353858,"id":"1","progress":0.45621729763004,"total":2720,"current":940}
+{"_e":"metro:bundling:progress","_t":1791007353958,"id":"1","progress":0.45621729763004,"total":2720,"current":976}
+{"_e":"metro:bundling:progress","_t":1791007354061,"id":"1","progress":0.45621729763004,"total":2720,"current":1009}
+{"_e":"metro:bundling:progress","_t":1791007354165,"id":"1","progress":0.45621729763004,"total":2720,"current":1042}
+{"_e":"metro:bundling:progress","_t":1791007354267,"id":"1","progress":0.45621729763004,"total":2720,"current":1075}
+{"_e":"metro:bundling:progress","_t":1791007354369,"id":"1","progress":0.45621729763004,"total":2720,"current":1118}
+{"_e":"metro:bundling:progress","_t":1791007354469,"id":"1","progress":0.45621729763004,"total":2720,"current":1154}
+{"_e":"metro:bundling:progress","_t":1791007354569,"id":"1","progress":0.45621729763004,"total":2720,"current":1190}
+{"_e":"metro:bundling:progress","_t":1791007354675,"id":"1","progress":0.45621729763004,"total":2721,"current":1210}
+{"_e":"metro:bundling:progress","_t":1791007354775,"id":"1","progress":0.45621729763004,"total":2721,"current":1259}
+{"_e":"metro:bundling:progress","_t":1791007354875,"id":"1","progress":0.45621729763004,"total":2721,"current":1307}
+{"_e":"metro:bundling:progress","_t":1791007354975,"id":"1","progress":0.45621729763004,"total":2721,"current":1355}
+{"_e":"metro:bundling:progress","_t":1791007355076,"id":"1","progress":0.45621729763004,"total":2721,"current":1398}
+{"_e":"metro:bundling:progress","_t":1791007355177,"id":"1","progress":0.45621729763004,"total":2721,"current":1420}
+{"_e":"metro:bundling:progress","_t":1791007355276,"id":"1","progress":0.45621729763004,"total":2721,"current":1462}
+{"_e":"metro:bundling:progress","_t":1791007355377,"id":"1","progress":0.45621729763004,"total":2721,"current":1505}
+{"_e":"metro:bundling:progress","_t":1791007355478,"id":"1","progress":0.45621729763004,"total":2721,"current":1541}
+{"_e":"metro:bundling:progress","_t":1791007355578,"id":"1","progress":0.45621729763004,"total":2721,"current":1593}
+{"_e":"metro:bundling:progress","_t":1791007355678,"id":"1","progress":0.45621729763004,"total":2721,"current":1639}
+{"_e":"metro:bundling:progress","_t":1791007355778,"id":"1","progress":0.45621729763004,"total":2721,"current":1690}
+{"_e":"metro:bundling:progress","_t":1791007355883,"id":"1","progress":0.45621729763004,"total":2721,"current":1738}
+{"_e":"metro:bundling:progress","_t":1791007355983,"id":"1","progress":0.45621729763004,"total":2721,"current":1786}
+{"_e":"metro:bundling:progress","_t":1791007356084,"id":"1","progress":0.45621729763004,"total":2721,"current":1837}
+{"_e":"metro:bundling:progress","_t":1791007356184,"id":"1","progress":0.476866129350968,"total":2721,"current":1879}
+{"_e":"metro:bundling:progress","_t":1791007356286,"id":"1","progress":0.5005003484002426,"total":2721,"current":1925}
+{"_e":"metro:bundling:progress","_t":1791007356386,"id":"1","progress":0.5236418502234178,"total":2721,"current":1969}
+{"_e":"metro:bundling:progress","_t":1791007356486,"id":"1","progress":0.5445908414294689,"total":2721,"current":2008}
+{"_e":"metro:bundling:progress","_t":1791007356587,"id":"1","progress":0.5659507004539941,"total":2721,"current":2047}
+{"_e":"metro:bundling:progress","_t":1791007356687,"id":"1","progress":0.5865949849544311,"total":2721,"current":2084}
+{"_e":"metro:bundling:progress","_t":1791007356787,"id":"1","progress":0.6076090775045007,"total":2721,"current":2121}
+{"_e":"metro:bundling:progress","_t":1791007356887,"id":"1","progress":0.6319110580575676,"total":2721,"current":2163}
+{"_e":"metro:bundling:progress","_t":1791007357000,"id":"1","progress":0.6519330979690137,"total":2721,"current":2197}
+{"_e":"metro:bundling:progress","_t":1791007357104,"id":"1","progress":0.6770973336677543,"total":2721,"current":2239}
+{"_e":"metro:bundling:progress","_t":1791007357207,"id":"1","progress":0.6959765883681186,"total":2721,"current":2270}
+{"_e":"metro:bundling:progress","_t":1791007357306,"id":"1","progress":0.7188497159785036,"total":2721,"current":2307}
+{"_e":"metro:bundling:progress","_t":1791007357407,"id":"1","progress":0.7446275521043739,"total":2721,"current":2348}
+{"_e":"metro:bundling:progress","_t":1791007357509,"id":"1","progress":0.7721506985360705,"total":2721,"current":2391}
+{"_e":"metro:bundling:progress","_t":1791007357610,"id":"1","progress":0.7968892092631378,"total":2721,"current":2429}
+{"_e":"metro:bundling:progress","_t":1791007357713,"id":"1","progress":0.822684333712731,"total":2721,"current":2468}
+{"_e":"metro:bundling:progress","_t":1791007357814,"id":"1","progress":0.8395485526173647,"total":2723,"current":2495}
+{"_e":"metro:bundling:progress","_t":1791007357917,"id":"1","progress":0.8395485526173647,"total":2773,"current":2506}
+{"_e":"metro:bundling:progress","_t":1791007358042,"id":"1","progress":0.8395485526173647,"total":2776,"current":2511}
+{"_e":"metro:bundling:progress","_t":1791007358142,"id":"1","progress":0.8395485526173647,"total":2811,"current":2520}
+{"_e":"metro:bundling:progress","_t":1791007358247,"id":"1","progress":0.8395485526173647,"total":2815,"current":2525}
+{"_e":"metro:bundling:progress","_t":1791007358349,"id":"1","progress":0.8395485526173647,"total":2819,"current":2530}
+{"_e":"metro:bundling:progress","_t":1791007358450,"id":"1","progress":0.8395485526173647,"total":2833,"current":2544}
+{"_e":"metro:bundling:progress","_t":1791007358550,"id":"1","progress":0.8395485526173647,"total":2856,"current":2572}
+{"_e":"metro:bundling:progress","_t":1791007358653,"id":"1","progress":0.8395485526173647,"total":2867,"current":2588}
+{"_e":"metro:bundling:progress","_t":1791007358755,"id":"1","progress":0.8395485526173647,"total":2874,"current":2608}
+{"_e":"metro:bundling:progress","_t":1791007358855,"id":"1","progress":0.8395485526173647,"total":2885,"current":2637}
+{"_e":"metro:bundling:progress","_t":1791007358955,"id":"1","progress":0.8395485526173647,"total":2898,"current":2654}
+{"_e":"metro:bundling:progress","_t":1791007359055,"id":"1","progress":0.8491394030462401,"total":2904,"current":2676}
+{"_e":"metro:bundling:progress","_t":1791007359155,"id":"1","progress":0.8583290230394068,"total":2910,"current":2696}
+{"_e":"metro:bundling:progress","_t":1791007359270,"id":"1","progress":0.864249058694236,"total":2914,"current":2709}
+{"_e":"metro:bundling:progress","_t":1791007359371,"id":"1","progress":0.8709407059645876,"total":2921,"current":2726}
+{"_e":"metro:bundling:progress","_t":1791007359474,"id":"1","progress":0.8710263994576363,"total":2938,"current":2742}
+{"_e":"metro:bundling:progress","_t":1791007359577,"id":"1","progress":0.8771177351165698,"total":2947,"current":2760}
+{"_e":"metro:bundling:progress","_t":1791007359679,"id":"1","progress":0.8841612831365561,"total":2948,"current":2772}
+{"_e":"metro:bundling:progress","_t":1791007359782,"id":"1","progress":0.8880666475150819,"total":2950,"current":2780}
+{"_e":"metro:bundling:progress","_t":1791007359888,"id":"1","progress":0.8940703344716956,"total":2957,"current":2796}
+{"_e":"metro:bundling:progress","_t":1791007359988,"id":"1","progress":0.9017612266634523,"total":2957,"current":2808}
+{"_e":"metro:bundling:progress","_t":1791007360088,"id":"1","progress":0.9040370420150973,"total":2968,"current":2822}
+{"_e":"metro:bundling:progress","_t":1791007360190,"id":"1","progress":0.9105731556437925,"total":2972,"current":2836}
+{"_e":"metro:bundling:progress","_t":1791007360290,"id":"1","progress":0.9171151469823101,"total":2976,"current":2850}
+{"_e":"metro:bundling:progress","_t":1791007360391,"id":"1","progress":0.9281835277690195,"total":2980,"current":2871}
+{"_e":"metro:bundling:progress","_t":1791007360493,"id":"1","progress":0.9322235434007136,"total":2987,"current":2884}
+{"_e":"metro:bundling:progress","_t":1791007360595,"id":"1","progress":0.9357758829223778,"total":3002,"current":2904}
+{"_e":"metro:bundling:progress","_t":1791007360715,"id":"1","progress":0.9396862771519908,"total":3004,"current":2912}
+{"_e":"metro:bundling:progress","_t":1791007360843,"id":"1","progress":0.9396862771519908,"total":3018,"current":2923}
+{"_e":"metro:bundling:progress","_t":1791007360943,"id":"1","progress":0.9497060194261024,"total":3023,"current":2946}
+{"_e":"metro:bundling:progress","_t":1791007361046,"id":"1","progress":0.9563357751004888,"total":3035,"current":2968}
+{"_e":"metro:bundling:progress","_t":1791007361148,"id":"1","progress":0.9616483213594179,"total":3047,"current":2988}
+{"_e":"metro:bundling:progress","_t":1791007361265,"id":"1","progress":0.9630801280814782,"total":3059,"current":3002}
+{"_e":"metro:bundling:progress","_t":1791007361375,"id":"1","progress":0.9630801280814782,"total":3150,"current":3022}
+{"_e":"metro:bundling:progress","_t":1791007361475,"id":"1","progress":0.9630801280814782,"total":3161,"current":3045}
+{"_e":"metro:bundling:progress","_t":1791007361575,"id":"1","progress":0.9630801280814782,"total":3162,"current":3076}
+{"_e":"metro:bundling:progress","_t":1791007361676,"id":"1","progress":0.9636735812658528,"total":3164,"current":3106}
+{"_e":"metro:bundling:progress","_t":1791007361775,"id":"1","progress":0.9768359714546758,"total":3176,"current":3139}
+{"_e":"metro:bundling:progress","_t":1791007361877,"id":"1","progress":0.9924670701317194,"total":3180,"current":3168}
+{"_e":"metro:bundling:progress","_t":1791007361992,"id":"1","progress":0.9987441131537083,"total":3184,"current":3182}
+{"_e":"metro:bundling:progress","_t":1791007362093,"id":"1","progress":0.999,"total":3184,"current":3184}
+{"_e":"metro:bundling:done","_t":1791007362288,"id":"1","total":3184,"ms":16296.0333}
+{"_e":"metro:client_log","_t":1791007375773,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007375774,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `setBackgroundMessageHandler`. Please use `setBackgroundMessageHandler()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onTokenRefresh`. Please use `onTokenRefresh()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `onNotificationOpenedApp`. Please use `onNotificationOpenedApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007375870,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getInitialNotification`. Please use `getInitialNotification()` instead."]}
+{"_e":"metro:bundling:failed","_t":1791007376632,"id":null,"message":"Unable to resolve \"../../screens/superadmin/PlantControlScreen\" from \"src\\navigation\\comman\\ProductionStock.js\"\n   9 | import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';\n  10 | import HistoryStack from './HistoryStack';\n> 11 | import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';\n     |                                 ^\n  12 | import PdfViewerScreen from '../../screens/common/PdfViewerScreen';\n  13 | import ContractorScreen from '../../screens/common/ContractorScreen';\n  14 | import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"../../screens/superadmin/PlantControlScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\AccessTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./AccessTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"../../screens/superadmin/PlantControlScreen","originModulePath":"src\\navigation\\comman\\ProductionStock.js"}
+{"_e":"metro:bundling:failed","_t":1791007377515,"id":null,"message":"Unable to resolve \"../../screens/superadmin/PlantControlScreen\" from \"src\\navigation\\comman\\ProductionStock.js\"\n   9 | import GenerateCertificateScreen from './../../screens/common/GenerateCertificateScreen';\n  10 | import HistoryStack from './HistoryStack';\n> 11 | import PlantControlScreen from '../../screens/superadmin/PlantControlScreen';\n     |                                 ^\n  12 | import PdfViewerScreen from '../../screens/common/PdfViewerScreen';\n  13 | import ContractorScreen from '../../screens/common/ContractorScreen';\n  14 | import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';","importStack":"\u001b[1mImport stack:\u001b[22m\n\n\u001b[90m \u001b[39msrc\\navigation\\comman\\ProductionStock.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"../../screens/superadmin/PlantControlScreen\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\AccessTabs.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./comman/ProductionStock\"\u001b[39m\n\n\u001b[90m \u001b[39msrc\\navigation\\RootNavigator.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./AccessTabs\"\u001b[39m\n\n\u001b[90m \u001b[39mApp.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./src/navigation/RootNavigator\"\u001b[39m\n\n\u001b[90m \u001b[39mindex.js\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./App\"\u001b[39m\n\n\u001b[90m \u001b[39m\n\u001b[90m |\u001b[39m \u001b[36mimport\u001b[39m \u001b[32m\"./index\"\u001b[39m\n","filename":null,"targetModuleName":"../../screens/superadmin/PlantControlScreen","originModulePath":"src\\navigation\\comman\\ProductionStock.js"}
+{"_e":"metro:client_log","_t":1791007736754,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007736799,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007736799,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007736799,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007737219,"level":"info","data":["Notification device check:","REGISTERED"]}
+{"_e":"metro:client_log","_t":1791007738429,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007738430,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007738444,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007738444,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007738549,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791007757752,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007757803,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007757803,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007757803,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007758104,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791007775606,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007775613,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007775614,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007775614,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007776047,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791007798348,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007798389,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007798389,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007798389,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007798565,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791007821698,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007821740,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791007821741,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791007821741,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791007822202,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791008147370,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791008147456,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `isDeviceRegisteredForRemoteMessages`. Please use `isDeviceRegisteredForRemoteMessages()` instead."]}
+{"_e":"metro:client_log","_t":1791008147456,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22 Please use `getApp()` instead."]}
+{"_e":"metro:client_log","_t":1791008147456,"level":"warn","data":["This method is deprecated (as well as all React Native Firebase namespaced API) and will be removed in the next major release as part of move to match Firebase Web modular SDK API. Please see migration guide for more details: https://rnfirebase.io/migrating-to-v22. Method called was `getToken`. Please use `getToken()` instead."]}
+{"_e":"metro:client_log","_t":1791008147693,"level":"info","data":["Notification device check:","ALREADY_REGISTERED"]}
+{"_e":"metro:client_log","_t":1791008496866,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1791009276073,"level":"warn","data":["DateTimePicker: `onChange` is deprecated. Use `onValueChange`, `onDismiss`, and `onNeutralButtonPress` instead."]}

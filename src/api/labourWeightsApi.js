@@ -1,5 +1,7 @@
 import apiClient from './apiClient';
 export const getLabourWeightsApi = async (pending = false) => (await apiClient.get('/labour-weights', { params: pending ? { pending: 1 } : {} })).data;
+export const getArchivedLabourWeightsApi = async (date, shift) => (await apiClient.get('/labour-weights/archive', { params: { date, shift } })).data;
+export const deleteLabourWeightApi = async id => (await apiClient.delete(`/labour-weights/${id}`)).data;
 export const getPendingLabourWeightsApi = async () => (await apiClient.get('/labour-weights/pending')).data;
 export const getLabourWeightModeApi = async () => (await apiClient.get('/labour-weights/mode')).data;
 export const setLabourWeightModeApi = async mode => (await apiClient.put('/labour-weights/mode', { mode })).data;

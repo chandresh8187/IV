@@ -170,9 +170,6 @@ function MonthlyProduction({ year }) {
             <View key={contractor.contractor_id} style={styles.card}>
               <Text style={styles.heading}>{contractor.contractor_name}</Text>
               {renderTotals(contractor)}
-              <Text style={styles.muted}>
-                {contractor.entry_count} production entries
-              </Text>
             </View>
           ))}
           {!data.summaries.length && (

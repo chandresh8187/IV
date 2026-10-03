@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="650" viewBox="0 0 1800 650" role="img" aria-labelledby="title description">
+  <title id="title">IV Square Structure Pvt. Ltd. logo with manufactured profiles</title>
+  <desc id="description">IV monogram made from a C-channel post and a V with a W-beam crash barrier; a sloped solar rafter rests on a structural column.</desc>
+  <g transform="translate(50 55)">
+    <!-- The I is a simplified C-channel post with visible flanges and an open lip. -->
+    <path fill="#172D58" d="M38 58h127v43H93v350h72v43H38v-43h22V101H38z"/>
+    <path fill="#FFFFFF" d="M127 101h12v350h-12z"/>
+    <path fill="#FFFFFF" d="M126 77l28-11v15l-28 11zM126 462l28-11v15l-28 11z"/>
+    <!-- The cyan V keeps the original IV identity. -->
+    <path fill="#00A9E7" d="M190 58h81l104 284L479 58h81L410 494h-70z"/>
+    <!-- Sloped solar rafter and panel cells, held by a vertical mounting column. -->
+    <path fill="#172D58" d="M395 101l157-48 13 42-156 48z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="7" d="M434 90l13 42M472 79l13 42M510 67l13 42"/>
+    <path fill="#172D58" d="M470 121h22v126h-22zM455 241h53v16h-53z"/>
+    <!-- Corrugated W-beam profile and its mounting holes. -->
+    <path fill="#172D58" d="M254 299c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0v61c-21 17-42 17-63 0s-42-17-63 0-42 17-63 0-42-17-62 0z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="8" d="M254 311c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0M254 347c20-17 41-17 62 0s42 17 63 0 42-17 63 0 42 17 63 0"/>
+    <circle cx="285" cy="330" r="7" fill="#FFFFFF"/>
+    <circle cx="379" cy="330" r="7" fill="#FFFFFF"/>
+    <circle cx="473" cy="330" r="7" fill="#FFFFFF"/>
+  </g>
+  <path d="M690 120v410" stroke="#D6E5EF" stroke-width="5"/>
+  <text x="770" y="251" fill="#172D58" font-family="Arial, sans-serif" font-size="109" font-weight="800" letter-spacing="2">IV SQUARE</text>
+  <text x="770" y="371" fill="#172D58" font-family="Arial, sans-serif" font-size="109" font-weight="800" letter-spacing="2">STRUCTURE</text>
+  <text x="776" y="460" fill="#028FC4" font-family="Arial, sans-serif" font-size="51" font-weight="700" letter-spacing="13">PVT. LTD.</text>
+</svg>

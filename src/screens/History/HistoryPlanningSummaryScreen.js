@@ -11,7 +11,7 @@ import {
 
 import { getHistoryPlanningSummaryApi } from '../../api/historyApi';
 import { COLORS, UI } from '../../assets/Colors';
-import { formatQuantity, formatWeight } from '../../utils/format';
+import { formatDisplayDate, formatQuantity, formatWeight } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
 
@@ -50,7 +50,7 @@ export default function HistoryPlanningSummaryScreen({ route }) {
               : 'Planning flow output'}
           </Text>
           <Text style={styles.subtitle}>
-            {date} · {shiftName ? 'only this shift' : 'all shifts'} · one card
+            {formatDisplayDate(date)} · {shiftName ? 'only this shift' : 'all shifts'} · one card
             per challan item
           </Text>
         </View>

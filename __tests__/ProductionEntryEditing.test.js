@@ -6,11 +6,11 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import ProductionScreen from '../src/screens/superadmin/ProductionScreen';
 
-jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn(), useNavigation: () => ({ navigate: jest.fn() }) }));
 jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
-  useQueryClient: () => ({}),
+  useQueryClient: () => ({ invalidateQueries: jest.fn(), getQueryData: jest.fn(), removeQueries: jest.fn() }),
 }));
 jest.mock('react-redux', () => ({ useSelector: jest.fn() }));
 jest.mock('lucide-react-native', () => ({
@@ -18,7 +18,12 @@ jest.mock('lucide-react-native', () => ({
   Plus: 'Plus',
   LockKeyhole: 'LockKeyhole',
   Pencil: 'Pencil',
+  MessageCircle: 'MessageCircle',
+  Maximize2: 'Maximize2',
+  Trash2: 'Trash2',
   X: 'X',
+  Square: 'Square',
+  PlayCircle: 'PlayCircle',
 }));
 jest.mock('react-native-paper', () => ({ TextInput: 'TextInput' }));
 jest.mock(
@@ -104,7 +109,7 @@ describe('production editing via row actions', () => {
           data: { active_shift: { id: 3, shift_date: '2026-09-13' } },
         },
       };
-      return { data: results[queryKey[0]], refetch: jest.fn() };
+      return { data: results[queryKey[0]], refetch: jest.fn().mockResolvedValue({ data: results[queryKey[0]], isError: false }) };
     });
   });
   afterEach(() => {
@@ -118,7 +123,7 @@ describe('production editing via row actions', () => {
   const input = label =>
     tree.root.findAllByType(TextInput).find(node => node.props.label === label);
   const press = label =>
-    act(() => {
+    act(async () => {
       tree.root
         .findAllByType(TouchableOpacity)
         .find(node => node.props.accessibilityLabel === label)
@@ -136,7 +141,7 @@ describe('production editing via row actions', () => {
         .props.onPress();
     });
 
-  test('new form applies saved defaults and allows independent contractor selection', () => {
+  test('new form applies saved defaults and allows independent contractor selection', async () => {
     const base = useQuery.getMockImplementation();
     useQuery.mockImplementation(options => {
       if (options.queryKey[0] === 'production-defaults')
@@ -157,7 +162,7 @@ describe('production editing via row actions', () => {
       return base(options);
     });
     renderScreen();
-    press('Add production entry');
+    await press('Add production entry');
     const dropdown = id =>
       tree.root
         .findAllByType('DropDownPicker')
@@ -166,9 +171,9 @@ describe('production editing via row actions', () => {
     expect(dropdown('contractor-selector').props.value).toBe(1);
     act(() => dropdown('contractor-selector').props.setValue(() => 2));
     expect(dropdown('planning-selector').props.value).toBe(24);
-    press('Toggle default contractor');
+    await press('Toggle default contractor');
     expect(mutate).toHaveBeenLastCalledWith({ contractor_id: 2 });
-    press('Toggle default challan');
+    await press('Toggle default challan');
     expect(mutate).toHaveBeenLastCalledWith({ planning_item_id: null });
     act(() => input('Dipping Qty').props.onChangeText('5'));
     const sharedForm = tree.root.findByType(
@@ -189,10 +194,10 @@ describe('production editing via row actions', () => {
   test.each([
     ['admin', 20],
     ['supervisor', 10],
-    ['plant_manager', 10],
-    ['superadmin', 10],
+    ['plant_manager', 20],
+    ['superadmin', 20],
   ])(
-    '%s views shift %s when correction mode is active',
+    '%s views its assigned production shift',
     (role, expectedShift) => {
       useSelector.mockReturnValue({ role });
       const previousQuery = useQuery.getMockImplementation();
@@ -201,7 +206,7 @@ describe('production editing via row actions', () => {
           ? {
               data: {
                 data: {
-                  correction_mode: true,
+                  correction_mode: role === 'supervisor',
                   shift_revision: 5,
                   active_shift: { id: 20, shift_name: 'day' },
                   production_shift: { id: 10, shift_name: 'night' },
@@ -218,17 +223,17 @@ describe('production editing via row actions', () => {
       expect(productionQuery.queryKey).toEqual([
         'productions',
         expectedShift,
-        role === 'admin' ? 0 : 5,
+        5,
       ]);
     },
   );
 
   test.each(['superadmin', 'plant_manager', 'admin', 'supervisor'])(
     'adding requires no SR input for %s',
-    role => {
+    async role => {
       useSelector.mockReturnValue({ role, permissions: ['production.save'] });
       renderScreen();
-      press('Add production entry');
+      await press('Add production entry');
       expect(
         tree.root
           .findAllByType('DropDownPicker')
@@ -277,10 +282,10 @@ describe('production editing via row actions', () => {
 
   test.each(['superadmin', 'supervisor'])(
     'Edit opens the selected row by ID without an SR input for %s',
-    role => {
+    async role => {
       useSelector.mockReturnValue({ role });
       renderScreen();
-      press('Edit production entry 41');
+      await press('Edit production entry 41');
       expect(input('Sr No')).toBeUndefined();
       save();
       expect(mutate).toHaveBeenCalledWith(
@@ -295,17 +300,17 @@ describe('production editing via row actions', () => {
     },
   );
 
-  test('supervisor add keeps automatic next SR after editing', () => {
+  test('supervisor add keeps automatic next SR after editing', async () => {
     useSelector.mockReturnValue({ role: 'supervisor' });
     renderScreen();
-    press('Edit production entry 41');
-    press('Close production form');
-    press('Add production entry');
+    await press('Edit production entry 41');
+    await press('Close production form');
+    await press('Add production entry');
     expect(input('Sr No (auto)')).toBeUndefined();
     expect(input('Production Time').props.value).toBe('');
   });
 
-  test('any pending challan can be selected and the balance follows the selected quantity', () => {
+  test('any pending challan can be selected and the balance follows the selected quantity', async () => {
     const previousQuery = useQuery.getMockImplementation();
     useQuery.mockImplementation(options =>
       options.queryKey[0] === 'available-production-planning'
@@ -328,7 +333,7 @@ describe('production editing via row actions', () => {
         : previousQuery(options),
     );
     renderScreen();
-    press('Add production entry');
+    await press('Add production entry');
     act(() =>
       tree.root
         .findAllByType('DropDownPicker')
@@ -353,9 +358,9 @@ describe('production editing via row actions', () => {
     ).toBe(true);
   });
 
-  test('a removed or completed selected challan cannot silently switch to another material', () => {
+  test('a removed or completed selected challan cannot silently switch to another material', async () => {
     renderScreen();
-    press('Add production entry');
+    await press('Add production entry');
     act(() =>
       tree.root
         .findAllByType('DropDownPicker')

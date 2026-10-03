@@ -128,6 +128,8 @@ export default function ProductionMenuScreen({ navigation }) {
   const actions = PRODUCTION_ACTIONS.filter(item =>
     item.screen === 'ShiftControl'
       ? shouldShowShiftInProductionMenu(user)
+      : item.screen === 'LabourWeights' && String(user?.role || '').trim().toLowerCase() === 'supervisor'
+      ? true
       : hasPermission(user, item.permission),
   );
 

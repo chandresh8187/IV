@@ -3,12 +3,13 @@ import{ActivityIndicator,Alert,ScrollView,StyleSheet,Text,TouchableOpacity,View}
 import{useQuery}from'@tanstack/react-query';
 import{useSelector}from'react-redux';
 import DropDownPicker from'react-native-dropdown-picker';
-import{getCurrentFinancialYearApi}from'../../api/financialYearsApi';
+import{getFinancialYearsApi}from'../../api/financialYearsApi';
 import{getMonthlyReportApi}from'../../api/monthlyReportApi';
 import{COLORS,UI}from'../../assets/Colors';
 import{hasPermission}from'../../utils/permissions';
 import{centeredContent,useResponsive}from'../../utils/responsive';
 import{downloadMonthlyReport,downloadDailyProductionReport}from'../../utils/serverMonthlyReport';
+import{formatDisplayDate}from'../../utils/format';
 
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const indiaMonth=()=>new Date(Date.now()+330*60*1000).getUTCMonth()+1;
@@ -17,8 +18,8 @@ const money=value=>Number(value||0).toLocaleString('en-IN',{minimumFractionDigit
 
 export default function MonthlyReportsScreen({navigation}){
  const user=useSelector(state=>state.auth.user);const canView=hasPermission(user,'monthly_reports.view');const canPdf=hasPermission(user,'monthly_reports.report');const{contentMaxWidth}=useResponsive();
- const[month,setMonth]=useState(indiaMonth);const[draft,setDraft]=useState(month);const[open,setOpen]=useState(false);const[generating,setGenerating]=useState(false);
- const yearQuery=useQuery({queryKey:['current-financial-year'],queryFn:getCurrentFinancialYearApi,enabled:canView,retry:false});const year=yearQuery.data?.data;
+ const[month,setMonth]=useState(indiaMonth);const[draft,setDraft]=useState(month);const[open,setOpen]=useState(false);const[yearOpen,setYearOpen]=useState(false);const[yearId,setYearId]=useState(null);const[generating,setGenerating]=useState(false);
+ const yearQuery=useQuery({queryKey:['financial-years'],queryFn:getFinancialYearsApi,enabled:canView,retry:false});const years=yearQuery.data?.data||[];const year=years.find(item=>item.id===yearId)||years.find(item=>item.is_current)||years[0];
  const startYear=Number(year?.start_date?.slice(0,4));const items=year?.start_date?Array.from({length:12},(_,index)=>{const value=((index+3)%12)+1;return{value,label:`${MONTHS[value-1]} ${startYear+(value<4?1:0)}`};}):[];
  const query=useQuery({queryKey:['monthly-report',year?.id,month],queryFn:()=>getMonthlyReportApi({month,financial_year_id:year.id}),enabled:canView&&Boolean(year?.id),retry:false});const report=query.data?.data;
  const generate=async()=>{setGenerating(true);try{const pdf=await downloadMonthlyReport({month,financial_year_id:year.id});navigation.navigate('PdfViewer',{...pdf,title:`Monthly Report · ${report.period.label}`});}catch(error){Alert.alert('Could not generate PDF',error?.response?.data?.message||error?.message||'Please try again.');}finally{setGenerating(false);}};
@@ -26,8 +27,8 @@ export default function MonthlyReportsScreen({navigation}){
  if(!canView)return<View style={styles.center}><Text style={styles.muted}>You do not have monthly reports access.</Text></View>;
  return<ScrollView style={styles.page} contentContainerStyle={[styles.content,centeredContent(contentMaxWidth)]}>
   <Text style={styles.title}>Monthly Reports</Text><Text style={styles.muted}>Complete historical production, zinc, Ash & Dross, planning, contractor, and expense report.</Text>
-  {yearQuery.isLoading?<ActivityIndicator color={COLORS.accent}/>:yearQuery.isError?<Card><Text style={styles.error}>{yearQuery.error?.response?.data?.message||'Set a current financial year in Settings.'}</Text></Card>:<>
-   <Card><Text style={styles.heading}>Financial year {year.financial_year}</Text><Text style={styles.muted}>Change the selected year from Settings › Financial Year.</Text><DropDownPicker open={open}setOpen={setOpen}value={draft}setValue={setDraft}items={items}listMode="MODAL"modalTitle="Select report month"style={styles.dropdown}/><TouchableOpacity style={styles.button}onPress={()=>{setMonth(draft);if(draft===month)query.refetch();}}><Text style={styles.buttonText}>Fetch Monthly Report</Text></TouchableOpacity></Card>
+  {yearQuery.isLoading?<ActivityIndicator color={COLORS.accent}/>:yearQuery.isError||!year?<Card><Text style={styles.error}>{yearQuery.error?.response?.data?.message||'Set a financial year in Settings.'}</Text></Card>:<>
+   <Card><Text style={styles.heading}>Financial year {year.financial_year}</Text><DropDownPicker open={yearOpen}setOpen={setYearOpen}value={year.id}setValue={callback=>{const next=typeof callback==='function'?callback(year.id):callback;setYearId(next);}}items={years.map(item=>({value:item.id,label:item.financial_year}))}listMode="MODAL"modalTitle="Select financial year"style={styles.dropdown}/><DropDownPicker open={open}setOpen={setOpen}value={draft}setValue={setDraft}items={items}listMode="MODAL"modalTitle="Select report month"style={styles.dropdown}/><TouchableOpacity style={styles.button}onPress={()=>{setMonth(draft);if(draft===month)query.refetch();}}><Text style={styles.buttonText}>Fetch Monthly Report</Text></TouchableOpacity></Card>
    {query.isLoading?<ActivityIndicator color={COLORS.accent}/>:query.isError?<TouchableOpacity style={styles.card}onPress={query.refetch}><Text style={styles.error}>{query.error?.response?.data?.message||'Could not load this monthly report. Tap to retry.'}</Text></TouchableOpacity>:report?<>
     <View style={styles.hero}><Text style={styles.heroLabel}>{report.period.label.toUpperCase()}</Text><Text style={styles.heroValue}>{num(report.production.total_ms_kg/1000)} ton</Text><Text style={styles.heroDetail}>MS production · {num(report.production.zinc_consumption_percent)}% zinc consumption after recovery</Text></View>
     <Section title="Production"><Grid data={[["MS production",`${num(report.production.total_ms_kg)} kg`],["GI production",`${num(report.production.total_gi_kg)} kg`],["Zinc used",`${num(report.production.net_zinc_kg)} kg`],["Production days",num(report.production.production_days)],["Entries",num(report.production.entry_count)],["Quantity",`${num(report.production.quantity)} NOS`]]}/></Section>
@@ -36,7 +37,7 @@ export default function MonthlyReportsScreen({navigation}){
     <Section title="Expense & Plant Cost"><Grid data={[["Total expense",`₹${money(report.expenses.totals.total_expense)}`],["Running plant cost",`₹${money(report.expenses.totals.running_plant_cost)}/kg`],["Average production/day",`${num(report.expenses.totals.average_ms_production_per_day_kg/1000)} ton`]]}/></Section>
     <Section title="Expense Breakdown">{Object.entries(report.expenses.expenses).map(([key,value])=><View key={key}style={styles.listRow}><Text style={[styles.muted,styles.flex]}>{key.replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase())}</Text><Text style={styles.value}>₹{money(value)}</Text></View>)}</Section>
     <List title="Shift Production"rows={report.shifts}name="shift_name"/><List title="Material Production"rows={report.materials}name="material"/><List title="Contractor Production"rows={report.contractors}name="contractor_name"/>
-    <Section title="Date-wise production">{report.daily_production?.length?report.daily_production.map(day=><View key={day.production_date}style={styles.listRow}><View style={styles.flex}><Text style={styles.heading}>{day.production_date}</Text><Text style={styles.muted}>Day {num(day.day_ms_kg)} kg · Night {num(day.night_ms_kg)} kg</Text></View><Text style={styles.value}>{num(day.total_ms_kg)} kg</Text></View>):<Text style={styles.muted}>No production recorded this month.</Text>}</Section>
+    <Section title="Date-wise production">{report.daily_production?.length?report.daily_production.map(day=><View key={day.production_date}style={styles.listRow}><View style={styles.flex}><Text style={styles.heading}>{formatDisplayDate(day.production_date)}</Text><Text style={styles.muted}>Day {num(day.day_ms_kg)} kg · Night {num(day.night_ms_kg)} kg</Text></View><Text style={styles.value}>{num(day.total_ms_kg)} kg</Text></View>):<Text style={styles.muted}>No production recorded this month.</Text>}</Section>
     <Section title={`Planning (${report.planning.length})`}>{report.planning.length?report.planning.map(item=><View key={item.id}style={styles.listRow}><View style={styles.flex}><Text style={styles.heading}>{item.challan_no||'Challan'} · {item.party_name}</Text><Text style={styles.muted}>{item.material_description}</Text></View><Text style={styles.value}>{num(item.produced_qty)} / {num(item.planned_qty)} NOS</Text></View>):<Text style={styles.muted}>No planning activity for this month.</Text>}</Section>
     {canPdf&&<><TouchableOpacity style={styles.pdfButton}disabled={generating}onPress={generateDaily}>{generating?<ActivityIndicator color={COLORS.white}/>:<Text style={styles.buttonText}>Generate Daily Production PDF</Text>}</TouchableOpacity><TouchableOpacity style={styles.pdfButton}disabled={generating}onPress={generate}>{generating?<ActivityIndicator color={COLORS.white}/>:<Text style={styles.buttonText}>Generate Complete PDF Report</Text>}</TouchableOpacity></>}
    </>:null}

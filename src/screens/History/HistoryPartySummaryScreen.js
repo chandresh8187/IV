@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { getHistoryPartySummaryApi } from '../../api/historyApi';
 import { COLORS, UI } from '../../assets/Colors';
-import { formatQuantity, formatWeight } from '../../utils/format';
+import { formatDisplayDate, formatQuantity, formatWeight } from '../../utils/format';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
 
@@ -28,7 +28,7 @@ export default function HistoryPartySummaryScreen({ route }) {
     >
       <Text style={styles.title}>Party-wise material output</Text>
       <Text style={styles.subtitle}>
-        {date} ·{' '}
+        {formatDisplayDate(date)} ·{' '}
         {shift_name ? `${shift_name.toUpperCase()} SHIFT` : 'BOTH SHIFTS'}
       </Text>
       <Text style={styles.description}>

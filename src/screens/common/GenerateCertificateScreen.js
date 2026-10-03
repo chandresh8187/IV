@@ -24,6 +24,8 @@ import {
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import {
   createCertificateApi,
+  getCertificateByIdApi,
+  getCertificatesApi,
   getCertificateReadingsApi,
 } from '../../api/certificateApi';
 import { getProductionPlanningApi } from '../../api/productionPlanningApi';
@@ -162,6 +164,35 @@ export default function GenerateCertificateScreen({ route, navigation }) {
 
   const [manualRows, setManualRows] = useState([emptyManualRow(1)]);
   const [saving, setSaving] = useState(false);
+  const [certificateSearch, setCertificateSearch] = useState('');
+  const [openingCertificate, setOpeningCertificate] = useState(null);
+  const certificateQuery = useQuery({ queryKey: ['certificates'], queryFn: getCertificatesApi });
+  const certificates = (certificateQuery.data?.data || []).filter(item =>
+    [item.tc_no, item.challan_no, item.party_name, item.structure, item.third_party_name]
+      .some(value => String(value || '').toLowerCase().includes(certificateSearch.trim().toLowerCase())),
+  );
+
+  const openCertificate = async item => {
+    setOpeningCertificate(item.id);
+    try {
+      const response = await getCertificateByIdApi(item.id);
+      const certificate = response?.data || item;
+      const saved = typeof certificate.coating_readings_json === 'string'
+        ? JSON.parse(certificate.coating_readings_json || '[]')
+        : certificate.coating_readings_json;
+      let readings = Array.isArray(saved) ? saved : [];
+      if (!readings.length && certificate.planning_id) {
+        const readingResponse = await getCertificateReadingsApi({ planningId: certificate.planning_id });
+        readings = readingResponse?.data?.readings || [];
+      }
+      const pdf = await downloadCertificatePdf({ certificate, readings });
+      navigation.navigate('PdfViewer', { ...pdf, title: `Certificate · ${certificate.tc_no}` });
+    } catch (error) {
+      Alert.alert('Could not open certificate', error?.response?.data?.message || error?.message || 'Please try again.');
+    } finally {
+      setOpeningCertificate(null);
+    }
+  };
 
   /* -------------------------- challan / planning ------------------------- */
   const { data: planningData, isLoading: loadingPlanning } = useQuery({
@@ -384,6 +415,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         ...checklistPayload,
       };
       const pdf = await downloadCertificatePdf({ certificate, readings });
+      certificateQuery.refetch();
       navigation.navigate('PdfViewer', {
         ...pdf,
         title: 'Certificate Preview',
@@ -419,6 +451,17 @@ export default function GenerateCertificateScreen({ route, navigation }) {
           <Text style={styles.description}>
             TC No. is generated automatically when you save
           </Text>
+        </View>
+
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Generated certificates</Text>
+          <AppInput label="Search TC, challan, party or structure" value={certificateSearch} onChangeText={setCertificateSearch} />
+          {certificateQuery.isLoading ? <ActivityIndicator color={COLORS.accent} /> : certificateQuery.isError ? <TouchableOpacity onPress={() => certificateQuery.refetch()}><Text style={styles.description}>Could not load certificates. Tap to retry.</Text></TouchableOpacity> : certificates.length ? certificates.map(item => <TouchableOpacity key={item.id} style={styles.savedCertificate} onPress={() => openCertificate(item)} disabled={openingCertificate != null}>
+            <Text style={styles.formTitle}>{item.tc_no}</Text>
+            <Text style={styles.description}>{item.challan_no || 'No challan'} · {item.party_name || item.client_name || 'No party'}</Text>
+            <Text style={styles.description}>{item.structure || 'Structure not recorded'} · {item.inspection_date || ''}</Text>
+            <Text style={styles.savedCertificateAction}>{openingCertificate === item.id ? 'Opening…' : 'View / Save PDF'}</Text>
+          </TouchableOpacity>) : <Text style={styles.description}>{certificateSearch ? 'No certificates match your search.' : 'Generated certificates will appear here.'}</Text>}
         </View>
 
         {/* --------------------- challan + structure ---------------------- */}
@@ -505,7 +548,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
             <CalendarDays size={18} color={COLORS.primary} />
             <View>
               <Text style={styles.dateLabel}>Date of Inspection</Text>
-              <Text style={styles.dateValue}>{inspectionDate}</Text>
+              <Text style={styles.dateValue}>{formatDisplayDate(inspectionDate)}</Text>
             </View>
           </TouchableOpacity>
           {datePickerVisible && (
@@ -776,6 +819,8 @@ const styles = StyleSheet.create({
     elevation: 1,
     marginBottom: 12,
   },
+  savedCertificate: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: 12 },
+  savedCertificateAction: { color: COLORS.primary, fontWeight: '700', marginTop: 6 },
   dropdownFormCard: { zIndex: 3000 },
 
   formTitle: {

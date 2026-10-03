@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, LockKeyhole, Pencil, MessageCircle, Maximize2, X } from 'lucide-react-native';
+import { Plus, LockKeyhole, Pencil, MessageCircle, Maximize2, Trash2, X, Square, PlayCircle } from 'lucide-react-native';
 import moment from 'moment';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSelector } from 'react-redux';
@@ -20,6 +21,7 @@ import { TextInput } from 'react-native-paper';
 import { parseZincAmount, zincTransferPreview } from '../../utils/zincStock';
 import {
   getProductionsApi,
+  deleteProductionApi,
   grantProductionEditApi,
   saveProductionApi,
   getProductionContractorsApi,
@@ -40,14 +42,22 @@ import ProductionEntryForm from '../../components/ProductionEntryForm';
 import { getAvailablePlanningApi } from '../../api/productionPlanningApi';
 import { formatNumber, formatQuantity } from '../../utils/format';
 import { hasPermission } from '../../utils/permissions';
-import { canUseShiftCorrection } from '../../utils/accessNavigation';
 import { getDefaultProductionSelection } from '../../utils/productionDefaults';
 import { getChatApi } from '../../api/chatApi';
 import { socket } from '../../socket/socket';
 import { getPendingLabourWeightsApi, getLabourWeightModeApi } from '../../api/labourWeightsApi';
 import { changeGasBottleApi, getGasDashboardApi } from '../../api/gasManagementApi';
+import { changePlantStatusApi } from '../../api/plantStatusApi';
 
 import { COLORS, UI } from '../../assets/Colors';
+
+function StopElapsedSince({ startedAt }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
+  if (!startedAt) return null;
+  const seconds = Math.max(0, Math.floor((now - moment(startedAt).valueOf()) / 1000));
+  return <Text>Production stopped for {Math.floor(seconds / 3600)}h {Math.floor((seconds % 3600) / 60)}m {seconds % 60}s</Text>;
+}
 
 const emptyFullForm = {
   labour_weight_id: null,
@@ -75,6 +85,7 @@ const canEditProductionRow = row =>
   row?.can_edit === true || Number(row?.can_edit) === 1;
 
 export default function ProductionScreen() {
+  const { height: windowHeight } = useWindowDimensions();
   const navigation = useNavigation();
   const queryClient = useQueryClient();
 
@@ -93,6 +104,11 @@ export default function ProductionScreen() {
   const [gasEndTime, setGasEndTime] = useState(new Date());
   const [gasTimePickerMode, setGasTimePickerMode] = useState(null);
   const [gasError, setGasError] = useState('');
+  const [stopModalVisible, setStopModalVisible] = useState(false);
+  const [stopReason, setStopReason] = useState('');
+  const [stopTime, setStopTime] = useState(new Date());
+  const [stopPickerMode, setStopPickerMode] = useState(null);
+  const [stopError, setStopError] = useState('');
   const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
@@ -102,6 +118,8 @@ export default function ProductionScreen() {
       .toLowerCase(),
   );
   const canSaveProduction = hasPermission(loggedUser, 'production.save');
+  const canChangeProductionStatus = hasPermission(loggedUser, 'production.status');
+  const stopMutation = useMutation({ mutationFn: changePlantStatusApi, onSuccess: response => { setStopModalVisible(false); setStopReason(''); queryClient.invalidateQueries({ queryKey: ['shift-status'] }); queryClient.invalidateQueries({ queryKey: ['plant-status'] }); queryClient.invalidateQueries({ queryKey: ['plant-status-history'] }); Alert.alert('Production status', response?.message || 'Status updated.'); }, onError: error => setStopError(error?.response?.data?.message || 'Could not change production status.') });
   const canAddZinc = hasPermission(loggedUser, 'zinc_stock.transfer');
   const canUseChat = hasPermission(loggedUser, 'chat.view');
   const canViewGas = hasPermission(loggedUser, 'gas.view');
@@ -237,12 +255,10 @@ export default function ProductionScreen() {
   });
 
   const shiftStatus = shiftStatusData?.data;
-  const usesCorrection = canUseShiftCorrection(loggedUser);
-  const correctionMode =
-    usesCorrection && Boolean(shiftStatus?.correction_mode);
-  const shiftRevision = usesCorrection ? shiftStatus?.shift_revision || 0 : 0;
+  const correctionMode = Boolean(shiftStatus?.correction_mode);
+  const shiftRevision = shiftStatus?.shift_revision || 0;
   const activeShift =
-    (usesCorrection ? shiftStatus?.production_shift : null) ||
+    (correctionMode ? shiftStatus?.production_shift : null) ||
     shiftStatus?.active_shift ||
     null;
   const { data: correctionPlanningData, isLoading: correctionPlanningLoading } =
@@ -513,7 +529,7 @@ export default function ProductionScreen() {
     });
 
     const latestShiftId =
-      (usesCorrection ? latestShift?.data?.production_shift?.id : null) ||
+      (latestShift?.data?.correction_mode ? latestShift?.data?.production_shift?.id : null) ||
       latestShift?.data?.active_shift?.id;
 
     if (latestShiftId) {
@@ -730,65 +746,102 @@ export default function ProductionScreen() {
     [activeUsers],
   );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>Shift entries</Text>
-          <Text style={styles.description}>Output & coating readings</Text>
-        </View>
+  const openFromFullView = action => {
+    setFullTableVisible(false);
+    // Let the native full-screen modal finish closing before opening another modal.
+    setTimeout(action, 350);
+  };
 
-        <View style={styles.headerActions}>
+  const renderRowActions = (item, fromFullView = false) => (
+    <View style={styles.rowActions}>
+      {canGrantProductionEdit && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Manage edit access for production entry ${item.id}`}
+          style={styles.rowIconBtn}
+          onPress={() => {
+            const openGrant = () => {
+              setGrantRow(item);
+              setSelectedGrantUserId(item.editable_user_id || null);
+            };
+            if (fromFullView) openFromFullView(openGrant);
+            else openGrant();
+          }}
+        >
+          <LockKeyhole size={17} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+      {(canManageAllProduction || canEditProductionRow(item)) && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Edit production entry ${item.id}`}
+          style={[styles.rowIconBtn, styles.rowEditBtn]}
+          onPress={() => {
+            if (fromFullView) openFromFullView(() => openEditModal(item));
+            else openEditModal(item);
+          }}
+        >
+          <Pencil size={17} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+      {canManageAllProduction && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Delete production entry ${item.id}`}
+          style={styles.rowIconBtn}
+          onPress={() => Alert.alert(
+            'Delete production entry',
+            `Delete SR ${item.sr_no}? Its zinc stock and linked planning totals will be recalculated.`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: async () => {
+                try {
+                  await deleteProductionApi(item.id);
+                  if (fromFullView) setFullTableVisible(false);
+                  ['productions', 'dashboard', 'contractor-report', 'zinc-stock', 'zinc-stock-movements', 'available-production-planning', 'labour-weights'].forEach(key => queryClient.invalidateQueries({ queryKey: [key] }));
+                  Alert.alert('Deleted', 'Production entry removed and totals refreshed.');
+                } catch (error) {
+                  Alert.alert('Could not delete entry', error?.response?.data?.message || 'Please try again.');
+                }
+              } },
+            ],
+          )}
+        >
+          <Trash2 size={17} color={COLORS.danger} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.pageContent} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+      <View style={styles.headerCard}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.headerActions}>
+          <ShiftCorrectionControls
+            iconOnly
+            status={shiftStatus ? { ...shiftStatus, correction_mode: correctionMode, production_shift: activeShift } : shiftStatus}
+            canManage={canManageCorrection}
+            correctionUsers={grantUserItems}
+            canAddZinc={canAddZinc}
+            canChangeGas={canChangeGas}
+            gasBusy={gasMutation.isPending || gasQuery.isLoading}
+            onChangeGas={() => { setGasBottleNumber(''); setGasEndTime(new Date()); setGasError(''); setGasModalVisible(true); }}
+            zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
+            onAddZinc={() => { zincRequest.current = null; setZincAmount(''); setZincError(''); setZincModalVisible(true); }}
+          />
+          {canChangeProductionStatus && !correctionMode && <TouchableOpacity accessibilityRole="button" accessibilityLabel={plantStatus === 'running' ? 'Stop production' : 'Resume production'} style={styles.headerChatBtn} onPress={() => { setStopTime(new Date()); setStopError(''); setStopModalVisible(true); }}>{plantStatus === 'running' ? <Square size={21} color={COLORS.danger} /> : <PlayCircle size={21} color={COLORS.success} />}</TouchableOpacity>}
           {canUseChat && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open plant chat" onPress={() => navigation.navigate('PlantChat')} style={styles.headerChatBtn}>
             <MessageCircle size={22} color={COLORS.primary} />
             {unreadChatCount > 0 && <View style={styles.chatBadge}><Text style={styles.chatBadgeText}>{unreadChatCount > 99 ? '99+' : unreadChatCount}</Text></View>}
           </TouchableOpacity>}
           {canManageProduction && (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Add production entry"
-              activeOpacity={0.8}
-              onPress={openEntryModal}
-              disabled={
-                defaultsQuery.isLoading ||
-                contractorQuery.isLoading ||
-                (correctionMode ? correctionPlanningLoading : planningLoading)
-              }
-              style={styles.headerAddBtn}
-            >
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add production entry" activeOpacity={0.8} onPress={openEntryModal} disabled={defaultsQuery.isLoading || contractorQuery.isLoading || (correctionMode ? correctionPlanningLoading : planningLoading)} style={styles.headerAddBtn}>
               <Plus size={24} color={COLORS.white} />
             </TouchableOpacity>
           )}
-          <AnimatedRefreshButton
-            refreshing={isFetching}
-            onPress={handleRefresh}
-          />
-        </View>
+          <AnimatedRefreshButton refreshing={isFetching} onPress={handleRefresh} />
+        </ScrollView>
       </View>
-      <ShiftCorrectionControls
-        status={
-          shiftStatus
-            ? {
-                ...shiftStatus,
-                correction_mode: correctionMode,
-                production_shift: activeShift,
-              }
-            : shiftStatus
-        }
-        canManage={canManageCorrection}
-        correctionUsers={grantUserItems}
-        canAddZinc={canAddZinc}
-        canChangeGas={canChangeGas}
-        gasBusy={gasMutation.isPending || gasQuery.isLoading}
-        onChangeGas={() => { setGasBottleNumber(''); setGasEndTime(new Date()); setGasError(''); setGasModalVisible(true); }}
-        zincBusy={zincStockQuery.isLoading || zincMutation.isPending}
-        onAddZinc={() => {
-          zincRequest.current = null;
-          setZincAmount('');
-          setZincError('');
-          setZincModalVisible(true);
-        }}
-      />
       <Modal
         visible={zincModalVisible}
         transparent
@@ -835,6 +888,8 @@ export default function ProductionScreen() {
           </View>
         </View>
       </Modal>
+      <Modal transparent visible={stopModalVisible} animationType="fade" onRequestClose={() => !stopMutation.isPending && setStopModalVisible(false)}><View style={styles.zincOverlay}><ScrollView style={styles.gasModal} contentContainerStyle={styles.gasModalContent} keyboardShouldPersistTaps="handled"><Text style={styles.zincTitle}>{plantStatus === 'running' ? 'Stop production' : 'Resume production'}</Text><Text style={styles.zincHelp}>Production status continues across shifts. Set the actual event time if recording it later.</Text>{plantStatus === 'running' && <TextInput mode="outlined" label="Reason for stop" value={stopReason} onChangeText={setStopReason} multiline />}<TouchableOpacity style={styles.gasTimeButton} onPress={() => setStopPickerMode('date')}><Text style={styles.zincCancelText}>{plantStatus === 'running' ? 'Stop' : 'Resume'} time: {moment(stopTime).format('DD MMM YYYY, hh:mm A')}</Text></TouchableOpacity>{stopError ? <Text style={styles.zincError}>{stopError}</Text> : null}<View style={styles.zincActions}><TouchableOpacity style={styles.zincCancel} onPress={() => setStopModalVisible(false)}><Text style={styles.zincCancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.zincSave} disabled={stopMutation.isPending} onPress={() => { if (plantStatus === 'running' && !stopReason.trim()) return setStopError('Enter a reason for stopping production.'); stopMutation.mutate({ status: plantStatus === 'running' ? 'stopped' : 'running', message: plantStatus === 'running' ? stopReason.trim() : null, occurred_at: moment(stopTime).format('YYYY-MM-DD HH:mm:ss') }); }}><Text style={styles.zincSaveText}>{stopMutation.isPending ? 'Saving…' : 'Save time'}</Text></TouchableOpacity></View></ScrollView></View></Modal>
+      {stopPickerMode && <DateTimePicker value={stopTime} mode={stopPickerMode} is24Hour={false} maximumDate={new Date()} onChange={(event, value) => { if (event.type !== 'set' || !value) { setStopPickerMode(null); return; } const next = new Date(stopTime); if (stopPickerMode === 'date') { next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate()); setStopTime(next); setStopPickerMode('time'); } else { next.setHours(value.getHours(), value.getMinutes(), 0, 0); setStopTime(next); setStopPickerMode(null); } }} />}
       <Modal transparent visible={gasModalVisible} animationType="fade" onRequestClose={() => !gasMutation.isPending && setGasModalVisible(false)}>
         <View style={styles.zincOverlay}><ScrollView style={styles.gasModal} contentContainerStyle={styles.gasModalContent} keyboardShouldPersistTaps="handled">
           <Text style={styles.zincTitle}>Gas bottle change</Text>
@@ -846,7 +901,7 @@ export default function ProductionScreen() {
         </ScrollView></View>
       </Modal>
       {gasTimePickerMode && <DateTimePicker value={gasEndTime} mode={gasTimePickerMode} is24Hour={false} onChange={(event, value) => { if (event.type !== 'set' || !value) { setGasTimePickerMode(null); return; } setGasEndTime(previous => { const next = new Date(previous); if (gasTimePickerMode === 'date') next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate()); else next.setHours(value.getHours(), value.getMinutes(), 0, 0); return next; }); setGasTimePickerMode(gasTimePickerMode === 'date' ? 'time' : null); }} />}
-      {!correctionMode && (
+      {(shiftStatusError || !productionAllowed || !isShiftActive || correctionMode) && (
         <View
           style={[
             styles.shiftInfoCard,
@@ -863,12 +918,8 @@ export default function ProductionScreen() {
               ? 'COULD NOT LOAD SHIFT STATUS'
               : !productionAllowed
               ? `PLANT ${String(plantStatus).toUpperCase()}`
-              : isShiftActive
-              ? `${(
-                  activeShift.shift_name ||
-                  shiftStatusData?.data?.current_shift ||
-                  ''
-                ).toUpperCase()} SHIFT ACTIVE`
+              : correctionMode
+              ? 'SHIFT CORRECTION'
               : 'NO ACTIVE SHIFT'}
           </Text>
 
@@ -878,17 +929,14 @@ export default function ProductionScreen() {
                 shiftStatusErrorObj?.message ||
                 'Check your internet connection and pull refresh.'
               : !productionAllowed
-              ? shiftStatusData?.data?.plant_notice?.expected_restart_at ||
-                'Production entry is blocked until the plant is marked running.'
-              : isShiftActive
-              ? `Shift Date: ${moment(activeShift.shift_date).format(
-                  'DD/MM/YYYY',
-                )}`
+              ? <><StopElapsedSince startedAt={shiftStatusData?.data?.plant_notice?.started_at} />{shiftStatusData?.data?.plant_notice?.message ? ` · ${shiftStatusData.data.plant_notice.message}` : ''}.</>
+              : correctionMode
+              ? 'Editing a previous shift. Close correction to return to live production.'
               : 'Automatic shift is not available. Pull refresh and try again.'}
           </Text>
         </View>
       )}
-      <View style={styles.tableCard}>
+      <View style={[styles.tableCard, { height: Math.max(540, windowHeight - 290) }]}>
         <View style={styles.tableHeading}>
           <Text style={styles.tableHeadingTitle}>Live production table · {rows.length} entries</Text>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="View live production table full screen" onPress={() => setFullTableVisible(true)} style={styles.fullViewButton}>
@@ -908,36 +956,7 @@ export default function ProductionScreen() {
             scrollRows
             renderAction={
               canGrantProductionEdit || hasEditableRow
-                ? item => (
-                    <View style={styles.rowActions}>
-                      {canGrantProductionEdit && (
-                        <TouchableOpacity
-                          accessibilityRole="button"
-                          accessibilityLabel={`Manage edit access for production entry ${item.id}`}
-                          style={styles.rowIconBtn}
-                          onPress={() => {
-                            setGrantRow(item);
-                            setSelectedGrantUserId(
-                              item.editable_user_id || null,
-                            );
-                          }}
-                        >
-                          <LockKeyhole size={17} color={COLORS.primary} />
-                        </TouchableOpacity>
-                      )}
-                      {(canManageAllProduction ||
-                        canEditProductionRow(item)) && (
-                        <TouchableOpacity
-                          accessibilityRole="button"
-                          accessibilityLabel={`Edit production entry ${item.id}`}
-                          style={[styles.rowIconBtn, styles.rowEditBtn]}
-                          onPress={() => openEditModal(item)}
-                        >
-                          <Pencil size={17} color={COLORS.primary} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )
+                ? item => renderRowActions(item)
                 : undefined
             }
           />
@@ -949,13 +968,13 @@ export default function ProductionScreen() {
           <View style={styles.fullTableHeader}>
             <View>
               <Text style={styles.fullTableTitle}>Live production table</Text>
-              <Text style={styles.fullTableSubtitle}>{activeShift?.shift_name || 'Current shift'} · {rows.length} entries</Text>
+              <Text style={styles.fullTableSubtitle}>{rows.length} entries</Text>
             </View>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close full production table" onPress={() => setFullTableVisible(false)} style={styles.fullTableClose}>
               <X size={22} color={COLORS.text} />
             </TouchableOpacity>
           </View>
-          <ProductionTable rows={rows} shiftName={activeShift?.shift_name} showProductionCost={canViewProductionCost} scrollRows />
+          <ProductionTable rows={rows} shiftName={activeShift?.shift_name} showProductionCost={canViewProductionCost} scrollRows renderAction={canGrantProductionEdit || hasEditableRow ? item => renderRowActions(item, true) : undefined} />
         </View>
       </Modal>
 
@@ -1033,7 +1052,7 @@ export default function ProductionScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -1041,15 +1060,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
-    padding: 12,
   },
+  pageContent: { padding: 12, paddingBottom: 12 },
 
   headerCard: {
     borderWidth: 0,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
     borderRadius: UI.radius,
-    padding: 16,
+    padding: 8,
     elevation: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1060,7 +1079,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginLeft: 10,
+    paddingHorizontal: 4,
   },
 
   headerCopy: {
@@ -1087,7 +1106,7 @@ const styles = StyleSheet.create({
   tableCard: {
     borderWidth: 1,
     borderColor: COLORS.border,
-    flex: 1,
+    height: 540,
     marginTop: 12,
     backgroundColor: COLORS.white,
     borderRadius: UI.radius,
