@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getMyAccessApi } from '../api/authApi';
 import { mergeUser, setUserAccess } from '../redux/slices/authSlice';
 import { syncNotificationRegistration } from '../services/notificationRegistrationService';
+import { syncOfflineProductionEntries } from '../services/offlineProductionQueue';
 import { socket } from '../socket/socket';
 
 export default function RealtimeQuerySync() {
@@ -298,6 +299,9 @@ export default function RealtimeQuerySync() {
         networkState?.isInternetReachable !== false
       ) {
         requestNotificationSync();
+        syncOfflineProductionEntries(user?.id).then(result => {
+          if (result.synced) queryClient.invalidateQueries({ queryKey: ['productions'] });
+        }).catch(() => {});
       }
     });
     NetInfo.fetch()
@@ -307,9 +311,18 @@ export default function RealtimeQuerySync() {
           networkState?.isInternetReachable !== false
         ) {
           requestNotificationSync();
+          syncOfflineProductionEntries(user?.id).then(result => {
+            if (result.synced) queryClient.invalidateQueries({ queryKey: ['productions'] });
+          }).catch(() => {});
         }
       })
       .catch(() => {});
+    const productionRetryInterval = setInterval(() => {
+      if (AppState.currentState !== 'active') return;
+      syncOfflineProductionEntries(user?.id).then(result => {
+        if (result.synced) queryClient.invalidateQueries({ queryKey: ['productions'] });
+      }).catch(() => {});
+    }, 30000);
 
     const appStateSubscription = AppState.addEventListener(
       'change',
@@ -319,6 +332,9 @@ export default function RealtimeQuerySync() {
           invalidateAllRealtimeData();
           requestAccessSync().catch(() => {});
           requestNotificationSync();
+          syncOfflineProductionEntries(user?.id).then(result => {
+            if (result.synced) queryClient.invalidateQueries({ queryKey: ['productions'] });
+          }).catch(() => {});
         }
       },
     );
@@ -326,6 +342,7 @@ export default function RealtimeQuerySync() {
     return () => {
       active = false;
       if (notificationRetryTimer) clearTimeout(notificationRetryTimer);
+      clearInterval(productionRetryInterval);
       socket.off('production_updated', invalidateProductionData);
       socket.off('labour_weights_updated', invalidateLabourWeights);
       socket.off('zinc_stock_updated', invalidateZincStock);

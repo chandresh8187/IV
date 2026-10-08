@@ -48,6 +48,7 @@ import { socket } from '../../socket/socket';
 import { getPendingLabourWeightsApi, getLabourWeightModeApi } from '../../api/labourWeightsApi';
 import { changeGasBottleApi, getGasDashboardApi } from '../../api/gasManagementApi';
 import { changePlantStatusApi } from '../../api/plantStatusApi';
+import { getOfflineProductionEntries, queueProductionEntry, removeOfflineProductionEntry, subscribeOfflineProduction, syncOfflineProductionEntries } from '../../services/offlineProductionQueue';
 
 import { COLORS, UI } from '../../assets/Colors';
 
@@ -111,6 +112,16 @@ export default function ProductionScreen() {
   const [stopError, setStopError] = useState('');
   const zincRequest = useRef(null);
   const loggedUser = useSelector(state => state.auth.user);
+  const [offlineEntries, setOfflineEntries] = useState([]);
+  useEffect(() => {
+    if (!loggedUser?.id) { setOfflineEntries([]); return undefined; }
+    let active = true;
+    getOfflineProductionEntries(loggedUser.id).then(entries => { if (active) setOfflineEntries(entries); }).catch(() => {});
+    const unsubscribe = subscribeOfflineProduction((userId, entries) => {
+      if (active && Number(userId) === Number(loggedUser.id)) setOfflineEntries(entries);
+    });
+    return () => { active = false; unsubscribe(); };
+  }, [loggedUser?.id]);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const canManageCorrection = ['superadmin', 'plant_manager'].includes(
     String(loggedUser?.role || '')
@@ -279,7 +290,7 @@ export default function ProductionScreen() {
     canSaveProduction &&
     isShiftActive &&
     productionAllowed &&
-    !shiftStatusError;
+    (!shiftStatusError || !!shiftStatusData);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['productions', activeShiftId, shiftRevision],
@@ -309,8 +320,21 @@ export default function ProductionScreen() {
   );
 
   const saveMutation = useMutation({
-    mutationFn: saveProductionApi,
+    mutationFn: async body => {
+      if (body.entry_id) return saveProductionApi(body);
+      const queued = await queueProductionEntry(loggedUser?.id, body);
+      await syncOfflineProductionEntries(loggedUser?.id);
+      const remaining = await getOfflineProductionEntries(loggedUser?.id);
+      const pending = remaining.find(item => item.id === queued.id);
+      return pending ? { queued: true, status: pending.status, error: pending.error } : { message: 'Production entry saved successfully' };
+    },
     onSuccess: res => {
+      if (res?.queued) {
+        Alert.alert(res.status === 'failed' ? 'Saved on device; needs attention' : 'Saved on device',
+          res.error || 'This production entry is queued and will sync automatically when the connection returns.');
+        closeModal();
+        return;
+      }
       if (fullForm.labour_weight_id && !fullForm.entry_id) {
         queryClient.invalidateQueries({ queryKey: ['labour-weights'] });
       }
@@ -405,10 +429,11 @@ export default function ProductionScreen() {
     try {
       [latestMode, latestQueue] = await Promise.all([weightModeQuery.refetch(), labourQueue.refetch()]);
     } catch {
-      Alert.alert('Weight mode unavailable', 'Refresh production and try again.');
-      return;
+      latestMode = weightModeQuery;
+      latestQueue = labourQueue;
     }
-    if (latestMode.isError || latestQueue.isError) {
+    if (!latestMode.data || (latestMode.isError && !weightModeQuery.data) ||
+        (!latestQueue.data && weightMode !== 'manual')) {
       Alert.alert('Weight mode unavailable', 'Refresh production and try again.');
       return;
     }
@@ -710,7 +735,8 @@ export default function ProductionScreen() {
       contractor_id: fullForm.contractor_id || null,
       planning_item_id: fullForm.planning_item_id || undefined,
       entry_type: 'full',
-      sr_no: String(existingEntry ? existingEntry.sr_no : nextSrNo),
+      sr_no: String(existingEntry ? existingEntry.sr_no : Math.max(nextSrNo - 1,
+        ...offlineEntries.filter(item => Number(item.body?.shift_id) === Number(activeShiftId)).map(item => Number(item.body?.sr_no) || 0)) + 1),
       planning_id: fullForm.planning_id || undefined,
       challan_no: fullForm.challan_no,
       party_name: fullForm.party_name,
@@ -936,6 +962,26 @@ export default function ProductionScreen() {
           </Text>
         </View>
       )}
+      {offlineEntries.length > 0 && <View style={{ margin: 12, padding: 12, backgroundColor: '#fff3dd', borderRadius: 8 }}>
+        <Text style={{ fontWeight: '700', color: COLORS.text }}>{offlineEntries.length} production {offlineEntries.length === 1 ? 'entry' : 'entries'} saved on this device</Text>
+        {offlineEntries.map(item => <View key={item.id} style={{ marginTop: 8 }}>
+          <Text style={{ color: COLORS.text }}>SR {item.body.sr_no} · {item.body.challan_no} · {item.status === 'failed' ? 'Needs attention' : 'Waiting to sync'}</Text>
+          {item.error ? <Text style={{ color: COLORS.danger }}>{item.error}</Text> : null}
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+            <TouchableOpacity onPress={() => syncOfflineProductionEntries(loggedUser?.id, { retryFailed: true }).then(result => {
+              if (result.synced) queryClient.invalidateQueries({ queryKey: ['productions'] });
+            }).catch(() => Alert.alert('Sync unavailable', 'Check your internet connection and try again.'))}>
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Retry sync</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Discard saved entry?', 'This removes the unsynced entry from this device.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Discard', style: 'destructive', onPress: () => removeOfflineProductionEntry(loggedUser?.id, item.id).catch(() => {}) },
+            ])}>
+              <Text style={{ color: COLORS.danger, fontWeight: '700' }}>Discard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>)}
+      </View>}
       <View style={[styles.tableCard, { height: Math.max(540, windowHeight - 290) }]}>
         <View style={styles.tableHeading}>
           <Text style={styles.tableHeadingTitle}>Live production table · {rows.length} entries</Text>
