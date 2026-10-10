@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import {
   CalendarDays,
+  Eye,
   FileCheck2,
   Plus,
   RefreshCw,
@@ -24,12 +26,12 @@ import {
 import { COLORS, PAPER_THEME, UI } from '../../assets/Colors';
 import {
   createCertificateApi,
-  getCertificateByIdApi,
+  deleteCertificatesApi,
   getCertificatesApi,
   getCertificateReadingsApi,
 } from '../../api/certificateApi';
 import { getProductionPlanningApi } from '../../api/productionPlanningApi';
-import { downloadCertificatePdf } from '../../utils/serverCertificatePdf';
+import { downloadCertificatePdf, downloadSavedCertificatePdf } from '../../utils/serverCertificatePdf';
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import {
   formatDateForApi,
@@ -37,6 +39,7 @@ import {
   parseDateForPicker,
 } from '../../utils/format';
 import { getCoatingRange } from '../../utils/coatingRange';
+import { hasPermission } from '../../utils/permissions';
 
 const DEFAULT_REFERENCE_STANDARD = 'IS 4759, IS 6745, IS 2633, IS 2629';
 const FIXED_QUANTITY = 'As per challan';
@@ -111,10 +114,13 @@ function AppInput({ style, ...props }) {
 }
 
 export default function GenerateCertificateScreen({ route, navigation }) {
+  const currentUser = useSelector(state => state.auth.user);
+  const canDeleteCertificates = hasPermission(currentUser, 'certificates.generate');
   // A planning object may still arrive via route params (from the
   // "Generate Certificate" button on ProductionPlanningScreen) - it just
   // pre-selects the challan dropdown now instead of being mandatory.
   const initialPlanning = route?.params?.planning || null;
+  const [formVisible, setFormVisible] = useState(Boolean(initialPlanning));
 
   const { formMaxWidth: contentMaxWidth } = useResponsive();
 
@@ -166,32 +172,62 @@ export default function GenerateCertificateScreen({ route, navigation }) {
   const [saving, setSaving] = useState(false);
   const [certificateSearch, setCertificateSearch] = useState('');
   const [openingCertificate, setOpeningCertificate] = useState(null);
+  const [selectedCertificateIds, setSelectedCertificateIds] = useState([]);
+  const [deletingCertificates, setDeletingCertificates] = useState(false);
+  const openNewForm = () => {
+    setInspectionDate(dayjs().format('YYYY-MM-DD'));
+    setClientName('');
+    setClientAddress('');
+    setThirdPartyName('');
+    setInvoiceNo('');
+    setStructure(null);
+    setSelectedChallanNo(null);
+    setMaterialDescription('');
+    setMinimumCoating('');
+    setMaximumCoating('');
+    setChecklist(CHECKLIST_DEFAULTS.map(item => ({ ...item })));
+    setRemarks('The average coating found within limit, so found satisfactory.');
+    setManualRows([emptyManualRow(1)]);
+    setFormVisible(true);
+  };
   const certificateQuery = useQuery({ queryKey: ['certificates'], queryFn: getCertificatesApi });
   const certificates = (certificateQuery.data?.data || []).filter(item =>
-    [item.tc_no, item.challan_no, item.party_name, item.structure, item.third_party_name]
+    [item.tc_no, item.challan_no, item.party_name, item.client_name, item.structure, item.third_party_name]
       .some(value => String(value || '').toLowerCase().includes(certificateSearch.trim().toLowerCase())),
   );
 
   const openCertificate = async item => {
     setOpeningCertificate(item.id);
     try {
-      const response = await getCertificateByIdApi(item.id);
-      const certificate = response?.data || item;
-      const saved = typeof certificate.coating_readings_json === 'string'
-        ? JSON.parse(certificate.coating_readings_json || '[]')
-        : certificate.coating_readings_json;
-      let readings = Array.isArray(saved) ? saved : [];
-      if (!readings.length && certificate.planning_id) {
-        const readingResponse = await getCertificateReadingsApi({ planningId: certificate.planning_id });
-        readings = readingResponse?.data?.readings || [];
-      }
-      const pdf = await downloadCertificatePdf({ certificate, readings });
-      navigation.navigate('PdfViewer', { ...pdf, title: `Certificate · ${certificate.tc_no}` });
+      const pdf = await downloadSavedCertificatePdf(item);
+      navigation.navigate('PdfViewer', { ...pdf, title: `Certificate · ${item.tc_no}` });
     } catch (error) {
       Alert.alert('Could not open certificate', error?.response?.data?.message || error?.message || 'Please try again.');
     } finally {
       setOpeningCertificate(null);
     }
+  };
+
+  const toggleCertificateSelection = id => {
+    setSelectedCertificateIds(previous => previous.includes(id)
+      ? previous.filter(selectedId => selectedId !== id)
+      : [...previous, id]);
+  };
+  const confirmDeleteCertificates = ids => {
+    Alert.alert('Delete test certificate',
+      `Delete ${ids.length} selected TC${ids.length === 1 ? '' : 's'}? Issued TC numbers will not be reused.`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => {
+          setDeletingCertificates(true);
+          try {
+            await deleteCertificatesApi(ids);
+            setSelectedCertificateIds(previous => previous.filter(id => !ids.includes(id)));
+            await certificateQuery.refetch();
+          } catch (error) {
+            Alert.alert('Could not delete certificate', error?.response?.data?.message || 'Please try again.');
+          } finally { setDeletingCertificates(false); }
+        } },
+      ]);
   };
 
   /* -------------------------- challan / planning ------------------------- */
@@ -382,6 +418,8 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         invoice_no: invoiceNo.trim(),
         structure,
         material_description: materialDescription,
+        minimum_coating: coatingRange.minimum,
+        maximum_coating: coatingRange.maximum,
         quantity: FIXED_QUANTITY,
         inspection_date: inspectionDate,
         reference_standard: DEFAULT_REFERENCE_STANDARD,
@@ -416,6 +454,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
       };
       const pdf = await downloadCertificatePdf({ certificate, readings });
       certificateQuery.refetch();
+      setFormVisible(false);
       navigation.navigate('PdfViewer', {
         ...pdf,
         title: 'Certificate Preview',
@@ -447,23 +486,39 @@ export default function GenerateCertificateScreen({ route, navigation }) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.headerCard}>
-          <Text style={styles.title}>Generate Certificate</Text>
+          <Text style={styles.title}>{formVisible ? 'Generate Certificate' : 'Test Certificates'}</Text>
           <Text style={styles.description}>
-            TC No. is generated automatically when you save
+            {formVisible ? 'TC No. is generated automatically when you save' : 'View and manage generated coating test certificates'}
           </Text>
+          {formVisible ? <TouchableOpacity style={styles.headerAction} disabled={saving} onPress={() => setFormVisible(false)}><Text style={styles.headerActionText}>Back to certificates</Text></TouchableOpacity> : <TouchableOpacity style={styles.headerAction} onPress={openNewForm}><Plus size={18} color={COLORS.primary} /><Text style={styles.headerActionText}>Generate New</Text></TouchableOpacity>}
         </View>
 
+        {!formVisible && <>
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Generated certificates</Text>
+          <View style={styles.listHeading}><Text style={styles.formTitle}>Generated certificates</Text><TouchableOpacity style={styles.refreshButton} onPress={() => certificateQuery.refetch()}><RefreshCw size={15} color={COLORS.primary} /><Text style={styles.refreshText}>Refresh</Text></TouchableOpacity></View>
           <AppInput label="Search TC, challan, party or structure" value={certificateSearch} onChangeText={setCertificateSearch} />
-          {certificateQuery.isLoading ? <ActivityIndicator color={COLORS.accent} /> : certificateQuery.isError ? <TouchableOpacity onPress={() => certificateQuery.refetch()}><Text style={styles.description}>Could not load certificates. Tap to retry.</Text></TouchableOpacity> : certificates.length ? certificates.map(item => <TouchableOpacity key={item.id} style={styles.savedCertificate} onPress={() => openCertificate(item)} disabled={openingCertificate != null}>
-            <Text style={styles.formTitle}>{item.tc_no}</Text>
-            <Text style={styles.description}>{item.challan_no || 'No challan'} · {item.party_name || item.client_name || 'No party'}</Text>
-            <Text style={styles.description}>{item.structure || 'Structure not recorded'} · {item.inspection_date || ''}</Text>
-            <Text style={styles.savedCertificateAction}>{openingCertificate === item.id ? 'Opening…' : 'View / Save PDF'}</Text>
-          </TouchableOpacity>) : <Text style={styles.description}>{certificateSearch ? 'No certificates match your search.' : 'Generated certificates will appear here.'}</Text>}
+          {canDeleteCertificates && selectedCertificateIds.length > 0 && <TouchableOpacity style={styles.deleteSelectedButton} disabled={deletingCertificates} onPress={() => confirmDeleteCertificates(selectedCertificateIds)}><Trash2 size={16} color={COLORS.white} /><Text style={styles.deleteSelectedText}>Delete selected ({selectedCertificateIds.length})</Text></TouchableOpacity>}
+          {certificateQuery.isLoading ? <ActivityIndicator color={COLORS.accent} /> : certificateQuery.isError ? <TouchableOpacity onPress={() => certificateQuery.refetch()}><Text style={styles.description}>Could not load certificates. Tap to retry.</Text></TouchableOpacity> : certificates.length ? <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator><View style={styles.certificateTable}>
+            <View style={[styles.certificateTableRow, styles.certificateTableHeader]}>
+              {canDeleteCertificates && <Text style={[styles.tableHeadingText, styles.selectCell]}>Select</Text>}
+              <Text style={[styles.tableHeadingText, styles.tcCell]}>TC No.</Text><Text style={[styles.tableHeadingText, styles.dateCell]}>Inspection Date</Text><Text style={[styles.tableHeadingText, styles.challanCell]}>Challan No.</Text><Text style={[styles.tableHeadingText, styles.clientCell]}>Client / Party</Text><Text style={[styles.tableHeadingText, styles.structureCell]}>Structure</Text><Text style={[styles.tableHeadingText, styles.actionsCell]}>Actions</Text>
+            </View>
+            {certificates.map(item => <View key={item.id} style={styles.certificateTableRow}>
+              {canDeleteCertificates && <TouchableOpacity style={styles.selectCell} accessibilityLabel={`${selectedCertificateIds.includes(item.id) ? 'Deselect' : 'Select'} certificate ${item.tc_no}`} onPress={() => toggleCertificateSelection(item.id)}><Text style={styles.selectMark}>{selectedCertificateIds.includes(item.id) ? '☑' : '□'}</Text></TouchableOpacity>}
+              <Text style={[styles.tableValue, styles.tcCell, styles.tcText]} numberOfLines={2}>{item.tc_no}</Text>
+              <Text style={[styles.tableValue, styles.dateCell]}>{item.inspection_date ? formatDisplayDate(item.inspection_date) : '—'}</Text>
+              <Text style={[styles.tableValue, styles.challanCell]} numberOfLines={2}>{item.challan_no || '—'}</Text>
+              <Text style={[styles.tableValue, styles.clientCell]} numberOfLines={2}>{item.client_name || item.party_name || '—'}</Text>
+              <Text style={[styles.tableValue, styles.structureCell]} numberOfLines={2}>{item.structure || '—'}</Text>
+              <View style={[styles.actionsCell, styles.rowActions]}><TouchableOpacity style={styles.viewButton} onPress={() => openCertificate(item)} disabled={openingCertificate != null || deletingCertificates}><Eye size={15} color={COLORS.primary} /><Text style={styles.viewButtonText}>{openingCertificate === item.id ? 'Opening…' : 'View'}</Text></TouchableOpacity>
+                {canDeleteCertificates && <TouchableOpacity style={styles.deleteButton} accessibilityLabel={`Delete certificate ${item.tc_no}`} disabled={deletingCertificates} onPress={() => confirmDeleteCertificates([item.id])}><Trash2 size={15} color={COLORS.danger} /><Text style={styles.deleteButtonText}>Delete</Text></TouchableOpacity>}
+              </View>
+            </View>)}
+          </View></ScrollView> : <Text style={styles.description}>{certificateSearch ? 'No certificates match your search.' : 'Generated certificates will appear here.'}</Text>}
         </View>
+        </>}
 
+        {formVisible && <>
         {/* --------------------- challan + structure ---------------------- */}
         <View style={[styles.formCard, styles.dropdownFormCard]}>
           <Text style={styles.formTitle}>Challan & Structure</Text>
@@ -756,6 +811,7 @@ export default function GenerateCertificateScreen({ route, navigation }) {
             </>
           )}
         </TouchableOpacity>
+        </>}
       </ScrollView>
 
     </>
@@ -797,20 +853,22 @@ const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 40 },
 
   headerCard: { borderWidth: 0, borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.primary,
     borderRadius: UI.radius,
     padding: 16,
     elevation: 1,
     marginBottom: 12,
   },
 
-  title: { color: COLORS.text, fontSize: 22, fontWeight: '700' },
+  title: { color: COLORS.white, fontSize: 22, fontWeight: '700' },
   description: {
-    color: COLORS.gray,
+    color: COLORS.white,
     fontSize: 13,
     marginTop: 4,
     fontWeight: '600',
   },
+  headerAction: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.white, borderRadius: UI.radiusSmall, paddingHorizontal: 14, minHeight: 44, marginTop: 14 },
+  headerActionText: { color: COLORS.primary, fontWeight: '700' },
 
   formCard: { borderWidth: 0, borderColor: COLORS.border,
     backgroundColor: COLORS.white,
@@ -819,8 +877,30 @@ const styles = StyleSheet.create({
     elevation: 1,
     marginBottom: 12,
   },
-  savedCertificate: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingVertical: 12 },
-  savedCertificateAction: { color: COLORS.primary, fontWeight: '700', marginTop: 6 },
+  listHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  refreshButton: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: COLORS.inputBorder, borderRadius: 8, backgroundColor: COLORS.surfaceMuted, paddingHorizontal: 10, minHeight: 34 },
+  refreshText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
+  certificateTable: { marginTop: 4 },
+  certificateTableRow: { flexDirection: 'row', alignItems: 'center', minHeight: 60, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  certificateTableHeader: { minHeight: 42, backgroundColor: COLORS.surfaceMuted },
+  tableHeadingText: { color: COLORS.primary, fontSize: 12, fontWeight: '800' },
+  tableValue: { color: COLORS.text, fontSize: 12 },
+  tcText: { fontWeight: '800' },
+  selectCell: { width: 58, paddingHorizontal: 8 },
+  tcCell: { width: 115, paddingHorizontal: 8 },
+  dateCell: { width: 110, paddingHorizontal: 8 },
+  challanCell: { width: 115, paddingHorizontal: 8 },
+  clientCell: { width: 155, paddingHorizontal: 8 },
+  structureCell: { width: 165, paddingHorizontal: 8 },
+  actionsCell: { width: 160, paddingHorizontal: 8 },
+  selectMark: { color: COLORS.primary, fontSize: 20 },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  viewButton: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderColor: COLORS.inputBorder, borderRadius: 7, padding: 6, backgroundColor: COLORS.surfaceMuted },
+  viewButtonText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
+  deleteButton: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderColor: COLORS.danger, borderRadius: 7, padding: 6 },
+  deleteButtonText: { color: COLORS.danger, fontWeight: '700', fontSize: 12 },
+  deleteSelectedButton: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, padding: 10, marginTop: 10, borderRadius: 8, backgroundColor: COLORS.danger },
+  deleteSelectedText: { color: COLORS.white, fontWeight: '700' },
   dropdownFormCard: { zIndex: 3000 },
 
   formTitle: {

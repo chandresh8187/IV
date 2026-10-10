@@ -5,11 +5,23 @@ export const createCertificateApi = async body => {
   return response.data;
 };
 
+export const deleteCertificatesApi = async ids => {
+  const response = await apiClient.delete('/certificates', { data: { ids } });
+  return response.data;
+};
+
 export const generateCertificatePdfApi = async body => {
   return apiClient.post('/certificates/pdf', body, {
     responseType: 'arraybuffer',
+    timeout: 120000,
   });
 };
+
+export const downloadSavedCertificatePdfApi = id =>
+  apiClient.get(`/certificates/${id}/pdf`, {
+    responseType: 'arraybuffer',
+    timeout: 120000,
+  });
 
 export const getCertificatesApi = async params => {
   const response = await apiClient.get('/certificates', { params });
@@ -29,8 +41,8 @@ export const getCertificateReadingsApi = async ({
   const response = await apiClient.get('/certificates/readings', {
     params: {
       planning_id: planningId,
-      minimum: minimum || undefined,
-      maximum: maximum || undefined,
+      minimum: minimum ?? undefined,
+      maximum: maximum ?? undefined,
     },
   });
   return response.data;

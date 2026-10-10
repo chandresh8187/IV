@@ -12,7 +12,7 @@ const FIELDS = [
   ['rate_per_ton', 'Rate per 1 ton production'], ['staff_salary', 'Staff salary'],
   ['hardware_expense', 'Hardware expense per day'], ['maintenance_expense', 'Maintenance expense per day'],
   ['zinc_spray_expense', 'Zinc spray expense per day'], ['electricity_per_day', 'Electricity bill per day'],
-  ['gas_bottle_rate', 'Gas bottle rate'], ['chemicals_per_day', 'Chemicals expense per day'],
+  ['chemicals_per_day', 'Chemicals expense per day'],
   ['ms_wire_per_day', 'MS wire expense per day'], ['rent_expense', 'Rent expense per day'],
   ['acid_expense', 'Acid expense per day'], ['crane_expense', 'Crane expense per day'],
   ['other_expense', 'Other expense per day'],
@@ -45,9 +45,9 @@ export default function ExpenseSettingsScreen() {
   return <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={[styles.content, centeredContent(formMaxWidth)]}>
       <Text style={styles.title}>Expense Settings</Text>
-      <Text style={styles.muted}>Set the daily production costs used in the monthly report. Salary also includes the production rate calculation, and gas uses 850 × bottle rate.</Text>
+      <Text style={styles.muted}>Set the daily production costs used in the monthly report. Gas uses 850 × the current rate from Gas Stock.</Text>
       {message ? <Text style={styles.success}>{message}</Text> : null}{error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.card}>{FIELDS.map(([key, label]) => <TextInput key={key} mode="outlined" label={label} value={form[key]} keyboardType="decimal-pad" onChangeText={value => { setForm(current => ({ ...current, [key]: value })); setError(''); }} />)}</View>
+      <View style={styles.card}><Text style={styles.muted}>Current gas rate from Gas Stock: ₹{Number(query.data?.data?.gas_bottle_rate || 0).toFixed(2)} per kg</Text>{FIELDS.map(([key, label]) => <TextInput key={key} mode="outlined" label={label} value={form[key]} keyboardType="decimal-pad" onChangeText={value => { setForm(current => ({ ...current, [key]: value })); setError(''); }} />)}</View>
       <TouchableOpacity style={styles.button} disabled={mutation.isPending} onPress={save}><Text style={styles.buttonText}>{mutation.isPending ? 'Saving…' : 'Save expense settings'}</Text></TouchableOpacity>
     </ScrollView>
   </KeyboardAvoidingView>;
