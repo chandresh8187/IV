@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, MoonStar, SunMedium } from 'lucide-react-native';
-import React from 'react';
+import { ClipboardList, FileDown, MoonStar, SunMedium } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { hasPermission } from '../../utils/permissions';
+import { downloadProductionReport } from '../../utils/serverProductionReport';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -15,15 +20,31 @@ import { formatDisplayDate, formatQuantity, formatWeight } from '../../utils/for
 import { centeredContent, useResponsive } from '../../utils/responsive';
 import ResponsiveGrid from '../../components/ResponsiveGrid';
 
-export default function HistoryPlanningSummaryScreen({ route }) {
+export default function HistoryPlanningSummaryScreen({ route, navigation }) {
   const { date, shift_name: shiftName } = route.params;
   const { contentMaxWidth } = useResponsive();
-  const { data, isLoading } = useQuery({
+  const user = useSelector(state => state.auth.user);
+  const canGenerateReports = hasPermission(user, 'reports.generate');
+  const [downloadingItemId, setDownloadingItemId] = useState(null);
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['history-planning-summary', date, shiftName || 'all'],
     queryFn: () =>
       getHistoryPlanningSummaryApi({ date, shift_name: shiftName }),
   });
   const planningItems = data?.data || [];
+
+  const createReport = async item => {
+    const key = item.planning_item_id || `plan-${item.planning_id}`;
+    setDownloadingItemId(key);
+    try {
+      const pdf = await downloadProductionReport({ type: 'challan', value: item.challan_no,
+        date, shift_name: shiftName, planning_id: item.planning_id,
+        planning_item_id: item.planning_item_id || undefined });
+      navigation.navigate('PdfViewer', { ...pdf, title: `${item.challan_no} Report` });
+    } catch (error) {
+      Alert.alert('Could not create report', error?.response?.data?.message || error?.message || 'Please try again.');
+    } finally { setDownloadingItemId(null); }
+  };
 
   if (isLoading)
     return (
@@ -31,6 +52,8 @@ export default function HistoryPlanningSummaryScreen({ route }) {
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
+
+  if (isError) return <View style={styles.loader}><Text style={styles.subtitle}>Could not load planning summary.</Text><TouchableOpacity accessibilityRole="button" style={styles.reportButton} onPress={() => refetch()}><Text style={styles.reportButtonText}>Retry</Text></TouchableOpacity></View>;
 
   return (
     <ScrollView
@@ -64,6 +87,9 @@ export default function HistoryPlanningSummaryScreen({ route }) {
               key={item.planning_item_id || `plan-${item.planning_id}`}
               item={item}
               shiftName={shiftName}
+              onReport={canGenerateReports ? () => createReport(item) : null}
+              downloading={downloadingItemId === (item.planning_item_id || `plan-${item.planning_id}`)}
+              reportDisabled={downloadingItemId != null}
             />
           ))
         )}
@@ -72,7 +98,7 @@ export default function HistoryPlanningSummaryScreen({ route }) {
   );
 }
 
-function PlanningItemCard({ item, shiftName }) {
+function PlanningItemCard({ item, shiftName, onReport, downloading, reportDisabled }) {
   const planned = Number(item.planned_qty) || 0;
   const completed = Number(item.completed_qty) || 0;
   const progress = planned ? Math.min(100, (completed / planned) * 100) : 0;
@@ -168,6 +194,7 @@ function PlanningItemCard({ item, shiftName }) {
             : `${formatWeight(item.actual_zinc_percentage)}% · ${formatWeight(item.actual_zinc_consumption_kg)} kg`}
         />
       </View>
+      {onReport ? <View style={styles.reportActions}><TouchableOpacity accessibilityRole="button" accessibilityLabel={`PDF report for ${item.challan_no}`} style={styles.reportButton} disabled={reportDisabled} onPress={onReport}>{downloading ? <ActivityIndicator color={COLORS.white} /> : <><FileDown size={16} color={COLORS.white} /><Text style={styles.reportButtonText}>PDF Report</Text></>}</TouchableOpacity></View> : null}
     </View>
   );
 }
@@ -209,6 +236,9 @@ function EmptyState() {
 }
 
 const styles = StyleSheet.create({
+  reportActions: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+  reportButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: UI.radiusSmall, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+  reportButtonText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
   screen: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: UI.pagePadding, paddingBottom: 40 },
   loader: {

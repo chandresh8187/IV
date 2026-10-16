@@ -26,7 +26,7 @@ export default function HistoryMaterialSummaryScreen({ navigation, route }) {
   const loggedUser = useSelector(state => state.auth.user);
   const canGenerateReports = hasPermission(loggedUser, 'reports.generate');
   const [downloadingItemId, setDownloadingItemId] = useState(null);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['history-material-summary', date, shiftName || 'all'],
     queryFn: () =>
       getHistoryMaterialSummaryApi({ date, shift_name: shiftName }),
@@ -63,6 +63,8 @@ export default function HistoryMaterialSummaryScreen({ navigation, route }) {
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
+
+  if (isError) return <View style={styles.loader}><Text style={styles.subtitle}>Could not load material summary.</Text><TouchableOpacity accessibilityRole="button" style={styles.reportButton} onPress={() => refetch()}><Text style={styles.reportButtonText}>Retry</Text></TouchableOpacity></View>;
 
   return (
     <ScrollView
@@ -161,10 +163,12 @@ export default function HistoryMaterialSummaryScreen({ navigation, route }) {
                   />
                 </View>
                 {canGenerateReports ? (
-                  <TouchableOpacity
+                  <View style={styles.reportActions}><TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`PDF report for ${material.material_name}`}
                     style={styles.reportButton}
                     onPress={() => createReport(material)}
-                    disabled={downloadingItemId === reportKey}
+                    disabled={downloadingItemId != null}
                   >
                     {downloadingItemId === reportKey ? (
                       <ActivityIndicator color={COLORS.white} />
@@ -172,11 +176,11 @@ export default function HistoryMaterialSummaryScreen({ navigation, route }) {
                       <>
                         <FileDown size={16} color={COLORS.white} />
                         <Text style={styles.reportButtonText}>
-                          MATERIAL REPORT
+                          PDF Report
                         </Text>
                       </>
                     )}
-                  </TouchableOpacity>
+                  </TouchableOpacity></View>
                 ) : null}
               </View>
             );
@@ -284,9 +288,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 4,
   },
+  reportActions: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
   reportButton: {
     minHeight: 44,
-    marginTop: 14,
+    paddingHorizontal: 16,
     borderRadius: UI.radiusSmall,
     backgroundColor: COLORS.primary,
     alignItems: 'center',

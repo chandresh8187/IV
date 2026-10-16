@@ -207,3 +207,21 @@ test('kettle opening stock converts between millimetres and kilograms', () => {
   expect(zincKgToMm(3570)).toBe(100);
   expect(zincMmToKg(1250)).toBe(44625);
 });
+
+
+test('receipt submits batch and invoice references and transfers omit them', () => {
+  render();
+  tap('Add zinc to plant');
+  change('Zinc amount (kg)', '100');
+  change('Zinc rate per kg (₹)', '200');
+  change('Batch number (optional)', ' B-12 ');
+  change('Invoice number (optional)', ' INV/44 ');
+  tap('Save plant receipt');
+  expect(mutate.mock.calls[0][0]).toMatchObject({ batch_number: 'B-12', invoice_number: 'INV/44' });
+  tap('Cancel');
+  tap('Stock in Kettle');
+  tap('Add zinc to kettle');
+  change('Zinc amount (kg)', '10');
+  tap('Confirm transfer');
+  expect(mutate.mock.calls.at(-1)[0].batch_number).toBeUndefined();
+});

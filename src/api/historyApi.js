@@ -16,10 +16,11 @@ export const downloadProductionReportApi = async ({
   date,
   item_id,
   planning_id,
+  planning_item_id,
   shift_name,
 }) => {
   const response = await apiClient.get('/production-history/report', {
-    params: { type, value, date, item_id, planning_id, shift_name },
+    params: { type, value, date, item_id, planning_id, planning_item_id, shift_name },
     responseType: 'arraybuffer',
   });
   return response;
