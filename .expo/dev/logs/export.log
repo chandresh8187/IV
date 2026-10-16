@@ -637,3 +637,11 @@
 {"_e":"metro:instantiate","_t":1791627809128,"atlas":false,"workers":6,"host":null,"port":null}
 {"_e":"metro:bundling:started","_t":1791627809857,"id":"1","platform":"android","environment":null,"entry":"index.js"}
 {"_e":"metro:bundling:done","_t":1791627833037,"id":"1","total":3057,"ms":23179.2668}
+{"_e":"root:init","_t":1792124544210,"format":"v0-jsonl","version":"56.1.22"}
+{"_e":"env:mode","_t":1792124544712,"nodeEnv":"production","babelEnv":"production","mode":"production"}
+{"_e":"env:load","_t":1792124544714,"mode":"production","files":[],"env":{}}
+{"_e":"devserver:start","_t":1792124544785,"mode":"production","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":true}
+{"_e":"metro:config","_t":1792124545359,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":true,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"metro:instantiate","_t":1792124545753,"atlas":false,"workers":6,"host":null,"port":null}
+{"_e":"metro:bundling:started","_t":1792124546725,"id":"1","platform":"android","environment":null,"entry":"index.js"}
+{"_e":"metro:bundling:done","_t":1792124568429,"id":"1","total":3058,"ms":21703.5566}
