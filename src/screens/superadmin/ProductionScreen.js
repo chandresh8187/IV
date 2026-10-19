@@ -260,13 +260,14 @@ export default function ProductionScreen() {
     isError: shiftStatusError,
     error: shiftStatusErrorObj,
   } = useQuery({
-    queryKey: ['shift-status'],
+    queryKey: ['shift-status', loggedUser?.id],
     queryFn: getShiftStatusApi,
     refetchInterval: 30000,
   });
 
   const shiftStatus = shiftStatusData?.data;
-  const correctionMode = Boolean(shiftStatus?.correction_mode);
+  const correctionMode = Boolean(shiftStatus?.correction_mode && loggedUser?.id &&
+    Number(shiftStatus?.correction_user_id) === Number(loggedUser.id));
   const shiftRevision = shiftStatus?.shift_revision || 0;
   const activeShift =
     (correctionMode ? shiftStatus?.production_shift : null) ||
@@ -293,7 +294,7 @@ export default function ProductionScreen() {
     (!shiftStatusError || !!shiftStatusData);
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['productions', activeShiftId, shiftRevision],
+    queryKey: ['productions', activeShiftId, shiftRevision, loggedUser?.id],
     queryFn: async () => {
       const allRows = [];
       let page = 1;
@@ -302,6 +303,7 @@ export default function ProductionScreen() {
           limit: 500,
           page,
           shift_id: activeShiftId,
+          live: true,
         });
         const batch = response?.data?.table_data || response?.data || [];
         allRows.push(...batch);
@@ -549,12 +551,12 @@ export default function ProductionScreen() {
     await queryClient.invalidateQueries({ queryKey: ['shift-status'] });
 
     const latestShift = await queryClient.fetchQuery({
-      queryKey: ['shift-status'],
+      queryKey: ['shift-status', loggedUser?.id],
       queryFn: getShiftStatusApi,
     });
 
     const latestShiftId =
-      (latestShift?.data?.correction_mode ? latestShift?.data?.production_shift?.id : null) ||
+      (latestShift?.data?.correction_mode && Number(latestShift?.data?.correction_user_id) === Number(loggedUser?.id) ? latestShift?.data?.production_shift?.id : null) ||
       latestShift?.data?.active_shift?.id;
 
     if (latestShiftId) {

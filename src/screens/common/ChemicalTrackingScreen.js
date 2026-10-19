@@ -20,6 +20,7 @@ import { useSelector } from 'react-redux';
 import {
   getChemicalChecksApi,
   saveChemicalCheckApi,
+  updateChemicalCheckApi,
 } from '../../api/chemicalChecksApi';
 import { COLORS, UI } from '../../assets/Colors';
 import { hasPermission } from '../../utils/permissions';
@@ -64,6 +65,9 @@ export default function ChemicalTrackingScreen({ navigation }) {
   const user = useSelector(state => state.auth.user);
   const canView = hasPermission(user, 'chemical_checks.view');
   const canManage = hasPermission(user, 'chemical_checks.manage');
+  const canEdit = hasPermission(user, 'chemical_checks.edit');
+  const [editingId, setEditingId] = useState(null);
+  const scrollRef = React.useRef(null);
   const canReport = hasPermission(user, 'chemical_checks.report');
   const { contentMaxWidth } = useResponsive();
   const client = useQueryClient();
@@ -86,10 +90,15 @@ export default function ChemicalTrackingScreen({ navigation }) {
     }, [canView, refetch]),
   );
   const mutation = useMutation({
-    mutationFn: saveChemicalCheckApi,
+    mutationFn: body => editingId ? updateChemicalCheckApi({ ...body, id: editingId }) : saveChemicalCheckApi(body),
     onSuccess: (response, variables) => {
+      const saved = response.data;
+      if (saved?.id && saved.inspection_date) {
+        client.setQueriesData({ queryKey: ['chemical-checks'] }, cached => cached ? { ...cached, data: (cached.data || []).map(row => Number(row.id) === Number(saved.id) ? saved : row) } : cached);
+      }
       setSuccess(response.message || 'Chemical check saved.');
       setError('');
+      setEditingId(null);
       setForm(emptyForm());
       setMonth(variables.inspection_date.slice(0, 7));
       client.invalidateQueries({ queryKey: ['chemical-checks'] });
@@ -118,6 +127,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
     [],
   );
   const save = () => {
+    if (editingId ? !canEdit : !canManage) return;
     setSuccess('');
     setError('');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.inspection_date))
@@ -125,7 +135,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
     if (
       fields.some(
         ({ key }) =>
-          form[key].trim() === '' || !Number.isFinite(Number(form[key])),
+          !(/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(form[key].trim())) || !Number.isFinite(Number(form[key])),
       )
     )
       return setError('Enter all pH, density, and flux temperature readings.');
@@ -177,6 +187,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
+        ref={scrollRef}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
@@ -210,8 +221,9 @@ export default function ChemicalTrackingScreen({ navigation }) {
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {success ? <Text style={styles.success}>{success}</Text> : null}
-        {canManage && (
+        {(editingId ? canEdit : canManage) && (
           <View style={styles.card}>
+            <Text style={styles.sectionTitle}>{editingId ? 'Edit chemical check' : 'Add daily check'}</Text>
             <View>
               <Text style={styles.dateLabel}>Inspection date</Text>
               <TouchableOpacity
@@ -272,15 +284,9 @@ export default function ChemicalTrackingScreen({ navigation }) {
                     mode="outlined"
                     label={`Enter ${label.toLowerCase()}`}
                     value={form[key]}
-                    keyboardType={
-                      key === 'acid_ph'
-                        ? Platform.OS === 'ios'
-                          ? 'numbers-and-punctuation'
-                          : 'default'
-                        : 'decimal-pad'
-                    }
+                    keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
                     onChangeText={value =>
-                      setForm(current => ({ ...current, [key]: value }))
+                      { if (/^[+-]?\d*(?:\.\d*)?$/.test(value)) setForm(current => ({ ...current, [key]: value })); }
                     }
                   />
                 </View>
@@ -304,9 +310,10 @@ export default function ChemicalTrackingScreen({ navigation }) {
               {mutation.isPending ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.buttonText}>Save chemical check</Text>
+                <Text style={styles.buttonText}>{editingId ? 'Save changes' : 'Save chemical check'}</Text>
               )}
             </TouchableOpacity>
+            {editingId && <TouchableOpacity style={styles.secondaryButton} disabled={mutation.isPending} onPress={() => { setEditingId(null); setForm(emptyForm()); setError(''); setSuccess(''); setShowDatePicker(false); }}><Text style={styles.secondaryText}>Cancel edit</Text></TouchableOpacity>}
           </View>
         )}
         <View style={styles.headerRow}>
@@ -348,6 +355,7 @@ export default function ChemicalTrackingScreen({ navigation }) {
                 </Text>
                 <Text style={styles.checkedBy}>{item.checked_by_name}</Text>
               </View>
+              {canEdit && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit chemical check ${item.inspection_date}`} style={styles.secondaryButton} disabled={mutation.isPending} onPress={() => { setEditingId(item.id); setForm(Object.fromEntries(Object.keys(emptyForm()).map(key => [key, String(item[key] ?? '')]))); setError(''); setSuccess(''); setShowDatePicker(false); scrollRef.current?.scrollTo({ y: 0, animated: true }); }}><Text style={styles.secondaryText}>Edit</Text></TouchableOpacity>}
               <View style={styles.readingGrid}>
                 <Reading label="Flux pH" value={reading(item.flux_ph)} />
                 <Reading

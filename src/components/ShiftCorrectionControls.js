@@ -161,9 +161,10 @@ export default function ShiftCorrectionControls({
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.heading}>Correct a previous shift</Text>
             <Text style={styles.text}>
-              Choose the production date, then an ended shift. All users will
-              see its entries in Live Production until you resume the current
-              shift.
+              Choose the user, production date, and an ended shift. Only the selected
+              user will enter correction mode and can edit all entries in that shift,
+              regardless of who created them, or add new entries. Other users remain
+              on the current shift.
             </Text>
             <DropDownPicker
               open={userOpen}
