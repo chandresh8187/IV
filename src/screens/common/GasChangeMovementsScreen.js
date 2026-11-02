@@ -61,6 +61,10 @@ export default function GasChangeMovementsScreen({ navigation }) {
         }
       }}><Text style={styles.buttonText}>Generate PDF report</Text></TouchableOpacity>}
       {query.isError && <TouchableOpacity style={styles.card} onPress={() => query.refetch()}><Text style={styles.muted}>Could not load gas movements. Tap to retry.</Text></TouchableOpacity>}
+      <Text style={styles.heading}>Returns to stock</Text>
+      {(query.data?.data?.returns || []).map(r=><View key={'return-'+r.id} style={styles.card}><Text style={styles.heading}>GAS-{r.position_no} → Stock · {r.was_used?'Partly used':'Unused'}</Text><Text style={styles.muted}>{r.bottle_code} · {plantDateTime(r.returned_at)}</Text><Text style={styles.muted}>{r.reason}</Text><Text style={styles.muted}>Recorded by {r.actor_name || '-'} · Slot made empty</Text></View>)}
+      {!(query.data?.data?.returns || []).length&&<Text style={styles.muted}>No stock returns recorded.</Text>}
+      <Text style={styles.heading}>Gas supply runs</Text>
       {runs.map(run => (
         <View style={styles.card} key={run.id}>
           <Text style={styles.heading}>GAS-{run.position_no || '-'} · {run.finished_at ? run.end_reason === 'paused' ? 'Paused' : 'Finished' : 'Running'}</Text>

@@ -15,7 +15,9 @@ import RateCalculatorScreen from '../../screens/common/RateCalculatorScreen';
 import ExpenseReportScreen from '../../screens/common/ExpenseReportScreen';
 import ExpenseSettingsScreen from '../../screens/common/ExpenseSettingsScreen';
 import MonthlyReportsScreen from '../../screens/common/MonthlyReportsScreen';
+import MonthlyReportDetailScreen from '../../screens/common/MonthlyReportDetailScreen';
 import ZincStockScreen from '../../screens/common/ZincStockScreen';
+import ZincPurchaseScreen from '../../screens/common/ZincPurchaseScreen';
 import ZincStockReportScreen from '../../screens/common/ZincStockReportScreen';
 import AshDrossReportScreen from '../../screens/common/AshDrossReportScreen';
 import ZincStockSettingsScreen from '../../screens/common/ZincStockSettingsScreen';
@@ -103,11 +105,13 @@ export default function ProductionStack() {
         component={MonthlyReportsScreen}
         options={{ title: 'Monthly Reports' }}
       />
+      <Stack.Screen name="MonthlyReportDetail" component={MonthlyReportDetailScreen} options={({ route }) => ({ title: ({ purchases: 'Zinc Purchase', zinc: 'Zinc Transactions', planning: 'Plannings', materials: 'Material Productions' })[route.params?.type] || 'Monthly Report' })} />
       <Stack.Screen
         name="ZincStock"
         component={ZincStockScreen}
         options={{ title: 'Zinc Stock' }}
       />
+      <Stack.Screen name="ZincPurchase" component={ZincPurchaseScreen} options={{ title: 'Zinc Purchase' }} />
       <Stack.Screen
         name="ZincStockReport"
         component={ZincStockReportScreen}

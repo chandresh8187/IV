@@ -2,3 +2,4 @@ import apiClient from './apiClient';
 export const getMonthlyReportApi=async params=>(await apiClient.get('/monthly-reports',{params})).data;
 export const downloadMonthlyReportApi=async params=>apiClient.get('/monthly-reports/pdf',{params,responseType:'arraybuffer'});
 export const downloadDailyProductionReportApi=async params=>apiClient.get('/monthly-reports/daily-production/pdf',{params,responseType:'arraybuffer'});
+export const downloadMonthlyDetailReportApi = async (type, params) => apiClient.get(`/monthly-reports/details/${type}/pdf`, { params, responseType: 'arraybuffer' });

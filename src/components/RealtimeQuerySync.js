@@ -201,7 +201,7 @@ export default function RealtimeQuerySync() {
       ]);
 
     const invalidateAllRealtimeData = () => {
-      invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
+      invalidateKeys(['zinc-purchases', 'zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
       invalidateKeys(['labour-weights']);
       invalidateKeys(['contractors', 'contractor-report']);
       invalidateKeys(['financial-years', 'current-financial-year']);
@@ -265,7 +265,7 @@ export default function RealtimeQuerySync() {
     socket.on('production_updated', invalidateProductionData);
     const invalidateLabourWeights = () => invalidateKeys(['labour-weights']);
     socket.on('labour_weights_updated', invalidateLabourWeights);
-    const invalidateZincStock = () => invalidateKeys(['zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
+    const invalidateZincStock = () => invalidateKeys(['zinc-purchases', 'zinc-stock', 'zinc-stock-movements', 'expense-report', 'monthly-report']);
     const invalidateZincByproducts = () => invalidateKeys(['zinc-byproducts', 'dashboard', 'expense-report', 'monthly-report']);
     const invalidateExpenseReport = () => invalidateKeys(['expense-report', 'expense-settings', 'monthly-report']);
     socket.on('zinc_stock_updated', invalidateZincStock);

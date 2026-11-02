@@ -8,8 +8,9 @@ export default function ZincTransactionCard({ row }) {
   const label = summary ? Number(row.amount_kg) < 0 ? 'Production return (net)' : 'Production usage' : ({ receive: 'Zinc received in plant', transfer: 'Plant to kettle transfer', initialize: 'Opening balances', adjust: 'Stock correction' }[row.movement_type] || 'Stock movement');
   const date = String(row.transaction_date || row.created_at || '').slice(0, 10).split('-').reverse().join('/');
   return <View style={styles.card}>
-    <Text style={styles.muted}>{date}{summary ? ` · ${row.shift_name === 'day' ? 'Day shift' : row.shift_name === 'night' ? 'Night shift' : 'Shift unavailable'}` : ''}</Text>
+    <Text style={styles.muted}>{date}{['transfer', 'receive'].includes(row.movement_type) && row.transaction_time ? ` · ${row.transaction_time} IST` : ''}{summary ? ` · ${row.shift_name === 'day' ? 'Day shift' : row.shift_name === 'night' ? 'Night shift' : 'Shift unavailable'}` : ''}</Text>
     <Text style={styles.heading}>{label} · {['initialize', 'adjust'].includes(row.movement_type) ? 'Balances set' : `${zincKg(Math.abs(Number(row.amount_kg)))} kg`}</Text>
+    {['transfer', 'receive'].includes(row.movement_type) && row.transaction_date !== row.created_at?.slice(0, 10) && <Text style={styles.muted}>Recorded: {row.created_at}. Balances below are the stock snapshot when saved.</Text>}
     {summary ? <Text style={styles.muted}>Net usage after returns and corrections.{row.shift_name === 'unavailable' ? ' Legacy record: recorded date shown.' : ''}</Text> : <>
       <Text style={styles.muted}>Balances after movement: Plant {zincKg(row.plant_after_kg)} kg · Kettle {zincKg(row.kettle_after_kg)} kg</Text>
       {row.batch_number ? <Text>Batch: {row.batch_number}</Text> : null}
